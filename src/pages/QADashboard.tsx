@@ -4,7 +4,7 @@ import {
   XCircle, Clock, RefreshCw, FileText,
 } from 'lucide-react'
 import type { Story } from '../types'
-import storiesData from '../data/stories.json'
+import { useStories } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
@@ -12,9 +12,8 @@ import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import UserAvatar from '../components/ui/UserAvatar'
 
-const stories = storiesData as Story[]
-
 export default function QADashboard() {
+  const stories = useStories()
   const { userProfile } = useAuthContext()
 
   const pending   = stories.filter(s => s.qaStatus === 'Pending')

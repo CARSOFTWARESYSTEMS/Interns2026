@@ -1,17 +1,12 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { FlaskConical, Github, Globe, ExternalLink, Printer, Terminal, Shield, CheckCircle2, FileText } from 'lucide-react'
-import type { Simulator, Developer } from '../types'
-import simulatorsData from '../data/simulators.json'
-import developersData from '../data/developers.json'
+import { useSimulators, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import TabNav from '../components/ui/TabNav'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import EvidenceRow from '../components/ui/EvidenceRow'
-
-const simulators = simulatorsData as Simulator[]
-const developers = developersData as Developer[]
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -55,6 +50,8 @@ function BulletList({ items }: { items: string[] }) {
 }
 
 export default function SimulatorDetail() {
+  const simulators = useSimulators()
+  const developers = useDevelopers()
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState('overview')
 

@@ -3,19 +3,16 @@ import {
   ShieldCheck, Clock, CheckCircle, XCircle,
   FileText, Cpu, AlertTriangle,
 } from 'lucide-react'
-import type { Story, Simulator } from '../types'
-import storiesData   from '../data/stories.json'
-import simulatorsData from '../data/simulators.json'
+import { useStories, useSimulators } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import UserAvatar from '../components/ui/UserAvatar'
 
-const stories    = storiesData    as Story[]
-const simulators = simulatorsData as Simulator[]
-
 export default function ArchitectDashboard() {
+  const stories    = useStories()
+  const simulators = useSimulators()
   const { userProfile } = useAuthContext()
 
   const pendingReview  = stories.filter(s => s.architectStatus === 'Pending' && s.qaStatus === 'Passed')

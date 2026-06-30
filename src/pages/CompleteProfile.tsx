@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Battery, Shield, Check, ChevronRight, ChevronLeft, User, GraduationCap, Link2, Star } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
-import { updateUserProfile } from '../firebase/firestore'
+import { updateUserProfile, setUserSkills } from '../firebase/firestore'
 import { SKILL_KEYS, SKILL_LABELS, emptySkillRatings, type SkillKey } from '../types/auth'
 
 const STEPS = [
@@ -58,7 +58,15 @@ export default function CompleteProfile() {
     setSaving(true)
     try {
       const updates = { ...form, profileComplete: true }
-      await updateUserProfile(userProfile.uid, updates)
+      await Promise.all([
+        updateUserProfile(userProfile.uid, updates),
+        setUserSkills(userProfile.uid, {
+          uid: userProfile.uid,
+          ratings: skills,
+          managerOverrides: {},
+          updatedAt: new Date().toISOString(),
+        }),
+      ])
       setProfileAfterComplete({ ...userProfile, ...updates })
       navigate('/', { replace: true })
     } finally {

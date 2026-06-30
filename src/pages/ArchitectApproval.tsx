@@ -1,19 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShieldCheck, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
-import type { Story, Developer } from '../types'
-import storiesData from '../data/stories.json'
-import developersData from '../data/developers.json'
+import { useStories, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 
-const stories = storiesData as Story[]
-const developers = developersData as Developer[]
-const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
-
 export default function ArchitectApproval() {
+  const stories    = useStories()
+  const developers = useDevelopers()
+  const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
+
   const [filterProduct, setFilterProduct] = useState('All')
 
   const filtered = stories.filter(s =>

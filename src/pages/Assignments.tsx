@@ -1,25 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClipboardList, Search, ArrowRight, AlertTriangle } from 'lucide-react'
-import type { Assignment, Developer, Story, Simulator } from '../types'
-import assignmentsData from '../data/assignments.json'
-import developersData from '../data/developers.json'
-import storiesData from '../data/stories.json'
-import simulatorsData from '../data/simulators.json'
+import { useAssignments, useDevelopers, useStories, useSimulators } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import StatCard from '../components/ui/StatCard'
 import ProgressBar from '../components/ui/ProgressBar'
 import { calcEvidenceProgress, getDaysRemaining, getRiskLevel } from '../utils/progress'
-
-const assignments = assignmentsData as Assignment[]
-const developers = developersData as Developer[]
-const stories = storiesData as Story[]
-const simulators = simulatorsData as Simulator[]
-
-const devMap = Object.fromEntries(developers.map(d => [d.id, d.name]))
-const storyMap = Object.fromEntries(stories.map(s => [s.id, s.title]))
-const simMap = Object.fromEntries(simulators.map(s => [s.id, s.name]))
 
 const ALL_STATUSES = [
   'Draft','Assigned','Accepted','Research','Analysis',
@@ -30,6 +17,14 @@ const ALL_STATUSES = [
 ]
 
 export default function Assignments() {
+  const assignments = useAssignments()
+  const developers  = useDevelopers()
+  const stories     = useStories()
+  const simulators  = useSimulators()
+  const devMap   = Object.fromEntries(developers.map(d => [d.id, d.name]))
+  const storyMap = Object.fromEntries(stories.map(s => [s.id, s.title]))
+  const simMap   = Object.fromEntries(simulators.map(s => [s.id, s.name]))
+
   const [search, setSearch] = useState('')
   const [filterProduct, setFilterProduct] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')

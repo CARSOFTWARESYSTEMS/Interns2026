@@ -4,20 +4,11 @@ import {
   CheckCircle, ShieldCheck, Award, Clock, Battery,
   ArrowRight, CalendarDays, Lock
 } from 'lucide-react'
-import type { Developer, Simulator, Story, WeeklyPlan } from '../types'
-import developersData from '../data/developers.json'
-import simulatorsData from '../data/simulators.json'
-import storiesData from '../data/stories.json'
-import weeklyPlanData from '../data/weeklyPlan.json'
+import { useDevelopers, useSimulators, useStories, useWeeklyPlan } from '../data/DataProvider'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
-
-const developers = developersData as Developer[]
-const simulators = simulatorsData as Simulator[]
-const stories = storiesData as Story[]
-const weeklyPlan = weeklyPlanData as WeeklyPlan[]
 
 const PHASES = [
   'Not Started','Research','Simulator Development','Simulator QA',
@@ -34,6 +25,11 @@ const PHASE_COLORS = [
 ]
 
 export default function Dashboard() {
+  const developers = useDevelopers()
+  const simulators = useSimulators()
+  const stories    = useStories()
+  const weeklyPlan = useWeeklyPlan()
+
   const qaPassedCount = stories.filter(s => s.qaStatus === 'Passed').length
   const architectApprovedCount = stories.filter(s => s.architectStatus === 'Approved').length
   const demoReadyCount = stories.filter(s => (['Ready','Presented','Accepted'] as const).includes(s.demoStatus as 'Ready'|'Presented'|'Accepted')).length
@@ -155,7 +151,7 @@ export default function Dashboard() {
         </SectionCard>
 
         <div className="space-y-4">
-          <SectionCard title="Current Week" icon={<CalendarDays size={15}/>} action={<Link to="/weekly-review" className="text-xs text-brand-600 hover:underline font-medium">Full schedule →</Link>}>
+          <SectionCard title="Current Week" icon={<CalendarDays size={15}/>} action={<Link to="/weekly" className="text-xs text-brand-600 hover:underline font-medium">Full schedule →</Link>}>
             {currentWeek && (
               <div>
                 <div className="flex items-center gap-2 mb-2">

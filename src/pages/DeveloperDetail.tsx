@@ -1,20 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
 import { Users, Github, FolderOpen, ExternalLink, Cpu, FileText, Calendar } from 'lucide-react'
-import type { Developer } from '../types'
-import developersData from '../data/developers.json'
-import simulatorsData from '../data/simulators.json'
-import storiesData from '../data/stories.json'
+import { useDevelopers, useSimulators, useStories } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
-
-const developers = developersData as Developer[]
-const simNames: Record<string, string> = Object.fromEntries(
-  (simulatorsData as { id: string; name: string }[]).map(s => [s.id, s.name])
-)
-const storyTitles: Record<string, string> = Object.fromEntries(
-  (storiesData as { id: string; title: string }[]).map(s => [s.id, s.title])
-)
 
 function InfoRow({ label, value }: { label: string; value?: string }) {
   return (
@@ -42,6 +31,11 @@ function LinkRow({ label, value, icon }: { label: string; value?: string; icon: 
 }
 
 export default function DeveloperDetail() {
+  const developers  = useDevelopers()
+  const simulators  = useSimulators()
+  const stories     = useStories()
+  const simNames: Record<string, string>    = Object.fromEntries(simulators.map(s => [s.id, s.name]))
+  const storyTitles: Record<string, string> = Object.fromEntries(stories.map(s => [s.id, s.title]))
   const { id } = useParams<{ id: string }>()
   const dev = developers.find(d => d.id === id)
 

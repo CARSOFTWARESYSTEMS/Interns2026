@@ -3,10 +3,7 @@ import {
   Users, AlertTriangle, Clock, CheckCircle,
   BarChart3, FileText, Cpu, Battery,
 } from 'lucide-react'
-import type { Developer, Story, Simulator } from '../types'
-import developersData  from '../data/developers.json'
-import storiesData     from '../data/stories.json'
-import simulatorsData  from '../data/simulators.json'
+import { useDevelopers, useStories, useSimulators } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
@@ -14,11 +11,10 @@ import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import UserAvatar from '../components/ui/UserAvatar'
 
-const developers = developersData as Developer[]
-const stories    = storiesData    as Story[]
-const simulators = simulatorsData as Simulator[]
-
 export default function ManagerDashboard() {
+  const developers = useDevelopers()
+  const stories    = useStories()
+  const simulators = useSimulators()
   const { userProfile } = useAuthContext()
 
   const blocked  = stories.filter(s => s.status === 'Blocked')

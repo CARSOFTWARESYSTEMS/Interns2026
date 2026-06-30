@@ -1,20 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Cpu, Search, ExternalLink, Github, Globe, FlaskConical } from 'lucide-react'
-import type { Simulator, Developer } from '../types'
-import simulatorsData from '../data/simulators.json'
-import developersData from '../data/developers.json'
+import { useSimulators, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 
-const simulators = simulatorsData as Simulator[]
-const developers = developersData as Developer[]
-
-const devNames: Record<string, string> = Object.fromEntries(
-  developers.map(d => [d.id, d.name])
-)
-
 export default function Simulators() {
+  const simulators = useSimulators()
+  const developers = useDevelopers()
+  const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
   const [search, setSearch] = useState('')
   const [filterProduct, setFilterProduct] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')

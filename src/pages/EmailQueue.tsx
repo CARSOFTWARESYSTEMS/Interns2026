@@ -1,25 +1,20 @@
 import { useState } from 'react'
 import { Mail, CheckCircle, Clock, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import type { Assignment, Developer, Story, Simulator } from '../types'
-import assignmentsData from '../data/assignments.json'
-import developersData from '../data/developers.json'
-import storiesData from '../data/stories.json'
-import simulatorsData from '../data/simulators.json'
+import { useAssignments, useDevelopers, useStories, useSimulators } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 
-const assignments = assignmentsData as Assignment[]
-const developers = developersData as Developer[]
-const stories = storiesData as Story[]
-const simulators = simulatorsData as Simulator[]
-
-const devMap = Object.fromEntries(developers.map(d => [d.id, d]))
-const storyMap = Object.fromEntries(stories.map(s => [s.id, s.title]))
-const simMap = Object.fromEntries(simulators.map(s => [s.id, s.name]))
-
 export default function EmailQueue() {
+  const assignments = useAssignments()
+  const developers  = useDevelopers()
+  const stories     = useStories()
+  const simulators  = useSimulators()
+  const devMap   = Object.fromEntries(developers.map(d => [d.id, d]))
+  const storyMap = Object.fromEntries(stories.map(s => [s.id, s.title]))
+  const simMap   = Object.fromEntries(simulators.map(s => [s.id, s.name]))
+
   const [generated, setGenerated] = useState<Set<string>>(new Set())
 
   function markGenerated(id: string) {

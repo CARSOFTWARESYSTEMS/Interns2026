@@ -7,10 +7,7 @@ import {
   Printer, ArrowRight
 } from 'lucide-react'
 import type { Assignment, Developer, Story, Simulator } from '../types'
-import assignmentsData from '../data/assignments.json'
-import developersData from '../data/developers.json'
-import storiesData from '../data/stories.json'
-import simulatorsData from '../data/simulators.json'
+import { useAssignments, useDevelopers, useStories, useSimulators } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import TabNav from '../components/ui/TabNav'
 import SectionCard from '../components/ui/SectionCard'
@@ -24,10 +21,7 @@ import {
   getDaysRemaining, getRiskLevel,
 } from '../utils/progress'
 
-const assignments = assignmentsData as Assignment[]
-const developers = developersData as Developer[]
-const stories = storiesData as Story[]
-const simulators = simulatorsData as Simulator[]
+
 
 const TABS = [
   { id: 'summary',    label: 'Summary' },
@@ -105,6 +99,10 @@ function EvidenceStatusIcon({ status }: { status: string }) {
 }
 
 export default function AssignmentDetail() {
+  const assignments = useAssignments()
+  const developers  = useDevelopers()
+  const stories     = useStories()
+  const simulators  = useSimulators()
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState('summary')
 
@@ -521,12 +519,12 @@ export default function AssignmentDetail() {
             <SectionCard title="Evidence Checklist" icon={<FolderOpen size={13}/>}>
               <div className="space-y-1">
                 {evidenceEntries.map(([key, ev]) => (
-                  <div key={key} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-slate-50">
+                  <div key={String(key)} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors border border-slate-50">
                     <EvidenceStatusIcon status={ev.status} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-semibold text-slate-800">{EV_LABELS[key]}</span>
-                        {EV_REQUIRED.has(key) && <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">REQUIRED</span>}
+                        {EV_REQUIRED.has(key as string) && <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">REQUIRED</span>}
                       </div>
                       {ev.date && <p className="text-[10px] text-slate-400">Submitted: {ev.date}</p>}
                       {ev.comments && <p className="text-[10px] text-slate-500 italic">{ev.comments}</p>}

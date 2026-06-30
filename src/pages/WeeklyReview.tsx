@@ -1,23 +1,20 @@
 import { Calendar, CheckCircle, Clock } from 'lucide-react'
-import type { WeeklyPlan } from '../types'
-import weeklyPlanData from '../data/weeklyPlan.json'
+import { useWeeklyPlan } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import SectionCard from '../components/ui/SectionCard'
 
-const weeklyPlan = weeklyPlanData as WeeklyPlan[]
-
-function getCurrentWeekIndex(): number {
+function getCurrentWeekIndex(length: number): number {
   const start = new Date('2026-07-01')
   const now = new Date()
   if (now < start) return 0
   const diffMs = now.getTime() - start.getTime()
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-  return Math.min(diffWeeks + 1, weeklyPlan.length - 1)
+  return Math.min(diffWeeks + 1, length - 1)
 }
 
-const currentIdx = getCurrentWeekIndex()
-
 export default function WeeklyReview() {
+  const weeklyPlan = useWeeklyPlan()
+  const currentIdx = getCurrentWeekIndex(weeklyPlan.length)
   return (
     <div className="space-y-4">
       <PageHeader

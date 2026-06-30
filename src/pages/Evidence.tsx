@@ -1,15 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FolderOpen, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react'
-import type { Story, Developer } from '../types'
-import storiesData from '../data/stories.json'
-import developersData from '../data/developers.json'
+import type { Story } from '../types'
+import { useStories, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
-
-const stories = storiesData as Story[]
-const developers = developersData as Developer[]
-const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
 
 const EVIDENCE_FIELDS = [
   { key: 'driveFolder', label: 'Drive', required: true },
@@ -47,6 +42,10 @@ function completionPct(ev: Story['evidence']): number {
 }
 
 export default function Evidence() {
+  const stories    = useStories()
+  const developers = useDevelopers()
+  const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
+
   const [filterProduct, setFilterProduct] = useState('All')
   const [search, setSearch] = useState('')
 

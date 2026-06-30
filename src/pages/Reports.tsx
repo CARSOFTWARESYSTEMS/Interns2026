@@ -1,20 +1,11 @@
 import { BarChart2, Users, Package, Activity, Calendar, AlertTriangle, ClipboardCheck, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import type { Assignment, Developer, Story } from '../types'
-import assignmentsData from '../data/assignments.json'
-import developersData from '../data/developers.json'
-import storiesData from '../data/stories.json'
+import { useAssignments, useDevelopers, useStories } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import { getDaysRemaining, getRiskLevel, calcEvidenceProgress } from '../utils/progress'
-
-const assignments = assignmentsData as Assignment[]
-const developers = developersData as Developer[]
-const stories = storiesData as Story[]
-
-const devMap = Object.fromEntries(developers.map(d => [d.id, d]))
 
 function MiniBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0
@@ -30,6 +21,11 @@ function MiniBar({ label, count, total, color }: { label: string; count: number;
 }
 
 export default function Reports() {
+  const assignments = useAssignments()
+  const developers  = useDevelopers()
+  const stories     = useStories()
+  const devMap = Object.fromEntries(developers.map(d => [d.id, d]))
+
   // ── By Developer ──────────────────────────────────────
   const byDev = developers.map(dev => {
     const devAssigns = assignments.filter(a => a.developerId === dev.id)

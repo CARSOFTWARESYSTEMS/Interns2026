@@ -1,19 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Trophy, Video, Monitor, Star, CheckCircle, Clock } from 'lucide-react'
-import type { Story, Developer } from '../types'
-import storiesData from '../data/stories.json'
-import developersData from '../data/developers.json'
+import { useStories, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import ProgressBar from '../components/ui/ProgressBar'
 
-const stories = storiesData as Story[]
-const developers = developersData as Developer[]
-const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
-
 export default function FinalDemo() {
+  const stories    = useStories()
+  const developers = useDevelopers()
+  const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
+
   const demoReady = stories.filter(s => s.demoStatus === 'Ready')
   const scheduled = stories.filter(s => s.demoStatus === 'In Preparation')
   const demoDone = stories.filter(s => s.demoStatus === 'Presented')

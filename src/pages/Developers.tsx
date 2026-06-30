@@ -1,23 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Users, Search, ExternalLink, Eye } from 'lucide-react'
-import type { Developer } from '../types'
-import developersData from '../data/developers.json'
-import simulatorsData from '../data/simulators.json'
-import storiesData from '../data/stories.json'
+import { useDevelopers, useSimulators, useStories } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 
-const developers = developersData as Developer[]
-
-const simulatorNames: Record<string, string> = Object.fromEntries(
-  (simulatorsData as { id: string; name: string }[]).map(s => [s.id, s.name])
-)
-const storyTitles: Record<string, string> = Object.fromEntries(
-  (storiesData as { id: string; title: string }[]).map(s => [s.id, s.title])
-)
-
 export default function Developers() {
+  const developers = useDevelopers()
+  const simulators = useSimulators()
+  const stories    = useStories()
+
+  const simulatorNames: Record<string, string> = Object.fromEntries(simulators.map(s => [s.id, s.name]))
+  const storyTitles: Record<string, string>    = Object.fromEntries(stories.map(s => [s.id, s.title]))
   const [search, setSearch] = useState('')
   const [filterProduct, setFilterProduct] = useState('All')
 

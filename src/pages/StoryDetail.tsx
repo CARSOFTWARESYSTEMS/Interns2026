@@ -1,18 +1,13 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { FileText, Printer, Shield, CheckCircle2, Trophy, ArrowRight } from 'lucide-react'
-import type { Story, Developer } from '../types'
-import storiesData from '../data/stories.json'
-import developersData from '../data/developers.json'
+import { useStories, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import TabNav from '../components/ui/TabNav'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import EvidenceRow from '../components/ui/EvidenceRow'
-
-const stories = storiesData as Story[]
-const developers = developersData as Developer[]
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -70,6 +65,8 @@ function CheckList({ items }: { items: string[] }) {
 }
 
 export default function StoryDetail() {
+  const stories    = useStories()
+  const developers = useDevelopers()
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState('overview')
 

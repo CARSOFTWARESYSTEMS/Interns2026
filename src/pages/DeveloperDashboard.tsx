@@ -3,12 +3,7 @@ import {
   FileText, Cpu, ClipboardCheck, Award, Calendar,
   FolderOpen, ArrowRight, User, AlertTriangle, CheckCircle,
 } from 'lucide-react'
-import type { Developer, Simulator, Story } from '../types'
-import developersData from '../data/developers.json'
-import simulatorsData from '../data/simulators.json'
-import storiesData from '../data/stories.json'
-import weeklyPlanData from '../data/weeklyPlan.json'
-import type { WeeklyPlan } from '../types'
+import { useDevelopers, useSimulators, useStories, useWeeklyPlan } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
@@ -18,12 +13,11 @@ import UserAvatar from '../components/ui/UserAvatar'
 import ProfileCompletion from '../components/ui/ProfileCompletion'
 import { calcProfileCompletion } from '../types/auth'
 
-const developers  = developersData  as Developer[]
-const simulators  = simulatorsData  as Simulator[]
-const stories     = storiesData     as Story[]
-const weeklyPlan  = weeklyPlanData  as WeeklyPlan[]
-
 export default function DeveloperDashboard() {
+  const developers = useDevelopers()
+  const simulators = useSimulators()
+  const stories    = useStories()
+  const weeklyPlan = useWeeklyPlan()
   const { userProfile } = useAuthContext()
 
   // Try to match by email to find the developer record for this user

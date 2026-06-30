@@ -1,23 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Search, ArrowRight, Cpu } from 'lucide-react'
-import type { Story, Developer } from '../types'
-import storiesData from '../data/stories.json'
-import developersData from '../data/developers.json'
+import { useStories, useDevelopers } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 
-const stories = storiesData as Story[]
-const developers = developersData as Developer[]
-
-const devNames: Record<string, string> = Object.fromEntries(
-  developers.map(d => [d.id, d.name])
-)
-
 const priorityOrder: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
 export default function Stories() {
+  const stories    = useStories()
+  const developers = useDevelopers()
+  const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
   const [search, setSearch] = useState('')
   const [filterProduct, setFilterProduct] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
