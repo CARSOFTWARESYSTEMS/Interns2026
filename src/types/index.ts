@@ -186,3 +186,64 @@ export interface WeeklyPlan {
   activities: string[];
   focus: string;
 }
+
+// ── Assignment Module ─────────────────────────────────────────────────────────
+
+export type AssignmentStatus =
+  | 'Draft' | 'Assigned' | 'Accepted' | 'Research' | 'Analysis'
+  | 'Simulator Development' | 'Simulator QA' | 'POC' | 'Architecture'
+  | 'Development' | 'Unit Testing' | 'Integration' | 'Cross Testing'
+  | 'QA Review' | 'Bug Fixes' | 'Architect Review' | 'Demo Ready'
+  | 'Completed' | 'Blocked' | 'Cancelled';
+
+export interface AssignmentEvidenceItem {
+  status: 'Missing' | 'Submitted' | 'Approved' | 'Rejected';
+  link: string;
+  date: string;
+  comments: string;
+}
+
+export interface AssignmentEvidence {
+  architecture: AssignmentEvidenceItem;
+  design: AssignmentEvidenceItem;
+  github: AssignmentEvidenceItem;
+  branch: AssignmentEvidenceItem;
+  pr: AssignmentEvidenceItem;
+  readme: AssignmentEvidenceItem;
+  apiDoc: AssignmentEvidenceItem;
+  verification: AssignmentEvidenceItem;
+  security: AssignmentEvidenceItem;
+  presentation: AssignmentEvidenceItem;
+  demo: AssignmentEvidenceItem;
+  research: AssignmentEvidenceItem;
+  patent: AssignmentEvidenceItem;
+  releaseNotes: AssignmentEvidenceItem;
+}
+
+export interface HistoryEntry {
+  date: string;
+  action: string;
+  by: string;
+  note: string;
+}
+
+export interface Assignment {
+  id: string;
+  product: string;
+  workPackage: string;
+  storyId: string;
+  simulatorId: string;
+  developerId: string;
+  qaId: string;
+  architectId: string;
+  priority: Priority;
+  status: AssignmentStatus;
+  progress: number;
+  estimatedHours: number;
+  weeklyHours: number;
+  dueDate: string;
+  createdDate: string;
+  dependencies: string[];
+  evidence: AssignmentEvidence;
+  history: HistoryEntry[];
+}

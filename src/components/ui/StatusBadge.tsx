@@ -45,10 +45,21 @@ const colorMap: Record<string, string> = {
   'Submitted':             'bg-yellow-100 text-yellow-700 border-yellow-200',
   'Review Pending':        'bg-blue-100 text-blue-700 border-blue-200',
   // Risk
+  'Low Risk':              'bg-green-100 text-green-700 border-green-200',
   'Medium Risk':           'bg-yellow-100 text-yellow-700 border-yellow-200',
   'High Risk':             'bg-orange-100 text-orange-700 border-orange-200',
   'Critical Risk':         'bg-red-100 text-red-700 border-red-200',
-  'Low Risk':              'bg-green-100 text-green-700 border-green-200',
+  // Assignment-specific statuses
+  'Draft':                 'bg-slate-100 text-slate-500 border-slate-200',
+  'Assigned':              'bg-blue-100 text-blue-700 border-blue-200',
+  'Analysis':              'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'POC':                   'bg-teal-100 text-teal-700 border-teal-200',
+  'Architecture':          'bg-sky-100 text-sky-700 border-sky-200',
+  'Development':           'bg-brand-100 text-brand-700 border-brand-200',
+  'Integration':           'bg-amber-100 text-amber-700 border-amber-200',
+  'Bug Fixes':             'bg-orange-100 text-orange-700 border-orange-200',
+  'Completed':             'bg-green-100 text-green-700 border-green-200',
+  'Cancelled':             'bg-slate-100 text-slate-500 border-slate-200',
 }
 
 interface StatusBadgeProps {
