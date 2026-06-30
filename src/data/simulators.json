@@ -1,0 +1,1313 @@
+[
+  {
+    "id": "SIM-001",
+    "name": "Battery Pack Simulator",
+    "ownerId": "DEV-001",
+    "product": "Battery Pack Aadhaar System",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Simulate mission-critical battery packs with static and dynamic attributes for aerospace and EV applications.",
+    "businessGoal": "Provide a reliable, configurable source of battery pack data for all downstream simulators, enabling development and testing without real hardware.",
+    "problemStatement": "Developers and engineers need realistic battery pack data during the development phase but have no access to real hardware. The simulator bridges this gap by generating configurable, realistic battery pack profiles.",
+    "userPersonas": ["Battery Engineer", "Product Architect", "QA Engineer", "Simulator Developer"],
+    "scope": {
+      "simulates": [
+        "Battery pack identity attributes (BPAN, battery_id, serial number)",
+        "Static attributes (chemistry, nominal voltage, capacity, pack configuration)",
+        "Dynamic telemetry state (SOH, SOC, temperature, voltage, current)",
+        "Manufacturing metadata (date, factory, inspector)",
+        "Lifecycle status transitions (Active, Decommissioned, Under Maintenance)",
+        "Cycle count and simplified degradation curves"
+      ],
+      "doesNotSimulate": [
+        "Real electrochemical reactions or physics-based models",
+        "Real BMS hardware communication",
+        "Real MQTT broker connections",
+        "Production manufacturing data"
+      ],
+      "inputs": ["Battery profile configuration JSON", "Number of packs to generate", "Chemistry type filter", "Simulation seed for reproducibility"],
+      "outputs": ["Battery pack objects as JSON array", "CSV export of pack attributes", "Summary statistics report"],
+      "assumptions": ["All data is synthetic and tagged simulated=true", "SOH/SOC values follow simplified linear degradation", "Chemistry types are from a fixed predefined set"],
+      "limitations": ["Not suitable for physics-accurate simulations", "Does not model thermal runaway", "Simplified degradation model only"]
+    },
+    "functionalRequirements": [
+      "Generate battery pack with unique BPAN (21-character alphanumeric code, BPAN-{CHEM}-{YEAR}-{COUNTRY}-{SERIAL})",
+      "Support chemistry types: LFP, NMC, NCA, LTO, Solid-State",
+      "Generate static attributes: manufacturer, nominal voltage (V), capacity (Ah), cell configuration (series × parallel)",
+      "Generate dynamic state: SOH (0–100%), SOC (0–100%), temperature (°C), pack voltage (V), current (A), cycle count",
+      "Support batch generation of 1–1000 packs per run",
+      "Export output as JSON and CSV",
+      "Tag all output with simulated=true, simulation_run_id, and generated_at timestamp",
+      "Support configurable random seed for reproducible outputs"
+    ],
+    "nonFunctionalRequirements": [
+      "Runs locally on developer machine, no cloud dependency",
+      "Python 3.10+ CLI with argparse interface",
+      "Streamlit UI for interactive simulation",
+      "FastAPI REST API for programmatic access",
+      "All inputs validated with Pydantic v2 models",
+      "pytest test suite with minimum 70% coverage",
+      "No production or real device data used"
+    ],
+    "technologyRequirements": [
+      "Python 3.10+ (primary language)",
+      "Streamlit 1.x (interactive web UI)",
+      "FastAPI + Uvicorn (REST API server)",
+      "Pydantic v2 (data validation and JSON Schema generation)",
+      "pytest (unit and integration testing)",
+      "pandas (CSV export support)"
+    ],
+    "architectureNotes": "CLI → BatteryPackGenerator (core) → JSON/CSV output. Streamlit wraps the generator with a form UI. FastAPI exposes /simulate, /health, /sample endpoints. Pydantic models ensure schema validation on all paths.",
+    "sampleInputJson": {
+      "num_packs": 3,
+      "chemistry": "LFP",
+      "lifecycle_status": "Active",
+      "seed": 42,
+      "include_dynamic_state": true
+    },
+    "sampleOutputJson": {
+      "metadata": {
+        "simulation_run_id": "RUN-20260710-001",
+        "simulated": true,
+        "generated_at": "2026-07-10T09:00:00Z",
+        "count": 3,
+        "generator": "SIM-001-v1.0"
+      },
+      "packs": [
+        {
+          "battery_id": "BID-20260710-001",
+          "bpan": "BPAN-LFP-2026-IN-00001",
+          "manufacturer": "EV.BATTERY LABS",
+          "chemistry": "LFP",
+          "nominal_voltage_v": 48.0,
+          "capacity_ah": 100.0,
+          "cell_config": "16S4P",
+          "lifecycle_status": "Active",
+          "soh_percent": 95.2,
+          "soc_percent": 78.5,
+          "temperature_c": 28.3,
+          "cycle_count": 142,
+          "simulated": true
+        }
+      ]
+    },
+    "cliCommands": [
+      "python -m sim_001 run --input config.json --output output.json",
+      "python -m sim_001 run --num-packs 10 --chemistry LFP --seed 42",
+      "python -m sim_001 sample  # Print sample input JSON"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/simulate", "description": "Generate battery packs from input configuration" },
+      { "method": "GET", "path": "/health", "description": "Health check and simulator version info" },
+      { "method": "GET", "path": "/sample", "description": "Return sample input JSON for reference" },
+      { "method": "GET", "path": "/schema", "description": "Return JSON Schema for input and output" }
+    ],
+    "testCases": [
+      { "id": "TC-001-01", "name": "Valid single pack generation", "type": "Unit", "description": "Generate one LFP pack and verify all required fields are present and within valid ranges" },
+      { "id": "TC-001-02", "name": "Batch generation of 100 packs", "type": "Integration", "description": "Generate 100 packs and verify unique BPANs, correct count, and metadata" },
+      { "id": "TC-001-03", "name": "Invalid chemistry type", "type": "Negative", "description": "Pass unknown chemistry 'XYZ' and verify validation error is returned" },
+      { "id": "TC-001-04", "name": "Seed reproducibility", "type": "Unit", "description": "Run twice with same seed and verify identical outputs" },
+      { "id": "TC-001-05", "name": "SOH boundary values", "type": "Edge", "description": "Generate packs at SOH=0%, SOH=100% and verify valid output" }
+    ],
+    "securityRequirements": [
+      "All generated data must include simulated=true field",
+      "No real production battery data may be used as input",
+      "No secrets or API keys committed to repository",
+      "Input fields validated and bounded to prevent injection",
+      "Output files written to designated output directory only"
+    ],
+    "manualVerificationSteps": [
+      "Clone repository and run pip install -r requirements.txt",
+      "Run CLI: python -m sim_001 run --num-packs 5 --chemistry LFP",
+      "Verify 5 battery pack objects in output JSON with simulated=true",
+      "Run streamlit run app.py and verify UI loads with input form",
+      "Submit form and verify output table and JSON displayed",
+      "Call POST /simulate with sample JSON and verify 200 response",
+      "Run pytest and verify all tests pass with 70%+ coverage"
+    ],
+    "definitionOfDone": [
+      "All 8 functional requirements implemented and tested",
+      "pytest suite passing with ≥70% code coverage",
+      "Streamlit UI working end-to-end",
+      "FastAPI /simulate, /health, /sample, /schema endpoints functional",
+      "README with setup, usage, and examples complete",
+      "Sample input/output JSON documented",
+      "Evidence uploaded to Google Drive",
+      "QA review passed and Architect approval received"
+    ],
+    "usedByStories": ["WP-001-S1", "WP-001-S2", "WP-001-S4"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "", "reviewDate": "", "status": "Pending",
+      "issuesFound": "", "severity": "", "retestStatus": "", "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending",
+      "comments": "", "finalDecision": ""
+    }
+  },
+  {
+    "id": "SIM-002",
+    "name": "Battery Identity Simulator",
+    "ownerId": "DEV-002",
+    "product": "Battery Pack Aadhaar System",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Simulate trusted battery identity scenarios including valid certificates, expired credentials, forged identity, ownership transfer, and chain of custody.",
+    "businessGoal": "Enable testing of identity verification logic and custody tracking without requiring real certificates or physical battery identity hardware.",
+    "problemStatement": "Battery identity verification involves complex certificate chains, ownership records, and provenance metadata. Without a simulator, testing identity scenarios requires real infrastructure that is not available during development.",
+    "userPersonas": ["Battery Identity Engineer", "Security Architect", "QA Engineer", "Product Architect"],
+    "scope": {
+      "simulates": [
+        "Valid battery identity with active certificate",
+        "Invalid or unknown battery identity",
+        "Expired certificate scenario",
+        "Forged or tampered certificate scenario",
+        "Ownership transfer records",
+        "Chain of custody history",
+        "Identity verification response (pass/fail/warn)"
+      ],
+      "doesNotSimulate": [
+        "Real PKI infrastructure or HSM",
+        "Real certificate authority operations",
+        "Blockchain-based identity systems",
+        "Physical battery scanning or NFC"
+      ],
+      "inputs": ["Battery ID or BPAN", "Scenario type (valid/invalid/expired/forged)", "Owner details", "Transfer metadata"],
+      "outputs": ["Identity verification result JSON", "Custody chain records", "Certificate metadata", "Identity events"],
+      "assumptions": ["Certificates are represented as simple signed JSON objects", "Ownership is tracked via transfer records"],
+      "limitations": ["No real cryptographic signing", "Simplified certificate model", "Does not integrate with real PKI"]
+    },
+    "functionalRequirements": [
+      "Generate valid battery identity record with certificate metadata",
+      "Simulate expired certificate scenario with configurable expiry date",
+      "Simulate forged certificate with tampered fields flagged",
+      "Simulate unknown battery identity (not registered)",
+      "Generate ownership transfer record (from owner, to owner, reason, timestamp)",
+      "Build and return chain of custody history for a battery",
+      "Return identity verification result: TRUSTED, EXPIRED, FORGED, UNKNOWN",
+      "Produce identity audit event for each verification attempt"
+    ],
+    "nonFunctionalRequirements": [
+      "Runs locally, no cloud or PKI infrastructure required",
+      "Python 3.10+ with CLI and Streamlit UI",
+      "FastAPI REST API for integration testing",
+      "All outputs tagged simulated=true",
+      "pytest suite with 70%+ coverage"
+    ],
+    "technologyRequirements": [
+      "Python 3.10+ (core logic)",
+      "Streamlit (UI for scenario testing)",
+      "FastAPI (REST API)",
+      "Pydantic v2 (schema validation)",
+      "pytest (testing)"
+    ],
+    "architectureNotes": "Scenario selection → IdentityScenarioEngine → verification response + audit event. Scenarios are enum-driven. Streamlit allows scenario selection and parameter input. FastAPI exposes /verify-identity endpoint.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260710-001",
+      "bpan": "BPAN-LFP-2026-IN-00001",
+      "scenario": "valid",
+      "owner_id": "OWN-001",
+      "verify_certificate": true
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260710-001",
+      "bpan": "BPAN-LFP-2026-IN-00001",
+      "identity_status": "TRUSTED",
+      "certificate": {
+        "cert_id": "CERT-2026-001",
+        "issued_by": "EV.ENGINEER CA (SIMULATED)",
+        "issued_at": "2026-01-15T00:00:00Z",
+        "expires_at": "2028-01-15T00:00:00Z",
+        "status": "VALID"
+      },
+      "current_owner": "OWN-001",
+      "custody_events": 3,
+      "verification_result": "TRUSTED",
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_002 verify --battery-id BID-001 --scenario valid",
+      "python -m sim_002 verify --battery-id BID-001 --scenario expired",
+      "python -m sim_002 custody --battery-id BID-001  # Show custody chain"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/verify-identity", "description": "Verify battery identity for a given scenario" },
+      { "method": "POST", "path": "/transfer-custody", "description": "Simulate custody transfer and return updated chain" },
+      { "method": "GET", "path": "/custody-chain/{battery_id}", "description": "Return full custody chain for a battery" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-002-01", "name": "Valid identity verification", "type": "Unit", "description": "Verify a valid battery identity returns TRUSTED status" },
+      { "id": "TC-002-02", "name": "Expired certificate scenario", "type": "Unit", "description": "Expired certificate returns EXPIRED status with cert details" },
+      { "id": "TC-002-03", "name": "Forged certificate detection", "type": "Security", "description": "Forged certificate is detected and returns FORGED with tampered fields" },
+      { "id": "TC-002-04", "name": "Custody transfer chain", "type": "Integration", "description": "Multiple transfers build a valid custody chain with correct chronological order" },
+      { "id": "TC-002-05", "name": "Unknown battery", "type": "Negative", "description": "Unregistered battery ID returns UNKNOWN status" }
+    ],
+    "securityRequirements": [
+      "No real cryptographic keys or certificates used",
+      "All simulation data tagged simulated=true",
+      "Forged certificates must be clearly marked as SIMULATION",
+      "No real identity data used in any scenario",
+      "Input validation on all battery IDs and scenarios"
+    ],
+    "manualVerificationSteps": [
+      "Run CLI with valid scenario and verify TRUSTED response",
+      "Run CLI with expired scenario and verify EXPIRED response and certificate details",
+      "Run CLI with forged scenario and verify FORGED response with tampered fields",
+      "Launch Streamlit and test all 5 scenarios from the dropdown",
+      "Call POST /verify-identity API and verify JSON response",
+      "Run pytest and verify all tests pass"
+    ],
+    "definitionOfDone": [
+      "All 8 functional requirements implemented",
+      "All 5 scenarios (valid, invalid, expired, forged, unknown) working",
+      "Custody transfer and chain retrieval functional",
+      "pytest suite passing with 70%+ coverage",
+      "Streamlit UI and FastAPI working",
+      "README and evidence uploaded"
+    ],
+    "usedByStories": ["WP-001-S1", "WP-001-S2", "WP-001-S3", "WP-001-S5"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "", "reviewDate": "", "status": "Pending",
+      "issuesFound": "", "severity": "", "retestStatus": "", "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending",
+      "comments": "", "finalDecision": ""
+    }
+  },
+  {
+    "id": "SIM-003",
+    "name": "MQTT Telemetry Simulator",
+    "ownerId": "DEV-003",
+    "product": "Battery Cybersecurity Platform",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Generate simulated battery telemetry events as if originating from a BMS over MQTT, including attack and anomaly scenarios.",
+    "businessGoal": "Allow telemetry trust and cybersecurity features to be developed and tested with realistic MQTT data streams without real BMS hardware.",
+    "problemStatement": "Telemetry trust architecture and replay attack detection require realistic, configurable telemetry streams including anomalies and attack patterns. No real BMS is available during development.",
+    "userPersonas": ["Telemetry Architect", "Cybersecurity Engineer", "QA Engineer", "Backend Developer"],
+    "scope": {
+      "simulates": [
+        "Normal BMS telemetry event stream",
+        "Delayed telemetry (configurable delay seconds)",
+        "Duplicate packet injection",
+        "Out-of-range values (voltage, temperature, current)",
+        "Missing timestamp fields",
+        "Spoofed source identity",
+        "Replay attack (retransmission of old valid packets)"
+      ],
+      "doesNotSimulate": [
+        "Real MQTT broker (uses local file or HTTP simulation)",
+        "Real BMS hardware protocol",
+        "Live network communication",
+        "Physical sensor data"
+      ],
+      "inputs": ["Battery ID", "Scenario type", "Number of events to generate", "Delay configuration", "Topic prefix"],
+      "outputs": ["Telemetry event JSON objects", "MQTT topic assignments", "Anomaly flags", "Event stream log"],
+      "assumptions": ["MQTT is simulated via JSON output, not real broker", "Packet timestamps are ISO 8601"],
+      "limitations": ["No real MQTT broker integration", "Simplified network simulation", "Does not model BMS proprietary protocols"]
+    },
+    "functionalRequirements": [
+      "Generate normal telemetry events with valid timestamps and sequence numbers",
+      "Simulate delayed telemetry (configurable 1–300 second delay)",
+      "Generate duplicate packet pairs with same sequence number",
+      "Generate out-of-range values: voltage >60V, temperature >60°C, current >500A",
+      "Generate events with missing timestamp field",
+      "Generate events with spoofed battery_id (different from registered battery)",
+      "Generate replay events (copy of previous valid packet with updated sent_at but old timestamp)",
+      "Output MQTT topic, payload JSON, and QoS level for each event"
+    ],
+    "nonFunctionalRequirements": [
+      "Runs locally, no real MQTT broker required",
+      "CLI for batch event generation",
+      "Streamlit UI for scenario visualisation",
+      "FastAPI for programmatic event generation",
+      "All events tagged simulated=true"
+    ],
+    "technologyRequirements": [
+      "Python 3.10+",
+      "Streamlit",
+      "FastAPI",
+      "Pydantic v2",
+      "pytest"
+    ],
+    "architectureNotes": "TelemetryScenarioFactory creates event streams per scenario. Events are published to a simulated topic namespace. Streamlit shows event stream in real time. FastAPI exposes /generate-events endpoint.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260710-001",
+      "scenario": "replay_attack",
+      "num_events": 10,
+      "topic_prefix": "battery/telemetry",
+      "replay_window_seconds": 300
+    },
+    "sampleOutputJson": {
+      "scenario": "replay_attack",
+      "events": [
+        {
+          "event_id": "EVT-001",
+          "battery_id": "BID-20260710-001",
+          "topic": "battery/telemetry/BID-001",
+          "sequence_number": 1001,
+          "timestamp": "2026-07-10T08:45:00Z",
+          "sent_at": "2026-07-10T09:00:00Z",
+          "voltage_v": 48.2,
+          "current_a": 12.5,
+          "temperature_c": 28.1,
+          "soc_percent": 78.3,
+          "anomaly": "REPLAY_DETECTED",
+          "anomaly_detail": "Timestamp 15 minutes old, possible replay",
+          "simulated": true
+        }
+      ]
+    },
+    "cliCommands": [
+      "python -m sim_003 generate --battery-id BID-001 --scenario normal --count 20",
+      "python -m sim_003 generate --battery-id BID-001 --scenario replay_attack --count 10",
+      "python -m sim_003 generate --battery-id BID-001 --scenario out_of_range"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/generate-events", "description": "Generate telemetry event stream for a given scenario" },
+      { "method": "GET", "path": "/scenarios", "description": "List available telemetry scenarios" },
+      { "method": "GET", "path": "/health", "description": "Health check" },
+      { "method": "GET", "path": "/sample", "description": "Return sample input JSON" }
+    ],
+    "testCases": [
+      { "id": "TC-003-01", "name": "Normal telemetry generation", "type": "Unit", "description": "Generate 10 normal events and verify valid timestamps, sequence numbers, and values" },
+      { "id": "TC-003-02", "name": "Replay attack scenario", "type": "Security", "description": "Replay events have old timestamps flagged with REPLAY_DETECTED anomaly" },
+      { "id": "TC-003-03", "name": "Duplicate packet detection", "type": "Unit", "description": "Duplicate events share sequence number and are flagged DUPLICATE" },
+      { "id": "TC-003-04", "name": "Out-of-range values", "type": "Edge", "description": "Out-of-range events have voltage >60V and anomaly flag OUT_OF_RANGE" },
+      { "id": "TC-003-05", "name": "Missing timestamp", "type": "Negative", "description": "Events with missing timestamp field are flagged MISSING_TIMESTAMP" }
+    ],
+    "securityRequirements": [
+      "All events tagged simulated=true — never mimic real device IDs",
+      "Replay events must be clearly marked as SIMULATION in anomaly field",
+      "No real network traffic generated",
+      "Spoofed battery IDs use reserved prefix SIM- to avoid collision with real devices",
+      "Attack scenarios documented as educational only"
+    ],
+    "manualVerificationSteps": [
+      "Run normal scenario and verify 10 events with valid timestamps",
+      "Run replay scenario and verify REPLAY_DETECTED anomaly on relevant events",
+      "Run out-of-range scenario and verify anomaly flags on voltage/temperature events",
+      "Launch Streamlit and verify event stream display per scenario",
+      "Call POST /generate-events API and verify JSON response",
+      "Run pytest and verify all test cases pass"
+    ],
+    "definitionOfDone": [
+      "All 7 telemetry scenarios implemented",
+      "Anomaly flags correctly assigned for each scenario",
+      "pytest passing with 70%+ coverage",
+      "Streamlit UI showing event stream with scenario selector",
+      "FastAPI /generate-events endpoint functional",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-005-S2", "WP-005-S3"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-004",
+    "name": "Trust Score Simulator",
+    "ownerId": "DEV-004",
+    "product": "Battery Pack Aadhaar System",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Calculate battery mission trust score from identity, telemetry, firmware, cybersecurity, health, safety, and maintenance inputs.",
+    "businessGoal": "Provide a quantifiable, auditable trust score that determines mission readiness of a battery pack for aerospace operations.",
+    "problemStatement": "Mission-critical battery deployment decisions need an objective, multi-factor trust score. Without a simulator, validating the trust model requires full system integration.",
+    "userPersonas": ["Battery Mission Engineer", "Architect", "QA Engineer", "Product Owner"],
+    "scope": {
+      "simulates": [
+        "Seven-factor trust score calculation with configurable weights",
+        "Trust readiness band assignment (Mission Ready to Grounded)",
+        "Factor-level breakdown with contributing score and weight",
+        "Score scenarios: high trust, medium trust, low trust, grounded",
+        "Score history simulation for a battery across multiple evaluations"
+      ],
+      "doesNotSimulate": [
+        "Real-time telemetry processing",
+        "Real cybersecurity incident monitoring",
+        "Physics-based health models"
+      ],
+      "inputs": ["Battery ID", "Seven trust factor scores (0–100)", "Optional: override weights"],
+      "outputs": ["Overall trust score (0–100)", "Readiness band", "Factor breakdown", "Recommendation"],
+      "assumptions": ["Factor weights sum to 100%", "All inputs are simulated values"],
+      "limitations": ["Simplified linear score aggregation", "Does not account for temporal degradation trends"]
+    },
+    "functionalRequirements": [
+      "Accept seven factor scores: Identity Trust (15%), Ownership & CoC (10%), Config & Firmware Trust (15%), Telemetry Integrity (15%), Cybersecurity Risk (15%), Safety & Health Condition (20%), Maintenance & Mission History (10%)",
+      "Calculate weighted composite trust score (0–100)",
+      "Assign readiness band: Mission Ready (90–100), Ready with Caution (75–89), Engineering Review Required (60–74), Not Mission Ready (40–59), Grounded / Quarantine (0–39)",
+      "Return factor-level breakdown showing individual contribution",
+      "Support scenario presets: perfect, high, medium, low, grounded",
+      "Support custom weight override for research and experimentation",
+      "Generate trust score audit event with timestamp and run ID"
+    ],
+    "nonFunctionalRequirements": [
+      "Runs locally, no cloud dependency",
+      "CLI with preset scenarios and custom input modes",
+      "Streamlit dashboard with visual score breakdown",
+      "FastAPI for programmatic scoring",
+      "All outputs tagged simulated=true"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest"],
+    "architectureNotes": "TrustScoreEngine receives factor dict → applies weights → computes composite score → assigns readiness band → returns TrustScoreResult. Streamlit renders a gauge chart and factor breakdown table.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260710-001",
+      "factors": {
+        "identity_trust": 90,
+        "ownership_coc": 85,
+        "config_firmware_trust": 88,
+        "telemetry_integrity": 70,
+        "cybersecurity_risk": 65,
+        "safety_health": 92,
+        "maintenance_history": 80
+      },
+      "scenario": "custom"
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260710-001",
+      "overall_score": 81.65,
+      "readiness_band": "Ready with Caution",
+      "readiness_code": "CAUTION",
+      "factor_breakdown": [
+        { "factor": "Safety & Health Condition", "weight_pct": 20, "score": 92, "contribution": 18.4 },
+        { "factor": "Identity Trust", "weight_pct": 15, "score": 90, "contribution": 13.5 },
+        { "factor": "Config & Firmware Trust", "weight_pct": 15, "score": 88, "contribution": 13.2 },
+        { "factor": "Telemetry Integrity", "weight_pct": 15, "score": 70, "contribution": 10.5 },
+        { "factor": "Cybersecurity Risk", "weight_pct": 15, "score": 65, "contribution": 9.75 },
+        { "factor": "Ownership & CoC", "weight_pct": 10, "score": 85, "contribution": 8.5 },
+        { "factor": "Maintenance & Mission History", "weight_pct": 10, "score": 80, "contribution": 8.0 }
+      ],
+      "recommendation": "Battery is conditionally mission-ready. Review Cybersecurity Risk and Telemetry Integrity before deployment.",
+      "audit_event_id": "AUD-TRUST-20260710-001",
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_004 score --battery-id BID-001 --scenario high",
+      "python -m sim_004 score --battery-id BID-001 --input factors.json",
+      "python -m sim_004 bands  # Print readiness band definitions"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/score", "description": "Calculate trust score from factor inputs" },
+      { "method": "GET", "path": "/scenarios", "description": "List preset scenarios with factor values" },
+      { "method": "GET", "path": "/bands", "description": "Return readiness band definitions and thresholds" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-004-01", "name": "Mission Ready score", "type": "Unit", "description": "All factors at 95 yield overall score ≥90 and MISSION_READY band" },
+      { "id": "TC-004-02", "name": "Grounded score", "type": "Unit", "description": "All factors at 20 yield score ≤39 and GROUNDED band" },
+      { "id": "TC-004-03", "name": "Weight sum validation", "type": "Unit", "description": "Custom weights that don't sum to 100 return validation error" },
+      { "id": "TC-004-04", "name": "Factor out of range", "type": "Negative", "description": "Factor score > 100 or < 0 returns validation error" },
+      { "id": "TC-004-05", "name": "Band boundary test", "type": "Edge", "description": "Score of exactly 75, 60, 40, 90 each assigned to correct readiness band" }
+    ],
+    "securityRequirements": [
+      "Trust scores are simulated only, not to be used for real mission decisions",
+      "All outputs tagged simulated=true",
+      "No real telemetry or identity data used as input",
+      "Score calculations are transparent and auditable"
+    ],
+    "manualVerificationSteps": [
+      "Run CLI with --scenario high and verify score ≥75 and CAUTION or READY band",
+      "Run CLI with --scenario grounded and verify score ≤39 and GROUNDED band",
+      "Launch Streamlit and verify gauge chart reflects calculated score",
+      "Verify factor breakdown table shows correct weights and contributions",
+      "Call POST /score API and verify all fields in response",
+      "Run pytest and verify boundary tests pass"
+    ],
+    "definitionOfDone": [
+      "Seven-factor model implemented with correct weights",
+      "All five readiness bands correctly assigned by score range",
+      "Streamlit gauge chart and factor breakdown UI functional",
+      "FastAPI /score endpoint returning correct results",
+      "pytest passing with 70%+ coverage",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-001-S4", "WP-005-S2", "WP-005-S3"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-005",
+    "name": "Cyber Attack Simulator",
+    "ownerId": "DEV-005",
+    "product": "Battery Cybersecurity Platform",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Simulate five critical cyber attack vectors against aerospace battery management systems for education and detection rule testing.",
+    "businessGoal": "Enable cybersecurity engineers to understand, model, and build detection rules against the most critical battery system attack vectors without using real attack tools.",
+    "problemStatement": "Cybersecurity rule development requires attack scenarios to test against. Real attack tools are dangerous and illegal. A safe simulation provides the same learning and testing capability.",
+    "userPersonas": ["Cybersecurity Engineer", "Security Architect", "QA Engineer", "Founder / Architect"],
+    "scope": {
+      "simulates": [
+        "Replay Attack: retransmission of previously captured valid MQTT packets",
+        "Telemetry Spoofing: injecting false battery state values",
+        "Certificate Forgery: generating invalid signed identity certificates",
+        "Firmware Injection: simulating unauthorized firmware metadata",
+        "BMS Intrusion: simulating unauthorized BMS access events"
+      ],
+      "doesNotSimulate": [
+        "Real network exploitation or penetration",
+        "Real malware or malicious code execution",
+        "Real production system attacks",
+        "Actual cryptographic key compromise"
+      ],
+      "inputs": ["Attack type", "Target battery ID", "Attack parameters (timing, payload, severity)"],
+      "outputs": ["Attack event JSON", "Detection indicators", "Attack metadata", "Recommended detection rule"],
+      "assumptions": ["All attacks are simulated and educational only", "No real network traffic is generated"],
+      "limitations": ["Does not produce real attack capability", "Simplified attack models for educational purposes"]
+    },
+    "functionalRequirements": [
+      "Simulate Replay Attack: return old telemetry packet with updated sent_at timestamp",
+      "Simulate Telemetry Spoofing: inject false SOH, SOC, or temperature values in event",
+      "Simulate Certificate Forgery: return identity cert with invalid signature field",
+      "Simulate Firmware Injection: return firmware metadata with unexpected hash and source",
+      "Simulate BMS Intrusion: return access event from unauthorized source IP/identity",
+      "Each attack returns: attack_type, severity, attack_payload, detection_indicators, recommended_rule_id",
+      "Support multi-attack sequence for integration testing"
+    ],
+    "nonFunctionalRequirements": [
+      "Purely educational and simulation — no real attack capability",
+      "All outputs clearly marked SIMULATED_ATTACK",
+      "CLI, Streamlit UI, and FastAPI supported",
+      "pytest with 70%+ coverage"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest"],
+    "architectureNotes": "AttackScenarioFactory selects scenario → generates attack payload → returns AttackEvent with detection_indicators. Streamlit shows attack details and recommended detection rules.",
+    "sampleInputJson": {
+      "attack_type": "replay_attack",
+      "target_battery_id": "BID-20260710-001",
+      "original_timestamp": "2026-07-10T08:00:00Z",
+      "replay_delay_seconds": 600
+    },
+    "sampleOutputJson": {
+      "attack_type": "replay_attack",
+      "severity": "HIGH",
+      "target_battery_id": "BID-20260710-001",
+      "attack_payload": {
+        "original_timestamp": "2026-07-10T08:00:00Z",
+        "replayed_at": "2026-07-10T08:10:00Z",
+        "sequence_number": 1001,
+        "data": { "soc_percent": 78.3, "voltage_v": 48.2 }
+      },
+      "detection_indicators": ["Timestamp older than freshness window", "Duplicate sequence number detected"],
+      "recommended_rule_id": "R-01",
+      "simulated": true,
+      "attack_classification": "SIMULATED_ATTACK — EDUCATIONAL ONLY"
+    },
+    "cliCommands": [
+      "python -m sim_005 attack --type replay_attack --battery-id BID-001",
+      "python -m sim_005 attack --type telemetry_spoofing --battery-id BID-001",
+      "python -m sim_005 list-attacks  # List all available attack types"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/simulate-attack", "description": "Simulate a specific cyber attack against a battery" },
+      { "method": "GET", "path": "/attack-types", "description": "List all 5 attack types with descriptions" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-005-01", "name": "Replay attack simulation", "type": "Security", "description": "Replay attack returns correct payload with old timestamp and duplicate sequence number" },
+      { "id": "TC-005-02", "name": "Telemetry spoofing simulation", "type": "Security", "description": "Spoofed event has physically impossible values and SPOOFED flag" },
+      { "id": "TC-005-03", "name": "All 5 attack types available", "type": "Unit", "description": "GET /attack-types returns all 5 attack types" },
+      { "id": "TC-005-04", "name": "Detection indicators present", "type": "Unit", "description": "Each attack response includes at least one detection indicator" },
+      { "id": "TC-005-05", "name": "SIMULATED_ATTACK classification", "type": "Security", "description": "All attack outputs include SIMULATED_ATTACK classification field" }
+    ],
+    "securityRequirements": [
+      "All attack outputs must include SIMULATED_ATTACK — EDUCATIONAL ONLY classification",
+      "No real network connections, exploits, or malicious code",
+      "Simulated attack payloads must be structurally distinct from real attack tools",
+      "No real credentials, keys, or firmware used in simulation",
+      "Repository must include DISCLAIMER file on educational purpose"
+    ],
+    "manualVerificationSteps": [
+      "Run replay attack CLI and verify SIMULATED_ATTACK classification",
+      "Run all 5 attack types and verify each returns detection_indicators",
+      "Launch Streamlit and verify attack selector and output display",
+      "Call POST /simulate-attack API for each attack type and verify response",
+      "Run pytest and verify security test cases pass"
+    ],
+    "definitionOfDone": [
+      "All 5 attack types implemented with correct payloads and indicators",
+      "SIMULATED_ATTACK classification on all outputs",
+      "pytest passing with 70%+ coverage",
+      "Streamlit and FastAPI working",
+      "Security disclaimer documented",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-005-S1", "WP-005-S3", "WP-005-S5"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-006",
+    "name": "Detection Rule Simulator",
+    "ownerId": "DEV-006",
+    "product": "Battery Cybersecurity Platform",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Simulate detection rules and validate whether telemetry, identity, firmware, safety, or cyber events trigger warnings or hard-fail gates.",
+    "businessGoal": "Enable the detection rule engine to be developed, tested, and validated against simulated events before integrating with real telemetry or production systems.",
+    "problemStatement": "Detection rules must be validated against diverse event inputs. Without a rule simulator, testing detection logic requires coordinating multiple simulators simultaneously.",
+    "userPersonas": ["Cybersecurity Engineer", "QA Engineer", "Security Architect", "Product Owner"],
+    "scope": {
+      "simulates": [
+        "Rule evaluation engine for 8 predefined detection rules",
+        "Pass / Warning / Hard-Fail gate assignment per rule",
+        "Multi-rule evaluation against a single event",
+        "Rule override and bypass scenarios",
+        "Combined rule evaluation report"
+      ],
+      "doesNotSimulate": [
+        "Real SIEM integration",
+        "Real-time event streaming",
+        "Machine learning based anomaly detection"
+      ],
+      "inputs": ["Event object (telemetry, identity, firmware, or cyber)", "Rule IDs to evaluate (or all)", "Severity thresholds"],
+      "outputs": ["Rule evaluation results per rule", "Overall gate decision", "Detection report"],
+      "assumptions": ["Events are pre-generated by other simulators", "Rules are stateless per evaluation"],
+      "limitations": ["No stateful rule chaining", "Simplified rule logic, not production SIEM quality"]
+    },
+    "functionalRequirements": [
+      "Implement Rule R-01: Replay attack detected (stale timestamp or duplicate sequence)",
+      "Implement Rule R-02: Missing telemetry timestamp",
+      "Implement Rule R-03: Invalid or expired certificate",
+      "Implement Rule R-04: Firmware hash mismatch or unexpected firmware version",
+      "Implement Rule R-05: Voltage out of safe operating range (<40V or >56V for 48V pack)",
+      "Implement Rule R-06: Critical temperature (>55°C or <-20°C)",
+      "Implement Rule R-07: Open cyber incident linked to battery",
+      "Implement Rule R-08: Physically impossible telemetry (SOC increase without charging)"
+    ],
+    "nonFunctionalRequirements": [
+      "Rules evaluable individually or in batch",
+      "CLI, Streamlit UI, FastAPI supported",
+      "All outputs tagged simulated=true",
+      "pytest with 70%+ coverage"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest"],
+    "architectureNotes": "RuleEngine iterates over selected rules, evaluates each against the input event, and returns RuleEvaluationResult list. Gate decision (PASS / WARN / HARD_FAIL) is the worst result across all rules.",
+    "sampleInputJson": {
+      "battery_id": "BID-001",
+      "event": {
+        "event_type": "telemetry",
+        "timestamp": null,
+        "voltage_v": 48.2,
+        "temperature_c": 28.1,
+        "soc_percent": 78.3,
+        "sequence_number": 1001
+      },
+      "rule_ids": ["R-02", "R-05", "R-06"]
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-001",
+      "rules_evaluated": 3,
+      "results": [
+        { "rule_id": "R-02", "rule_name": "Missing telemetry timestamp", "result": "HARD_FAIL", "detail": "timestamp field is null" },
+        { "rule_id": "R-05", "rule_name": "Voltage out of range", "result": "PASS", "detail": "Voltage 48.2V within 40–56V range" },
+        { "rule_id": "R-06", "rule_name": "Critical temperature", "result": "PASS", "detail": "Temperature 28.1°C within -20–55°C range" }
+      ],
+      "overall_gate": "HARD_FAIL",
+      "gate_reason": "Rule R-02 triggered HARD_FAIL",
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_006 evaluate --event event.json --rules R-01,R-02,R-05",
+      "python -m sim_006 evaluate --event event.json --rules all",
+      "python -m sim_006 list-rules  # Print all rule definitions"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/evaluate", "description": "Evaluate one or more rules against an event" },
+      { "method": "GET", "path": "/rules", "description": "List all available rules with descriptions and thresholds" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-006-01", "name": "R-02 missing timestamp HARD_FAIL", "type": "Unit", "description": "Event with null timestamp triggers R-02 HARD_FAIL" },
+      { "id": "TC-006-02", "name": "R-05 voltage out of range WARN", "type": "Unit", "description": "Event with voltage 58V triggers R-05 WARNING" },
+      { "id": "TC-006-03", "name": "All rules pass scenario", "type": "Unit", "description": "Valid telemetry event passes all 8 rules with PASS gate" },
+      { "id": "TC-006-04", "name": "Multiple rules fail", "type": "Integration", "description": "HARD_FAIL from one rule overrides WARNING from another" },
+      { "id": "TC-006-05", "name": "R-08 impossible telemetry", "type": "Edge", "description": "SOC increase > 5% without charging source triggers R-08" }
+    ],
+    "securityRequirements": [
+      "No real security events or incident data used",
+      "Rule engine logic is read-only (no state mutation)",
+      "All outputs tagged simulated=true",
+      "Input events validated against schema before evaluation"
+    ],
+    "manualVerificationSteps": [
+      "Evaluate event with null timestamp and verify R-02 HARD_FAIL",
+      "Evaluate event with voltage 65V and verify R-05 WARNING or HARD_FAIL",
+      "Evaluate perfect event and verify PASS on all 8 rules",
+      "Launch Streamlit and test rule evaluation UI",
+      "Call POST /evaluate API and verify correct gate decision"
+    ],
+    "definitionOfDone": [
+      "All 8 rules implemented with correct logic and thresholds",
+      "Gate decision (PASS/WARN/HARD_FAIL) correctly computed",
+      "pytest passing with 70%+ coverage",
+      "Streamlit and FastAPI working",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-005-S1", "WP-005-S2", "WP-005-S3", "WP-005-S4", "WP-005-S5"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-007",
+    "name": "EV Battery Digital Twin Simulator",
+    "ownerId": "DEV-007",
+    "product": "Battery Cybersecurity Platform",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Create a lightweight v1 digital twin of a battery that tracks identity, telemetry, health, trust score, event history, and mission readiness state.",
+    "businessGoal": "Provide a single stateful representation of a battery that aggregates data from all other simulators, enabling holistic battery state visibility for mission planning.",
+    "problemStatement": "Battery state is spread across identity, telemetry, health, and cybersecurity simulators. A digital twin aggregates these into a single consistent view.",
+    "userPersonas": ["Product Architect", "Battery Mission Engineer", "QA Engineer", "Demo Presenter"],
+    "scope": {
+      "simulates": [
+        "Battery identity state (BPAN, certificate status, owner)",
+        "Current telemetry state (SOH, SOC, temperature, voltage)",
+        "Health state (degradation trend, cycle count, anomalies)",
+        "Trust score state (current score, readiness band, last evaluation)",
+        "Event history (last N events with timestamps)",
+        "Mission readiness state (READY / CAUTION / GROUNDED)"
+      ],
+      "doesNotSimulate": [
+        "Physics-informed thermal or degradation models",
+        "Real-time streaming twin synchronisation",
+        "Commercial developer SDK"
+      ],
+      "inputs": ["Battery ID", "Snapshot data from SIM-001, SIM-002, SIM-003, SIM-004, SIM-008"],
+      "outputs": ["Digital twin snapshot JSON", "Mission readiness status", "Twin event log"],
+      "assumptions": ["Twin is built from simulator outputs, not real hardware data"],
+      "limitations": ["v1 only — no real-time sync or physics model"]
+    },
+    "functionalRequirements": [
+      "Create digital twin from battery pack data (SIM-001 output)",
+      "Attach identity state from SIM-002 output",
+      "Attach latest telemetry state from SIM-003 output",
+      "Attach trust score and readiness band from SIM-004 output",
+      "Attach health state from SIM-008 output",
+      "Maintain event history (last 20 events)",
+      "Determine and return overall mission readiness (READY / CAUTION / GROUNDED)"
+    ],
+    "nonFunctionalRequirements": [
+      "Lightweight, stateless snapshot model for v1",
+      "CLI for creating and displaying twin snapshot",
+      "Streamlit dashboard for twin state visualisation",
+      "FastAPI for twin creation and query",
+      "All outputs tagged simulated=true"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest"],
+    "architectureNotes": "DigitalTwinBuilder aggregates outputs from simulators 001–004 and 008 into a unified TwinSnapshot. Streamlit renders a dashboard with tabs for each twin state dimension.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260710-001",
+      "include_sim_outputs": {
+        "sim_001": true, "sim_002": true, "sim_003": true,
+        "sim_004": true, "sim_008": true
+      }
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260710-001",
+      "twin_created_at": "2026-07-10T09:00:00Z",
+      "identity_state": { "bpan": "BPAN-LFP-2026-IN-00001", "identity_status": "TRUSTED", "cert_status": "VALID" },
+      "telemetry_state": { "soh_percent": 95.2, "soc_percent": 78.5, "temperature_c": 28.3, "voltage_v": 48.2 },
+      "health_state": { "degradation_trend": "NORMAL", "cycle_count": 142, "anomalies": [] },
+      "trust_score_state": { "overall_score": 81.65, "readiness_band": "Ready with Caution", "last_evaluated_at": "2026-07-10T08:55:00Z" },
+      "mission_readiness": "CAUTION",
+      "event_count": 12,
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_007 build-twin --battery-id BID-001 --output twin.json",
+      "python -m sim_007 show-twin --battery-id BID-001",
+      "python -m sim_007 readiness --battery-id BID-001"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/build-twin", "description": "Build digital twin snapshot from simulator inputs" },
+      { "method": "GET", "path": "/twin/{battery_id}", "description": "Return last built twin snapshot for battery" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-007-01", "name": "Twin build from all simulators", "type": "Integration", "description": "Build twin from all 5 simulator outputs and verify all state sections present" },
+      { "id": "TC-007-02", "name": "Mission readiness READY", "type": "Unit", "description": "Trust score ≥90 and valid identity returns READY readiness" },
+      { "id": "TC-007-03", "name": "Mission readiness GROUNDED", "type": "Unit", "description": "Trust score ≤39 returns GROUNDED readiness" },
+      { "id": "TC-007-04", "name": "Event history limit", "type": "Unit", "description": "Twin stores at most last 20 events" }
+    ],
+    "securityRequirements": [
+      "Twin contains only simulated data",
+      "All outputs tagged simulated=true",
+      "No real device state stored or transmitted",
+      "Twin data not persisted beyond current session in v1"
+    ],
+    "manualVerificationSteps": [
+      "Build twin from SIM-001 output and verify all state sections populated",
+      "Verify mission readiness changes with different trust score inputs",
+      "Launch Streamlit dashboard and verify twin state tabs display correctly",
+      "Call POST /build-twin API and verify complete snapshot in response",
+      "Run pytest and verify integration tests pass"
+    ],
+    "definitionOfDone": [
+      "Twin aggregates data from 5 simulators",
+      "Mission readiness correctly computed",
+      "Streamlit dashboard with all state tabs",
+      "FastAPI /build-twin endpoint functional",
+      "pytest passing with 70%+ coverage",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-005-S2"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-008",
+    "name": "Battery Health / SOH-SOC Simulator",
+    "ownerId": "DEV-008",
+    "product": "Battery Pack Aadhaar System",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Simulate battery health, state of health (SOH), state of charge (SOC), degradation patterns, cycle count, and anomaly conditions.",
+    "businessGoal": "Provide realistic battery health data for testing SOH/SOC dependent logic in trust scores, registry filtering, and health-based mission readiness decisions.",
+    "problemStatement": "SOH and SOC data must cover normal operation as well as degraded, anomalous, and critical health states. Real battery degradation data is not available during development.",
+    "userPersonas": ["Battery Engineer", "QA Engineer", "Trust Score Developer", "Architect"],
+    "scope": {
+      "simulates": [
+        "Normal degradation (linear SOH decline with cycle count)",
+        "Rapid degradation (accelerated SOH decline scenario)",
+        "Cell imbalance (uneven SOC across cells)",
+        "Thermal stress (high temperature impact on SOH)",
+        "Low SOH alert scenario (SOH < 70%)",
+        "High internal resistance scenario"
+      ],
+      "doesNotSimulate": [
+        "Electrochemical degradation physics",
+        "Thermal runaway progression",
+        "Real battery management system data"
+      ],
+      "inputs": ["Battery ID", "Health scenario type", "Cycle count range", "Starting SOH"],
+      "outputs": ["Health snapshot JSON", "SOH/SOC values", "Degradation trend", "Health anomalies"],
+      "assumptions": ["Linear degradation model for v1", "SOH decreases approximately 0.02% per cycle"],
+      "limitations": ["Simplified linear model", "Does not model capacity fade accurately for all chemistries"]
+    },
+    "functionalRequirements": [
+      "Calculate SOH based on cycle count using simplified linear degradation model",
+      "Simulate normal degradation (0.02% SOH loss per cycle)",
+      "Simulate rapid degradation (0.1% SOH loss per cycle)",
+      "Simulate cell imbalance: individual cell SOC spread > 10%",
+      "Simulate thermal stress: SOH reduction due to high temperature events",
+      "Generate health anomaly list for low SOH, high internal resistance, cell imbalance",
+      "Return health grade: EXCELLENT (>90%), GOOD (75–90%), FAIR (60–74%), POOR (<60%)"
+    ],
+    "nonFunctionalRequirements": [
+      "CLI and Streamlit UI supported",
+      "FastAPI REST API for integration with trust score simulator",
+      "All outputs tagged simulated=true",
+      "pytest with 70%+ coverage"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest", "numpy (for degradation curves)"],
+    "architectureNotes": "HealthScenarioEngine selects degradation model, computes SOH/SOC, assigns health grade, and generates anomaly list. SIM-008 is consumed directly by SIM-004 (trust score) and SIM-007 (digital twin).",
+    "sampleInputJson": {
+      "battery_id": "BID-20260710-001",
+      "scenario": "normal_degradation",
+      "chemistry": "LFP",
+      "starting_soh_percent": 100.0,
+      "cycle_count": 500
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260710-001",
+      "scenario": "normal_degradation",
+      "soh_percent": 90.0,
+      "soc_percent": 75.5,
+      "cycle_count": 500,
+      "degradation_rate_per_cycle": 0.02,
+      "health_grade": "GOOD",
+      "internal_resistance_mohm": 8.5,
+      "anomalies": [],
+      "trend": "STABLE",
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_008 health --battery-id BID-001 --scenario normal_degradation --cycles 500",
+      "python -m sim_008 health --battery-id BID-001 --scenario cell_imbalance",
+      "python -m sim_008 health --battery-id BID-001 --scenario thermal_stress"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/health-snapshot", "description": "Generate health snapshot for a given battery and scenario" },
+      { "method": "GET", "path": "/scenarios", "description": "List health simulation scenarios" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-008-01", "name": "Normal degradation at cycle 500", "type": "Unit", "description": "Verify SOH ≈ 90% at 500 cycles with 0.02% loss per cycle" },
+      { "id": "TC-008-02", "name": "Rapid degradation at cycle 200", "type": "Unit", "description": "Verify SOH ≈ 80% at 200 cycles with 0.1% loss per cycle" },
+      { "id": "TC-008-03", "name": "Cell imbalance anomaly", "type": "Edge", "description": "Cell imbalance scenario returns CELL_IMBALANCE anomaly" },
+      { "id": "TC-008-04", "name": "Health grade boundaries", "type": "Unit", "description": "SOH=91% returns EXCELLENT, SOH=74% returns FAIR" },
+      { "id": "TC-008-05", "name": "Low SOH alert", "type": "Negative", "description": "SOH < 60% triggers POOR grade and LOW_SOH anomaly" }
+    ],
+    "securityRequirements": [
+      "No real battery health data used",
+      "All outputs tagged simulated=true",
+      "Degradation models clearly documented as simplified approximations"
+    ],
+    "manualVerificationSteps": [
+      "Run normal degradation for 1000 cycles and verify SOH ≈ 80%",
+      "Run cell imbalance scenario and verify CELL_IMBALANCE anomaly",
+      "Launch Streamlit and verify degradation curve chart",
+      "Call POST /health-snapshot and verify health grade and anomalies",
+      "Run pytest and verify all tests pass"
+    ],
+    "definitionOfDone": [
+      "All 6 health scenarios implemented",
+      "Health grade correctly assigned by SOH range",
+      "Anomaly detection for low SOH, cell imbalance, high resistance",
+      "pytest passing with 70%+ coverage",
+      "Streamlit chart showing degradation curve",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-001-S4", "WP-005-S3"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-009",
+    "name": "Audit & Evidence Simulator",
+    "ownerId": "DEV-009",
+    "product": "Both Products",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Generate audit events, verification evidence packages, report metadata, and traceability records for battery identity and cybersecurity operations.",
+    "businessGoal": "Provide automated evidence generation for QA and architect review processes, reducing manual evidence collection overhead and ensuring traceable, verifiable records.",
+    "problemStatement": "Each story requires substantial evidence collection (architecture docs, test reports, screenshots, audit logs). Without a simulator, evidence generation is manual and error-prone.",
+    "userPersonas": ["QA Engineer", "Architect", "Product Owner", "Security Auditor"],
+    "scope": {
+      "simulates": [
+        "User action audit log (login, query, verify, transfer events)",
+        "Simulation run log (each simulator execution record)",
+        "Evidence checklist generation (per story or simulator)",
+        "Verification status report (pass/fail per checklist item)",
+        "Report package metadata (title, date, reviewer, status)",
+        "Demo evidence metadata (video link, presentation link, screenshots)"
+      ],
+      "doesNotSimulate": [
+        "Real audit system integration",
+        "Real compliance management systems",
+        "Automated screenshot capture"
+      ],
+      "inputs": ["Artifact type (audit_log / evidence_checklist / verification_report)", "Story or Simulator ID", "Run metadata"],
+      "outputs": ["Audit event JSON", "Evidence checklist JSON", "Verification report JSON", "Report package metadata"],
+      "assumptions": ["All evidence is simulated or manually provided", "Verification status is manually set"],
+      "limitations": ["Does not automate screenshot capture", "Manual evidence link entry required"]
+    },
+    "functionalRequirements": [
+      "Generate user action audit log with event type, actor, timestamp, and outcome",
+      "Generate simulation run log entry per simulator execution",
+      "Generate evidence checklist for a given story ID with all required evidence fields",
+      "Return checklist with MISSING / SUBMITTED / APPROVED status per field",
+      "Generate verification status report from checklist responses",
+      "Generate report package metadata: title, date, reviewer, status, artifact links",
+      "Generate demo evidence metadata: demo video link, presentation, screenshots count"
+    ],
+    "nonFunctionalRequirements": [
+      "CLI for batch evidence generation",
+      "Streamlit UI for checklist completion and report generation",
+      "FastAPI for programmatic report package creation",
+      "All outputs tagged simulated=true or generated_by=SIM-009",
+      "pytest with 70%+ coverage"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest", "jinja2 (report templating)"],
+    "architectureNotes": "AuditEventFactory generates audit events. EvidenceChecklistEngine generates per-story checklists. VerificationReportBuilder compiles verification results into report packages. Streamlit provides checklist UI.",
+    "sampleInputJson": {
+      "artifact_type": "evidence_checklist",
+      "story_id": "WP-001-S1",
+      "reviewer": "QA Engineer",
+      "generated_at": "2026-07-25T10:00:00Z"
+    },
+    "sampleOutputJson": {
+      "story_id": "WP-001-S1",
+      "checklist_id": "CHK-WP-001-S1-001",
+      "reviewer": "QA Engineer",
+      "generated_at": "2026-07-25T10:00:00Z",
+      "items": [
+        { "field": "github_repo", "label": "GitHub Repository", "status": "MISSING", "link": "" },
+        { "field": "architecture_doc", "label": "Architecture Document", "status": "MISSING", "link": "" },
+        { "field": "test_report", "label": "Test Report", "status": "MISSING", "link": "" },
+        { "field": "demo_video", "label": "Demo Video", "status": "MISSING", "link": "" }
+      ],
+      "completion_percent": 0,
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_009 checklist --story-id WP-001-S1 --reviewer QA-Reviewer",
+      "python -m sim_009 audit-log --actor developer@intern --event verify_identity --outcome PASS",
+      "python -m sim_009 report --story-id WP-001-S1 --output report.json"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/generate-checklist", "description": "Generate evidence checklist for a story or simulator" },
+      { "method": "POST", "path": "/audit-event", "description": "Log an audit event" },
+      { "method": "POST", "path": "/verification-report", "description": "Generate verification report from checklist responses" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-009-01", "name": "Evidence checklist generation", "type": "Unit", "description": "Checklist for WP-001-S1 contains all 14+ required evidence fields" },
+      { "id": "TC-009-02", "name": "Completion percentage calculation", "type": "Unit", "description": "5 of 14 fields SUBMITTED returns completion_percent = 35.7%" },
+      { "id": "TC-009-03", "name": "Audit log event creation", "type": "Unit", "description": "Audit event includes actor, event_type, timestamp, and outcome" },
+      { "id": "TC-009-04", "name": "Verification report from checklist", "type": "Integration", "description": "Report builder returns pass/fail per checklist item" }
+    ],
+    "securityRequirements": [
+      "No real personal or organisational data used in sample logs",
+      "Simulated audit events clearly tagged generated_by=SIM-009",
+      "All outputs tagged simulated=true",
+      "No evidence links auto-validated (manual entry only)"
+    ],
+    "manualVerificationSteps": [
+      "Generate checklist for WP-001-S1 and verify all evidence fields present",
+      "Log an audit event and verify timestamp, actor, and outcome fields",
+      "Launch Streamlit and verify checklist UI with status dropdown per field",
+      "Call POST /generate-checklist API and verify response",
+      "Run pytest and verify all tests pass"
+    ],
+    "definitionOfDone": [
+      "Checklist generation working for all 10 stories and 10 simulators",
+      "Audit event logging functional",
+      "Verification report builder functional",
+      "Streamlit checklist UI working",
+      "pytest passing with 70%+ coverage",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-001-S3", "WP-001-S5", "WP-005-S4", "WP-005-S5"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  },
+  {
+    "id": "SIM-010",
+    "name": "Integration Test Harness Simulator",
+    "ownerId": "DEV-010",
+    "product": "Both Products",
+    "status": "Not Started",
+    "githubRepo": "",
+    "streamlitLink": "",
+    "apiLink": "",
+    "testStatus": "Not Started",
+    "evidenceStatus": "Missing",
+    "purpose": "Run end-to-end test scenarios across all simulators, validating the complete Battery Trust Platform pipeline from battery pack to final trust score and evidence report.",
+    "businessGoal": "Provide a single orchestration tool that exercises the entire simulator ecosystem, demonstrating cross-simulator integration and generating final demo evidence.",
+    "problemStatement": "With 10 independent simulators, integration testing requires a harness that chains them together in the correct sequence to validate the full system flow.",
+    "userPersonas": ["QA Engineer", "Architect", "Integration Test Engineer", "Demo Presenter"],
+    "scope": {
+      "simulates": [
+        "Full pipeline: Battery Pack → Identity Verification → Telemetry → Detection Rules → Cyber Attack → Trust Score → Evidence Report",
+        "Scenario: happy path — all checks pass, trust score ≥90",
+        "Scenario: attack detected — replay attack triggers hard-fail gate",
+        "Scenario: degraded battery — low SOH reduces trust score to CAUTION",
+        "Scenario: identity failure — expired certificate blocks mission readiness"
+      ],
+      "doesNotSimulate": [
+        "Real system integration or production APIs",
+        "Load testing or performance benchmarking",
+        "Concurrent multi-battery simulation"
+      ],
+      "inputs": ["Scenario name", "Battery ID (or generate new)", "Override parameters for individual simulators"],
+      "outputs": ["End-to-end test result JSON", "Per-simulator step result", "Final trust score", "Evidence report package"],
+      "assumptions": ["All simulators are available locally", "Simulators are called as Python modules (not HTTP)"],
+      "limitations": ["Sequential pipeline only in v1", "Requires all simulators installed in same environment"]
+    },
+    "functionalRequirements": [
+      "Orchestrate SIM-001 to generate battery pack",
+      "Call SIM-002 for identity verification with configurable scenario",
+      "Call SIM-003 to generate telemetry events",
+      "Call SIM-006 to run detection rules on telemetry events",
+      "Call SIM-005 to simulate configurable cyber attack",
+      "Call SIM-004 to compute trust score from all inputs",
+      "Call SIM-009 to generate evidence report package",
+      "Return complete end-to-end test result with per-step status"
+    ],
+    "nonFunctionalRequirements": [
+      "Orchestrates all simulators in one command",
+      "Streamlit UI for scenario selection and pipeline visualisation",
+      "FastAPI for CI/CD integration",
+      "All outputs tagged simulated=true",
+      "pytest with integration test scenarios"
+    ],
+    "technologyRequirements": ["Python 3.10+", "Streamlit", "FastAPI", "Pydantic v2", "pytest", "All other simulators installed"],
+    "architectureNotes": "PipelineOrchestrator runs each simulator in sequence, passing outputs between steps. Pipeline state is tracked as a StepResult list. Streamlit renders a pipeline flow diagram with per-step status.",
+    "sampleInputJson": {
+      "scenario": "happy_path",
+      "battery_id": null,
+      "identity_scenario": "valid",
+      "telemetry_scenario": "normal",
+      "attack_type": null,
+      "seed": 42
+    },
+    "sampleOutputJson": {
+      "scenario": "happy_path",
+      "battery_id": "BID-20260710-042",
+      "pipeline_status": "PASSED",
+      "steps": [
+        { "step": 1, "simulator": "SIM-001", "name": "Generate Battery Pack", "status": "PASS", "output_summary": "LFP pack BPAN-LFP-2026-IN-00042 generated" },
+        { "step": 2, "simulator": "SIM-002", "name": "Identity Verification", "status": "PASS", "output_summary": "Identity TRUSTED, certificate VALID" },
+        { "step": 3, "simulator": "SIM-003", "name": "Generate Telemetry", "status": "PASS", "output_summary": "10 normal telemetry events generated" },
+        { "step": 4, "simulator": "SIM-006", "name": "Run Detection Rules", "status": "PASS", "output_summary": "All rules PASS — gate: PASS" },
+        { "step": 5, "simulator": "SIM-004", "name": "Calculate Trust Score", "status": "PASS", "output_summary": "Trust score 91.5 — MISSION_READY" },
+        { "step": 6, "simulator": "SIM-009", "name": "Generate Evidence Report", "status": "PASS", "output_summary": "Evidence package CHK-BID-042-001 generated" }
+      ],
+      "final_trust_score": 91.5,
+      "readiness_band": "Mission Ready",
+      "simulated": true
+    },
+    "cliCommands": [
+      "python -m sim_010 run --scenario happy_path --seed 42",
+      "python -m sim_010 run --scenario attack_detected --attack-type replay_attack",
+      "python -m sim_010 run --scenario identity_failure --identity-scenario expired"
+    ],
+    "apiEndpoints": [
+      { "method": "POST", "path": "/run-pipeline", "description": "Run end-to-end integration test pipeline for a scenario" },
+      { "method": "GET", "path": "/scenarios", "description": "List available integration test scenarios" },
+      { "method": "GET", "path": "/last-result", "description": "Return result from last pipeline run" },
+      { "method": "GET", "path": "/health", "description": "Health check" }
+    ],
+    "testCases": [
+      { "id": "TC-010-01", "name": "Happy path pipeline", "type": "Integration", "description": "Full pipeline with valid identity and normal telemetry returns PASSED and MISSION_READY" },
+      { "id": "TC-010-02", "name": "Attack detected pipeline", "type": "Integration", "description": "Replay attack triggers R-01 HARD_FAIL gate and trust score drops to GROUNDED" },
+      { "id": "TC-010-03", "name": "Identity failure pipeline", "type": "Integration", "description": "Expired certificate causes identity EXPIRED and trust score penalty" },
+      { "id": "TC-010-04", "name": "All 6 steps complete", "type": "Unit", "description": "Every pipeline run returns exactly 6 step results with simulator IDs" },
+      { "id": "TC-010-05", "name": "Reproducibility with seed", "type": "Unit", "description": "Same seed and scenario produces identical pipeline output" }
+    ],
+    "securityRequirements": [
+      "Integration tests use only simulated data",
+      "All pipeline outputs tagged simulated=true",
+      "No real system connections in any pipeline step",
+      "Attack scenarios clearly marked SIMULATED_ATTACK"
+    ],
+    "manualVerificationSteps": [
+      "Run happy_path scenario and verify MISSION_READY outcome",
+      "Run attack_detected scenario and verify HARD_FAIL gate and lower trust score",
+      "Launch Streamlit and verify pipeline flow diagram with step statuses",
+      "Call POST /run-pipeline API and verify step results in response",
+      "Run pytest integration tests and verify all 4 scenarios tested"
+    ],
+    "definitionOfDone": [
+      "All 6 pipeline steps orchestrated in correct sequence",
+      "4 integration scenarios (happy path, attack, degraded, identity failure) working",
+      "Streamlit pipeline flow diagram UI functional",
+      "FastAPI /run-pipeline endpoint functional",
+      "pytest integration tests passing",
+      "README and evidence complete"
+    ],
+    "usedByStories": ["WP-005-S5"],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" }
+  }
+]

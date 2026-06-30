@@ -1,0 +1,210 @@
+[
+  {
+    "week": "Week 0",
+    "dates": "July 01 – 03, 2026",
+    "title": "Aerospace & EV Engineering Mindset",
+    "focus": "Orientation",
+    "activities": [
+      "Understand aerospace engineering standards (AS 9100, DO-178C basics)",
+      "Learn EV battery fundamentals: chemistry, BMS, lifecycle, safety",
+      "Study Battery Pack Aadhaar System product vision",
+      "Study Battery Cybersecurity Platform product vision",
+      "Review internship code of conduct, tooling, and communication norms",
+      "Setup development environment: Python, Git, VS Code, Streamlit"
+    ]
+  },
+  {
+    "week": "Week 1",
+    "dates": "July 06 – 10, 2026",
+    "title": "Deep System Analysis",
+    "focus": "Analysis",
+    "activities": [
+      "Detailed analysis of assigned simulator requirements",
+      "System analysis: inputs, outputs, data flow, dependencies",
+      "Use case analysis: identify all user interactions",
+      "Test case analysis: define test scenarios before development",
+      "Data analysis: understand battery data schemas and standards",
+      "Create initial data model and entity-relationship diagram",
+      "Submit Week 1 analysis document to Google Drive"
+    ]
+  },
+  {
+    "week": "Week 2",
+    "dates": "July 13 – 17, 2026",
+    "title": "Simulator Development",
+    "focus": "Build",
+    "activities": [
+      "Implement core simulator logic in Python",
+      "Create CLI interface with argparse or click",
+      "Implement JSON input/output with Pydantic validation",
+      "Build Streamlit UI: input form, run button, output dashboard",
+      "Implement FastAPI REST endpoints: /simulate, /health, /sample",
+      "Write unit tests with pytest",
+      "Tag all outputs with simulated=true and run metadata"
+    ]
+  },
+  {
+    "week": "Week 3",
+    "dates": "July 20 – 24, 2026",
+    "title": "Simulator QA & Hardening",
+    "focus": "QA",
+    "activities": [
+      "Run complete test suite and fix all failing tests",
+      "Test negative and edge cases: invalid input, missing fields, extremes",
+      "Peer code review with another intern",
+      "Fix bugs found during QA",
+      "Improve Streamlit UI: charts, export, evidence screenshot",
+      "Complete README and API documentation",
+      "Upload evidence to Google Drive and submit for QA review"
+    ]
+  },
+  {
+    "week": "Week 4",
+    "dates": "July 27 – 31, 2026",
+    "title": "Product POC Development",
+    "focus": "POC",
+    "activities": [
+      "Define POC scope for assigned user story",
+      "Implement minimum viable product for the user story",
+      "Integrate simulator output with POC backend",
+      "Create basic UI for the POC",
+      "Demonstrate end-to-end flow for the user story",
+      "Document POC findings and limitations",
+      "Submit POC demo video and screenshots"
+    ]
+  },
+  {
+    "week": "Week 5",
+    "dates": "Aug 03 – 07, 2026",
+    "title": "Architecture & Design",
+    "focus": "Architecture",
+    "activities": [
+      "Design formal system architecture for the product story",
+      "Create component diagram and data flow diagram",
+      "Define API contracts (request/response JSON schemas)",
+      "Write architecture decision records (ADRs)",
+      "Create sequence diagrams for key flows",
+      "Design security controls and threat mitigations",
+      "Submit architecture document for architect review"
+    ]
+  },
+  {
+    "week": "Week 6",
+    "dates": "Aug 10 – 14, 2026",
+    "title": "Product Development — Phase 1",
+    "focus": "Development",
+    "activities": [
+      "Implement backend APIs per the API contract",
+      "Implement data models and database schema",
+      "Implement core business logic for the user story",
+      "Integrate with assigned simulator",
+      "Create integration test stubs",
+      "Maintain feature branch with clean commits",
+      "Daily standup updates in team channel"
+    ]
+  },
+  {
+    "week": "Week 7",
+    "dates": "Aug 17 – 21, 2026",
+    "title": "Product Development — Phase 2 & Unit Tests",
+    "focus": "Development + Testing",
+    "activities": [
+      "Complete remaining product features",
+      "Implement full UI per UI requirements",
+      "Write unit tests for all business logic functions",
+      "Achieve minimum 70% code coverage",
+      "Fix any regressions from integration",
+      "Update README and inline documentation",
+      "Create pull request for architect review"
+    ]
+  },
+  {
+    "week": "Week 8",
+    "dates": "Aug 24 – 28, 2026",
+    "title": "Cross Testing & QA",
+    "focus": "Cross Testing",
+    "activities": [
+      "Cross-test with other developers' simulators and APIs",
+      "Run integration test harness (SIM-010) across all simulators",
+      "File bug reports for issues found in peer testing",
+      "Fix critical and high severity bugs in own code",
+      "Conduct security checklist review",
+      "Submit QA evidence package: test report, coverage, screenshots",
+      "Formal QA review session with QA reviewer"
+    ]
+  },
+  {
+    "week": "Week 9",
+    "dates": "Aug 31 – Sept 04, 2026",
+    "title": "Bug Fixes, Optimisation & Demo Hardening",
+    "focus": "Hardening",
+    "activities": [
+      "Fix all open bugs from QA review",
+      "Optimise simulator performance for demo loads",
+      "Improve UI polish and responsiveness",
+      "Prepare demo script and rehearse flow",
+      "Record demo video (5-10 minutes)",
+      "Create demo presentation slides",
+      "Update Google Drive evidence folder with all artifacts"
+    ]
+  },
+  {
+    "week": "Week 10",
+    "dates": "Sept 07 – 11, 2026",
+    "title": "Research, Patent Notes & Presentations",
+    "focus": "Research",
+    "activities": [
+      "Write research summary: novel contributions of the work",
+      "Document potential patent-worthy concepts",
+      "Prepare presentation for EV Society review",
+      "Peer review each other's presentations",
+      "Submit research notes and patent notes to Google Drive",
+      "Update user story page with final evidence links",
+      "Architect review of final deliverable"
+    ]
+  },
+  {
+    "week": "Week 11",
+    "dates": "Sept 14 – 18, 2026",
+    "title": "Final Verification & Documentation",
+    "focus": "Verification",
+    "activities": [
+      "Complete all manual verification steps from story checklist",
+      "Ensure Definition of Done checklist is fully checked",
+      "Submit final verification report",
+      "Complete security review checklist",
+      "Finalize all documentation: README, API docs, architecture doc",
+      "Submit release notes for final version",
+      "Architect final sign-off review"
+    ]
+  },
+  {
+    "week": "Week 12",
+    "dates": "Sept 21 – 25, 2026",
+    "title": "Final Demo & EV Society Review",
+    "focus": "Demo",
+    "activities": [
+      "Final demo rehearsal with all interns",
+      "Present to EV Society review panel",
+      "Demo Battery Pack Aadhaar System features",
+      "Demo Battery Cybersecurity Platform features",
+      "Q&A with EV Society panel",
+      "Receive feedback and log action items",
+      "Confirm certificate eligibility"
+    ]
+  },
+  {
+    "week": "Final",
+    "dates": "Sept 28 – 30, 2026",
+    "title": "Final Review & Certificate Distribution",
+    "focus": "Closure",
+    "activities": [
+      "Founder / Architect final review of all deliverables",
+      "Close all open action items from EV Society review",
+      "Final retrospective: what went well, what to improve",
+      "Certificate distribution to eligible interns",
+      "Archive all evidence to Google Drive",
+      "Close GitHub repositories and tag final release"
+    ]
+  }
+]

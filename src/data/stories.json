@@ -1,0 +1,1256 @@
+[
+  {
+    "id": "WP-001-S1",
+    "title": "Battery Aadhaar ID Schema & Registration Model",
+    "product": "Battery Pack Aadhaar System",
+    "workPackage": "WP-001",
+    "developerId": "DEV-001",
+    "simulatorIds": ["SIM-001", "SIM-002"],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Create a trusted digital identity layer for every mission-critical battery pack. Establish the BPAN schema as the foundational standard for battery traceability across the platform.",
+    "problemStatement": "Battery packs lack a unique, standardised, auditable identity. Without a structured identity schema and registration model, battery lifecycle tracking, provenance verification, and regulatory alignment are impossible.",
+    "userPersona": "Battery identity engineer / product architect responsible for defining the BPAN schema and implementing the registration backend.",
+    "epic": "WP-001 — Battery Pack Aadhaar System: Trusted Digital Identity for Every Battery",
+    "userStory": "As a battery identity engineer, I want to define and implement the Battery Aadhaar ID schema and registration model, so that every battery can be uniquely identified and traced across its lifecycle.",
+    "description": "This story covers the design and implementation of the Battery Pack Aadhaar Number (BPAN) schema. BPAN follows the format BPAN-{CHEMISTRY}-{YEAR}-{COUNTRY}-{SERIAL}. The registration model stores static battery metadata and returns a unique battery_id. Duplicate registration must be rejected. All registration events must produce audit logs.",
+    "functionalRequirements": [
+      "Define BPAN schema: BPAN-{CHEM}-{YEAR}-{COUNTRY}-{SERIAL} (21 characters, alphanumeric)",
+      "Accept registration input: manufacturer, chemistry, nominal voltage, capacity, pack configuration, manufacturing date, factory, serial number",
+      "Validate BPAN format before registration",
+      "Reject duplicate BPAN registration with clear error response",
+      "Store static battery metadata and return battery_id on success",
+      "Produce registration audit event with timestamp and actor",
+      "Return registration response: battery_id, bpan, status, registered_at",
+      "Support query of registered battery by battery_id or BPAN"
+    ],
+    "nonFunctionalRequirements": [
+      "BPAN must be globally unique within the system",
+      "Registration response time under 500ms for valid inputs",
+      "All registration data stored with JSON schema validation",
+      "System must reject invalid BPAN formats with descriptive error messages"
+    ],
+    "uiRequirements": [
+      "Registration form with fields for all static attributes",
+      "Display BPAN prominently on successful registration",
+      "Show error messages inline for validation failures"
+    ],
+    "architectureNotes": "Backend: FastAPI registration endpoint. Data: JSON file store (Firebase-ready structure). Validation: Pydantic models for BPAN and BatteryProfile. Simulator: SIM-001 generates test packs, SIM-002 generates identity scenarios. Audit: SIM-009 integration for audit events.",
+    "sampleInputJson": {
+      "manufacturer": "EV.BATTERY LABS",
+      "chemistry": "LFP",
+      "nominal_voltage_v": 48.0,
+      "capacity_ah": 100.0,
+      "cell_config": "16S4P",
+      "manufacturing_date": "2026-01-15",
+      "factory": "IN-PUNE-01",
+      "serial_number": "SN-LFP-2026-00001"
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "bpan": "BPAN-LFP-2026-IN-00001",
+      "status": "REGISTERED",
+      "registered_at": "2026-07-10T09:00:00Z",
+      "audit_event_id": "AUD-REG-20260710-001",
+      "message": "Battery Aadhaar ID registered successfully"
+    },
+    "acceptanceCriteria": [
+      "BPAN is generated in correct format BPAN-{CHEM}-{YEAR}-{COUNTRY}-{SERIAL} on every registration",
+      "Duplicate BPAN registration returns HTTP 409 with error message 'BPAN already registered'",
+      "Invalid BPAN format returns HTTP 422 with field-level validation errors",
+      "Successful registration returns battery_id, bpan, registered_at, and audit_event_id",
+      "Registered battery retrievable by battery_id or BPAN via query endpoint"
+    ],
+    "definitionOfDone": [
+      "BPAN schema and validation implemented and documented",
+      "Registration endpoint accepting all required static fields",
+      "Duplicate detection working correctly",
+      "Audit event generated for every registration",
+      "pytest suite passing with 70%+ coverage",
+      "Evidence uploaded to Google Drive",
+      "QA review passed and Architect approval received"
+    ],
+    "positiveUseCases": [
+      "Battery engineer registers a new LFP pack: receives BPAN and battery_id immediately",
+      "Architect queries battery by BPAN and retrieves complete static metadata for audit"
+    ],
+    "negativeUseCases": [
+      "Attempting to register same BPAN twice returns 409 Conflict error",
+      "Submitting registration with missing mandatory field (chemistry) returns 422 validation error"
+    ],
+    "testCases": [
+      { "id": "TC-S1-01", "name": "Successful registration", "type": "Unit", "description": "Register valid LFP battery and verify BPAN format and battery_id in response" },
+      { "id": "TC-S1-02", "name": "Duplicate BPAN rejection", "type": "Negative", "description": "Register same BPAN twice and verify second request returns 409 with error message" },
+      { "id": "TC-S1-03", "name": "Invalid BPAN format", "type": "Negative", "description": "Submit malformed BPAN string and verify 422 validation error with field details" },
+      { "id": "TC-S1-04", "name": "Audit event creation", "type": "Integration", "description": "Verify audit_event_id is present in response and corresponds to a retrievable audit log entry" },
+      { "id": "TC-S1-05", "name": "Query by BPAN", "type": "Unit", "description": "Register battery then retrieve by BPAN and verify identical static metadata" }
+    ],
+    "securityRequirements": [
+      "All registration inputs sanitised and validated via Pydantic before persistence",
+      "No sensitive or personally identifiable information stored in battery record",
+      "Audit events must not be modifiable after creation",
+      "Registration endpoint rejects payloads exceeding maximum field lengths"
+    ],
+    "securityTestCases": [
+      "Submit registration with SQL injection in serial_number field — verify sanitisation and no error exposure",
+      "Submit oversized payload (>1MB) to registration endpoint — verify 413 rejection",
+      "Verify audit event record is immutable after creation"
+    ],
+    "manualVerificationSteps": [
+      "Submit valid registration via Postman and verify BPAN and battery_id in response",
+      "Attempt duplicate registration and verify 409 error response",
+      "Query registered battery by BPAN and verify all static fields match",
+      "Verify audit event appears in audit log with correct timestamp and actor",
+      "Run pytest and verify all test cases pass with coverage report"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-001-S2",
+    "title": "QR Code Generation for Battery Aadhaar ID",
+    "product": "Battery Pack Aadhaar System",
+    "workPackage": "WP-001",
+    "developerId": "DEV-002",
+    "simulatorIds": ["SIM-001", "SIM-002"],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Allow physical battery packs to carry scannable QR codes that encode BPAN and static metadata, enabling offline identity verification in field conditions.",
+    "problemStatement": "Battery data must be accessible offline or in field conditions where internet access is unavailable. A QR code encoding BPAN and public metadata bridges this gap.",
+    "userPersona": "Field engineer / service technician who needs to verify battery identity without portal access.",
+    "epic": "WP-001 — Battery Pack Aadhaar System: Physical and Digital Identity Bridge",
+    "userStory": "As a field engineer, I want to generate and scan QR codes for Battery Aadhaar IDs, so that I can verify battery identity in the field without internet access.",
+    "description": "This story covers QR code generation for registered batteries. The QR code encodes the BPAN plus a subset of public static metadata. It supports PNG download and printable format. QR scan validation returns battery metadata. Private or sensitive fields are never encoded in the QR.",
+    "functionalRequirements": [
+      "Generate QR code for a registered battery using battery_id or BPAN",
+      "Encode BPAN, manufacturer, chemistry, nominal voltage, and manufacturing date in QR",
+      "Never encode private, sensitive, or custody data in QR",
+      "Export QR code as downloadable PNG at 300 DPI",
+      "Support printable A4 label format with BPAN, battery summary, and QR code",
+      "Validate QR scan result: decode and return battery metadata",
+      "Return error if scanned QR BPAN is not in registry"
+    ],
+    "nonFunctionalRequirements": [
+      "QR codes scannable by standard mobile QR readers",
+      "PNG download available within 2 seconds of request",
+      "QR codes remain scannable at minimum 1cm × 1cm print size",
+      "QR payload limited to public, non-sensitive data only"
+    ],
+    "uiRequirements": [
+      "Display generated QR code inline on battery detail page",
+      "Download PNG button below QR display",
+      "Print label view with BPAN header and QR code"
+    ],
+    "architectureNotes": "QRCodeService generates QR from battery data using qrcode Python library. Payload is JSON-encoded BPAN + public fields. PNG rendered in memory and returned as binary. Streamlit shows QR inline. FastAPI exposes /generate-qr and /scan-qr endpoints.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "include_fields": ["bpan", "manufacturer", "chemistry", "nominal_voltage_v", "manufacturing_date"],
+      "format": "png",
+      "dpi": 300
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "bpan": "BPAN-LFP-2026-IN-00001",
+      "qr_payload": "{\"bpan\":\"BPAN-LFP-2026-IN-00001\",\"manufacturer\":\"EV.BATTERY LABS\",\"chemistry\":\"LFP\",\"nominal_voltage_v\":48.0}",
+      "qr_image_url": "/qr/BPAN-LFP-2026-IN-00001.png",
+      "format": "png",
+      "generated_at": "2026-07-10T09:00:00Z"
+    },
+    "acceptanceCriteria": [
+      "QR code generated for any registered battery encodes BPAN correctly",
+      "Downloaded PNG is scannable and decodes to correct BPAN",
+      "Private fields (custody, SOH, SOC) are never included in QR payload",
+      "Printable A4 label format renders BPAN and QR code legibly",
+      "Scan validation of valid QR returns correct battery metadata"
+    ],
+    "definitionOfDone": [
+      "QR generation working for all registered batteries",
+      "PNG download functional at 300 DPI",
+      "Printable label format implemented",
+      "QR scan validation endpoint working",
+      "pytest suite passing with 70%+ coverage",
+      "Evidence uploaded to Google Drive",
+      "QA review passed and Architect approval received"
+    ],
+    "positiveUseCases": [
+      "Field engineer scans QR on battery and immediately sees BPAN and manufacturer info on mobile",
+      "Battery shipped with printed A4 label containing QR for logistics scanning"
+    ],
+    "negativeUseCases": [
+      "Scanning QR for unregistered battery returns 'Battery not found in registry' error",
+      "Attempting to generate QR for non-existent battery_id returns 404 error"
+    ],
+    "testCases": [
+      { "id": "TC-S2-01", "name": "QR code generation", "type": "Unit", "description": "Generate QR for valid battery_id and verify BPAN encoded correctly in QR payload" },
+      { "id": "TC-S2-02", "name": "PNG download", "type": "Integration", "description": "Download PNG returns valid image with correct BPAN scannable by QR reader" },
+      { "id": "TC-S2-03", "name": "Private field exclusion", "type": "Security", "description": "QR payload does not contain SOH, SOC, custody, or owner data" },
+      { "id": "TC-S2-04", "name": "Scan validation", "type": "Unit", "description": "POST /scan-qr with valid QR payload returns matching battery metadata" },
+      { "id": "TC-S2-05", "name": "Unknown BPAN scan", "type": "Negative", "description": "Scanning QR with unregistered BPAN returns 404 with clear error message" }
+    ],
+    "securityRequirements": [
+      "QR payload must never include ownership, custody chain, SOH, or SOC data",
+      "QR codes encode only public static attributes",
+      "No private keys or certificates encoded in QR",
+      "QR validation endpoint sanitises input before BPAN lookup"
+    ],
+    "securityTestCases": [
+      "Verify QR payload contains only whitelisted public fields",
+      "Attempt to inject malicious BPAN in scan-qr endpoint and verify sanitisation"
+    ],
+    "manualVerificationSteps": [
+      "Generate QR for registered battery and scan with mobile phone QR reader",
+      "Verify scanned payload shows correct BPAN and manufacturer",
+      "Download PNG and verify image quality at 300 DPI",
+      "Open printable label view and verify A4 layout with BPAN header and QR",
+      "Run pytest and verify all tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-001-S3",
+    "title": "Battery Custody Transfer & Ownership Metadata",
+    "product": "Battery Pack Aadhaar System",
+    "workPackage": "WP-001",
+    "developerId": "DEV-003",
+    "simulatorIds": ["SIM-002", "SIM-009"],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Track ownership and custody of battery packs across the entire lifecycle including manufacturing, operation, service, reuse, recycling, and disposal to maintain trusted provenance.",
+    "problemStatement": "Battery custody changes are frequently untracked, creating provenance gaps that undermine regulatory compliance and mission safety decisions. An auditable custody transfer system is required.",
+    "userPersona": "Battery lifecycle manager responsible for tracking custody of mission-critical battery packs.",
+    "epic": "WP-001 — Battery Pack Aadhaar System: Custody and Provenance Traceability",
+    "userStory": "As a lifecycle manager, I want to record ownership and custody transfer of battery packs, so that battery provenance remains trusted and auditable throughout its lifecycle.",
+    "description": "This story implements custody transfer records and ownership tracking. Each transfer captures: from_owner, to_owner, transfer_reason, transfer_date, and authorised_by. The system validates that the from_owner matches current owner before accepting transfer. Full custody history is retrievable per battery.",
+    "functionalRequirements": [
+      "Create custody transfer record: from_owner, to_owner, transfer_reason, transfer_date, authorised_by",
+      "Validate that from_owner matches current registered owner before accepting transfer",
+      "Update current owner on successful transfer",
+      "Maintain ordered custody history (chronological chain of all transfers)",
+      "Return custody chain for any registered battery",
+      "Reject transfer if battery is in DECOMMISSIONED or QUARANTINE status",
+      "Produce custody transfer audit event via SIM-009"
+    ],
+    "nonFunctionalRequirements": [
+      "Custody chain immutable — transfer records cannot be modified or deleted",
+      "Transfer validation under 300ms",
+      "Custody history returns complete chain in chronological order",
+      "All transfer events persisted atomically"
+    ],
+    "uiRequirements": [
+      "Custody transfer form with from/to owner, reason, and authorised_by fields",
+      "Timeline view of custody chain for a battery",
+      "Current owner displayed prominently on battery detail page"
+    ],
+    "architectureNotes": "CustodyTransferService validates current owner, appends transfer record to custody chain, updates current owner, and calls SIM-009 for audit event. Custody chain is an ordered append-only list.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "from_owner": "EV.BATTERY LABS",
+      "to_owner": "HAL AEROSPACE SERVICES",
+      "transfer_reason": "Mission deployment — Project FALCON",
+      "transfer_date": "2026-07-15T10:00:00Z",
+      "authorised_by": "ops-manager@hal.aerospace.in"
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "transfer_id": "TRF-20260715-001",
+      "status": "TRANSFERRED",
+      "from_owner": "EV.BATTERY LABS",
+      "to_owner": "HAL AEROSPACE SERVICES",
+      "transfer_reason": "Mission deployment — Project FALCON",
+      "transfer_date": "2026-07-15T10:00:00Z",
+      "custody_events_count": 2,
+      "audit_event_id": "AUD-TRF-20260715-001"
+    },
+    "acceptanceCriteria": [
+      "Custody transfer accepted only when from_owner matches current registered owner",
+      "Transfer record appended to immutable custody chain with correct timestamp",
+      "Current owner updated atomically on successful transfer",
+      "Battery in DECOMMISSIONED status cannot be transferred (returns 409)",
+      "Custody chain API returns all transfers in chronological order"
+    ],
+    "definitionOfDone": [
+      "Transfer validation against current owner implemented",
+      "Custody chain append-only and retrievable",
+      "DECOMMISSIONED battery transfer rejection implemented",
+      "Audit event generated for each transfer",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Battery transferred from manufacturer to aerospace operator — full custody chain shows 2 entries",
+      "Lifecycle manager retrieves complete custody history for compliance audit"
+    ],
+    "negativeUseCases": [
+      "Attempting transfer with wrong from_owner returns 403 Forbidden with mismatch details",
+      "Transfer of DECOMMISSIONED battery returns 409 Conflict with battery status"
+    ],
+    "testCases": [
+      { "id": "TC-S3-01", "name": "Valid custody transfer", "type": "Unit", "description": "Transfer with matching from_owner returns TRANSFERRED status and updates current owner" },
+      { "id": "TC-S3-02", "name": "Wrong from_owner rejection", "type": "Negative", "description": "Mismatched from_owner returns 403 with ownership mismatch error" },
+      { "id": "TC-S3-03", "name": "Custody chain chronology", "type": "Unit", "description": "Three sequential transfers return chain in correct chronological order" },
+      { "id": "TC-S3-04", "name": "Decommissioned transfer block", "type": "Edge", "description": "Battery with DECOMMISSIONED status cannot be transferred" }
+    ],
+    "securityRequirements": [
+      "Transfer authorisation requires authorised_by actor field — anonymous transfers rejected",
+      "Custody chain records are immutable after creation",
+      "Transfer validation prevents unauthorised ownership changes",
+      "All transfer events logged with full actor and timestamp"
+    ],
+    "securityTestCases": [
+      "Attempt transfer with empty authorised_by field — verify 422 validation error",
+      "Verify custody chain records cannot be deleted or modified via API"
+    ],
+    "manualVerificationSteps": [
+      "Transfer battery from initial owner to second owner and verify custody chain updated",
+      "Attempt transfer with wrong from_owner and verify 403 rejection",
+      "Retrieve custody chain and verify chronological order with all transfer events",
+      "Try transferring DECOMMISSIONED battery and verify rejection",
+      "Run pytest and verify all test cases pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-001-S4",
+    "title": "Battery Registry — Search & Filter",
+    "product": "Battery Pack Aadhaar System",
+    "workPackage": "WP-001",
+    "developerId": "DEV-004",
+    "simulatorIds": ["SIM-001", "SIM-004", "SIM-008"],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Provide operators and managers with a searchable battery registry that enables rapid identification of batteries requiring attention based on health, readiness, or identity status.",
+    "problemStatement": "With 10 or more batteries in operation, operators need to quickly locate batteries by identity, status, chemistry, owner, SOH, or mission readiness without loading all records manually.",
+    "userPersona": "Battery operations manager who needs real-time visibility over the entire battery fleet.",
+    "epic": "WP-001 — Battery Pack Aadhaar System: Operational Registry and Fleet Visibility",
+    "userStory": "As an operations manager, I want to search and filter the battery registry, so that I can quickly find batteries needing urgent action or mission assignment.",
+    "description": "This story implements the battery registry API with search and filter capabilities. Operators can search by BPAN or battery_id, filter by lifecycle status, chemistry, owner, readiness band, and SOH range. Results can be sorted and exported. The registry is powered by SIM-001 for test data and SIM-004/SIM-008 for readiness and health data.",
+    "functionalRequirements": [
+      "List all registered batteries with pagination (default 20 per page)",
+      "Search by BPAN exact match or battery_id prefix",
+      "Filter by lifecycle status (Active, Under Maintenance, Decommissioned)",
+      "Filter by chemistry type (LFP, NMC, NCA, LTO, Solid-State)",
+      "Filter by current owner",
+      "Filter by mission readiness band (Mission Ready, Caution, Engineering Review, Not Mission Ready, Grounded)",
+      "Sort by registration date, SOH, lifecycle status",
+      "Export filtered results as CSV"
+    ],
+    "nonFunctionalRequirements": [
+      "Search results returned under 500ms for up to 1000 records",
+      "Pagination prevents large result sets from degrading performance",
+      "Filter combinations (AND logic) supported",
+      "CSV export completes within 5 seconds for up to 1000 records"
+    ],
+    "uiRequirements": [
+      "Filter sidebar with dropdowns for status, chemistry, owner, readiness band",
+      "Search bar for BPAN / battery_id lookup",
+      "Sortable results table with pagination controls and CSV export button"
+    ],
+    "architectureNotes": "RegistrySearchService applies filter predicates to in-memory battery list (Firebase-ready for production). SIM-001 populates test battery data. SIM-004 and SIM-008 provide readiness and health fields. Streamlit UI renders filter sidebar and results table.",
+    "sampleInputJson": {
+      "search": "",
+      "filters": {
+        "lifecycle_status": "Active",
+        "chemistry": "LFP",
+        "readiness_band": "Mission Ready"
+      },
+      "sort_by": "soh_percent",
+      "sort_order": "asc",
+      "page": 1,
+      "page_size": 20
+    },
+    "sampleOutputJson": {
+      "total": 47,
+      "page": 1,
+      "page_size": 20,
+      "results": [
+        {
+          "battery_id": "BID-20260115-LFP-00001",
+          "bpan": "BPAN-LFP-2026-IN-00001",
+          "chemistry": "LFP",
+          "lifecycle_status": "Active",
+          "current_owner": "HAL AEROSPACE SERVICES",
+          "soh_percent": 90.5,
+          "readiness_band": "Mission Ready",
+          "registered_at": "2026-01-15T00:00:00Z"
+        }
+      ]
+    },
+    "acceptanceCriteria": [
+      "Search by exact BPAN returns matching battery within 500ms",
+      "Filter by multiple criteria (AND logic) returns only matching batteries",
+      "Sort by SOH ascending returns lowest SOH batteries first",
+      "CSV export of filtered results downloads correct number of rows",
+      "Pagination returns correct page of results with total count"
+    ],
+    "definitionOfDone": [
+      "All 7 filter options implemented with AND combination logic",
+      "Search by BPAN and battery_id working",
+      "Sort by date, SOH, status working",
+      "CSV export functional",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Operations manager filters by GROUNDED readiness band to see all batteries needing immediate attention",
+      "Audit team exports all Active LFP batteries owned by a specific operator as CSV"
+    ],
+    "negativeUseCases": [
+      "Applying conflicting filters (chemistry=LFP AND chemistry=NMC) returns empty result gracefully",
+      "Search for non-existent BPAN returns empty result with 'No batteries found' message"
+    ],
+    "testCases": [
+      { "id": "TC-S4-01", "name": "Filter by readiness band", "type": "Unit", "description": "Filter by 'Mission Ready' returns only batteries with readiness band MISSION_READY" },
+      { "id": "TC-S4-02", "name": "BPAN search", "type": "Unit", "description": "Search for known BPAN returns exactly one result with correct battery data" },
+      { "id": "TC-S4-03", "name": "Combined filter", "type": "Integration", "description": "Filter by chemistry=LFP AND status=Active returns only LFP Active batteries" },
+      { "id": "TC-S4-04", "name": "CSV export", "type": "Integration", "description": "Export 10 filtered results returns CSV with correct headers and 10 data rows" },
+      { "id": "TC-S4-05", "name": "Pagination", "type": "Unit", "description": "Page 2 with page_size=5 returns correct offset results from total result set" }
+    ],
+    "securityRequirements": [
+      "Search and filter queries validated and bounded to prevent injection",
+      "CSV export limited to maximum 10,000 records per request",
+      "Registry does not expose private owner contact details in list view",
+      "Pagination enforced — unbounded queries rejected"
+    ],
+    "securityTestCases": [
+      "Submit search with SQL injection pattern in BPAN field — verify sanitisation",
+      "Request page_size=100000 — verify system caps at maximum allowed size"
+    ],
+    "manualVerificationSteps": [
+      "Load registry with SIM-001 test data and verify battery list loads",
+      "Apply chemistry filter and verify only matching batteries displayed",
+      "Search by BPAN and verify correct single result returned",
+      "Export filtered results as CSV and open in spreadsheet to verify data",
+      "Run pytest and verify all filter and search tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-001-S5",
+    "title": "Battery Aadhaar Identity Verification Report",
+    "product": "Battery Pack Aadhaar System",
+    "workPackage": "WP-001",
+    "developerId": "DEV-005",
+    "simulatorIds": ["SIM-002", "SIM-009"],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Generate formal, downloadable identity verification reports for each battery that serve as evidence of trusted identity for aerospace quality and compliance teams.",
+    "problemStatement": "Aerospace teams require formal evidence that battery identity, custody, and static metadata are verified before mission use. Manual verification lacks consistency and auditability.",
+    "userPersona": "Quality engineer / auditor who requires formal verification evidence before approving a battery for mission use.",
+    "epic": "WP-001 — Battery Pack Aadhaar System: Formal Verification Evidence Generation",
+    "userStory": "As a quality engineer, I want a Battery Aadhaar verification report, so that I can confirm identity trust and provide formal evidence before mission use.",
+    "description": "This story generates a structured identity verification report for any registered battery. The report includes identity data, certificate status, custody chain summary, QR verification result, trust status, and evidence links. The report is exportable as HTML and printable as PDF.",
+    "functionalRequirements": [
+      "Generate identity verification report for a registered battery by battery_id or BPAN",
+      "Include battery identity data: BPAN, manufacturer, chemistry, registration date",
+      "Include certificate verification status from SIM-002 (TRUSTED / EXPIRED / FORGED / UNKNOWN)",
+      "Include custody chain summary: transfer count, current owner, last transfer date",
+      "Include QR verification result: VALID / TAMPERED",
+      "Include overall trust status: VERIFIED / UNVERIFIED / REQUIRES REVIEW",
+      "Include evidence links: architecture doc, GitHub, drive folder placeholders",
+      "Export report as standalone HTML page downloadable by quality engineer"
+    ],
+    "nonFunctionalRequirements": [
+      "Report generated under 2 seconds for any registered battery",
+      "HTML export is self-contained with embedded CSS (no external dependencies)",
+      "Report displays correctly when printed to PDF from browser",
+      "Report content is read-only — no editable fields in exported HTML"
+    ],
+    "uiRequirements": [
+      "Report page with structured sections: Identity, Certificate, Custody, QR, Trust Status, Evidence",
+      "Download HTML button for standalone report export",
+      "Print view optimised for A4 with no navigation chrome"
+    ],
+    "architectureNotes": "VerificationReportService aggregates data from SIM-002 (identity), SIM-009 (audit events), and registry (static data). Report rendered via Jinja2 HTML template. Streamlit preview mode with download button.",
+    "sampleInputJson": {
+      "battery_id": "BID-20260115-LFP-00001",
+      "report_type": "identity_verification",
+      "requestor": "qa-engineer@eveng.in",
+      "requested_at": "2026-07-25T10:00:00Z"
+    },
+    "sampleOutputJson": {
+      "report_id": "RPT-WP001-S5-20260725-001",
+      "battery_id": "BID-20260115-LFP-00001",
+      "bpan": "BPAN-LFP-2026-IN-00001",
+      "report_type": "identity_verification",
+      "generated_at": "2026-07-25T10:05:00Z",
+      "identity_status": "TRUSTED",
+      "certificate_status": "VALID",
+      "custody_transfers": 2,
+      "current_owner": "HAL AEROSPACE SERVICES",
+      "qr_verification": "VALID",
+      "overall_trust_status": "VERIFIED",
+      "report_url": "/reports/RPT-WP001-S5-20260725-001.html"
+    },
+    "acceptanceCriteria": [
+      "Report generated for any registered battery within 2 seconds",
+      "Report includes all 7 sections: identity, certificate, custody, QR, trust status, evidence, signatures",
+      "HTML export is self-contained and loads without internet access",
+      "PDF print from browser renders all sections correctly on A4",
+      "Report reflects current identity and custody state at time of generation"
+    ],
+    "definitionOfDone": [
+      "Report generation with all 7 sections implemented",
+      "HTML export functional and self-contained",
+      "Print view optimised for A4",
+      "Evidence links section with placeholders",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Quality engineer generates verification report for LFP battery and downloads HTML as formal evidence",
+      "Architect reviews verification report PDF during pre-mission checklist"
+    ],
+    "negativeUseCases": [
+      "Requesting report for unregistered battery_id returns 404 with clear message",
+      "Battery with FORGED certificate status shows UNVERIFIED overall trust status in report"
+    ],
+    "testCases": [
+      { "id": "TC-S5-01", "name": "Report generation", "type": "Unit", "description": "Report for registered battery contains all 7 required sections" },
+      { "id": "TC-S5-02", "name": "FORGED certificate handling", "type": "Unit", "description": "Battery with FORGED cert returns UNVERIFIED overall trust status in report" },
+      { "id": "TC-S5-03", "name": "HTML export self-contained", "type": "Integration", "description": "Downloaded HTML renders correctly with CSS embedded and no external dependencies" },
+      { "id": "TC-S5-04", "name": "Unknown battery report request", "type": "Negative", "description": "Report request for unknown battery_id returns 404 error" }
+    ],
+    "securityRequirements": [
+      "Report HTML export must not include editable fields or form inputs",
+      "Report requestor field logged in audit event",
+      "Custody data in report is read from immutable audit log",
+      "No private keys or credentials included in report output"
+    ],
+    "securityTestCases": [
+      "Verify exported HTML contains no JavaScript that allows field modification",
+      "Verify report generation logged as audit event with requestor identity"
+    ],
+    "manualVerificationSteps": [
+      "Generate report for registered battery and verify all 7 sections present",
+      "Download HTML report and open in browser without internet — verify renders correctly",
+      "Print report to PDF and verify A4 layout",
+      "Generate report for FORGED certificate battery and verify UNVERIFIED trust status",
+      "Run pytest and verify all tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-005-S1",
+    "title": "Battery System Threat Model Document",
+    "product": "Battery Cybersecurity Platform",
+    "workPackage": "WP-005",
+    "developerId": "DEV-006",
+    "simulatorIds": ["SIM-005", "SIM-006"],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Identify and document all cybersecurity risks for battery systems before product implementation, establishing the security foundation for the entire Battery Cybersecurity Platform.",
+    "problemStatement": "Battery systems include BMS, telemetry, identity, firmware, cloud, and user access surfaces — all of which can be exploited. Without a formal threat model, cybersecurity risks are addressed reactively rather than proactively.",
+    "userPersona": "Security architect responsible for identifying cybersecurity risks and defining mitigations across the battery system.",
+    "epic": "WP-005 — Battery Cybersecurity Platform: Structured Threat Analysis and Risk Framework",
+    "userStory": "As a security architect, I want a structured battery threat model document, so that I can identify risks and define mitigations before implementing security controls.",
+    "description": "This story produces a formal threat model document covering all battery system attack surfaces. The document uses STRIDE classification (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege). Each threat scenario includes assets, trust boundaries, attack surfaces, threat scenarios, severity, and mitigations. SIM-005 and SIM-006 are used to demonstrate specific threats and their detection rules.",
+    "functionalRequirements": [
+      "Define all battery system assets (battery identity, telemetry stream, BMS firmware, PKI certificates, cloud API, user access)",
+      "Define trust boundaries (device, local network, cloud, user layer)",
+      "Define attack surfaces per trust boundary",
+      "Define at least 10 threat scenarios with STRIDE classification",
+      "Map each threat to concrete mitigation controls",
+      "Include severity rating (Critical, High, Medium, Low) per threat",
+      "Create threat model report document (Markdown or HTML)",
+      "Link threat scenarios to detection rules in SIM-006"
+    ],
+    "nonFunctionalRequirements": [
+      "Document is version-controlled in GitHub",
+      "Threat scenarios reference SIM-005 attack types for demonstration",
+      "Document follows structured template (no free-form prose only)",
+      "Mitigations traceable to implementation stories"
+    ],
+    "uiRequirements": [
+      "Threat model viewer page with asset map, boundary diagram, and threat table",
+      "Filter threats by STRIDE category or severity",
+      "Export threat model as Markdown document"
+    ],
+    "architectureNotes": "ThreatModelEngine stores assets, boundaries, and threat scenarios in structured JSON. STRIDE classification applied programmatically. SIM-005 attack outputs linked to threat scenarios. SIM-006 detection rules referenced in mitigations.",
+    "sampleInputJson": {
+      "system_name": "Battery Trust Platform",
+      "version": "v1.0",
+      "assessment_date": "2026-07-15",
+      "assessor": "security-architect@eveng.in",
+      "scope": ["BMS", "Telemetry", "Identity", "Firmware", "Cloud API", "User Access"]
+    },
+    "sampleOutputJson": {
+      "threat_model_id": "TM-BTP-001",
+      "system_name": "Battery Trust Platform",
+      "assets_count": 6,
+      "trust_boundaries_count": 4,
+      "threat_scenarios_count": 10,
+      "threats_by_severity": { "Critical": 3, "High": 4, "Medium": 2, "Low": 1 },
+      "stride_coverage": ["Spoofing", "Tampering", "Repudiation", "Information Disclosure", "Denial of Service"],
+      "threat_scenarios": [
+        {
+          "id": "TS-001",
+          "name": "Replay Attack on Telemetry",
+          "stride": "Spoofing",
+          "severity": "Critical",
+          "asset": "Telemetry Stream",
+          "boundary": "Local Network",
+          "mitigation": "Freshness check with 60s window + sequence number validation (R-01)"
+        }
+      ]
+    },
+    "acceptanceCriteria": [
+      "Threat model covers all 6 defined battery system attack surfaces",
+      "At least 10 threat scenarios with STRIDE classification and severity rating",
+      "Every threat scenario includes at least one concrete mitigation control",
+      "Mitigations reference detection rule IDs from SIM-006 where applicable",
+      "Document exported as Markdown in GitHub repository"
+    ],
+    "definitionOfDone": [
+      "All assets, trust boundaries, and attack surfaces documented",
+      "Minimum 10 threat scenarios with STRIDE and severity",
+      "Mitigation controls documented for each threat",
+      "Threat model report in Markdown and HTML formats",
+      "QA review of document structure and completeness",
+      "Architect review and sign-off"
+    ],
+    "positiveUseCases": [
+      "Security architect uses threat model to prioritise which detection rules to implement first",
+      "Development team references threat model to ensure security controls are implemented for Critical threats"
+    ],
+    "negativeUseCases": [
+      "Threat model generation with empty scope list returns validation error requiring at least one scope item",
+      "Duplicate threat scenario ID rejected with clear error message"
+    ],
+    "testCases": [
+      { "id": "TC-S1WP5-01", "name": "Threat model completeness", "type": "Unit", "description": "Generated threat model includes all 6 asset types and at least 10 threat scenarios" },
+      { "id": "TC-S1WP5-02", "name": "STRIDE coverage", "type": "Unit", "description": "At least 5 STRIDE categories represented across threat scenarios" },
+      { "id": "TC-S1WP5-03", "name": "Severity distribution", "type": "Unit", "description": "At least one Critical and one High severity threat scenario present" },
+      { "id": "TC-S1WP5-04", "name": "Mitigation linkage", "type": "Integration", "description": "Mitigation rules reference valid rule IDs from SIM-006 /rules endpoint" }
+    ],
+    "securityRequirements": [
+      "Threat model document is version-controlled and change-tracked",
+      "No real system vulnerabilities disclosed in document",
+      "Threat scenarios are educational and reference simulated attacks only",
+      "Document access controlled to authorised engineering team"
+    ],
+    "securityTestCases": [
+      "Verify threat model document does not contain real system credentials or network details",
+      "Verify all attack scenarios reference SIM-005 SIMULATED_ATTACK classification"
+    ],
+    "manualVerificationSteps": [
+      "Review generated threat model document and verify all 6 attack surfaces covered",
+      "Verify each threat scenario has STRIDE classification and severity rating",
+      "Verify each mitigation references a detection rule or control",
+      "Export document as Markdown and verify structure in GitHub",
+      "Run pytest and verify threat model structure tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-005-S2",
+    "title": "Telemetry Trust Architecture Design",
+    "product": "Battery Cybersecurity Platform",
+    "workPackage": "WP-005",
+    "developerId": "DEV-007",
+    "simulatorIds": ["SIM-003", "SIM-004", "SIM-006"],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Design a trusted telemetry pipeline for battery systems that validates every telemetry event before it influences mission readiness decisions.",
+    "problemStatement": "Battery telemetry may be spoofed, replayed, delayed, or corrupted in transit. Without a trust validation architecture, invalid telemetry could drive incorrect mission readiness decisions.",
+    "userPersona": "Telemetry architect responsible for designing the trusted telemetry pipeline.",
+    "epic": "WP-005 — Battery Cybersecurity Platform: Trusted Telemetry Pipeline",
+    "userStory": "As a telemetry architect, I want to design and document the telemetry trust architecture, so that only valid, trusted telemetry affects mission readiness decisions.",
+    "description": "This story produces a telemetry trust architecture design covering: telemetry schema, timestamp validation, sequence number tracking, physical plausibility checks, source identity validation, untrusted telemetry rejection, and telemetry trust score computation. The design is validated using SIM-003 (telemetry events) and SIM-006 (detection rules).",
+    "functionalRequirements": [
+      "Define telemetry event schema with all required fields and types",
+      "Validate timestamp: reject events older than freshness window (60 seconds default)",
+      "Validate sequence number: detect gaps and duplicates",
+      "Validate physical plausibility: voltage, temperature, and current within safe ranges",
+      "Validate source identity: battery_id must match registered battery in registry",
+      "Reject telemetry failing any validation and return rejection reason",
+      "Compute telemetry trust score (0–100) from validation results",
+      "Document architecture as system design with component and sequence diagrams"
+    ],
+    "nonFunctionalRequirements": [
+      "Telemetry validation under 100ms per event",
+      "Freshness window configurable (default 60s)",
+      "Architecture document version-controlled in GitHub",
+      "Design includes Mermaid sequence and component diagrams"
+    ],
+    "uiRequirements": [
+      "Telemetry trust dashboard showing live validation status per event",
+      "Validation result table: event ID, field checks, pass/fail, rejection reason",
+      "Architecture diagram embedded in UI documentation section"
+    ],
+    "architectureNotes": "TelemetryTrustValidator chain: TimestampValidator → SequenceValidator → PlausibilityValidator → IdentityValidator → TrustScoreComputer. Each validator returns ValidationResult. Final trust score aggregates individual results with weights.",
+    "sampleInputJson": {
+      "event_id": "EVT-003-001",
+      "battery_id": "BID-20260115-LFP-00001",
+      "timestamp": "2026-07-10T09:00:00Z",
+      "sequence_number": 1001,
+      "voltage_v": 48.2,
+      "current_a": 12.5,
+      "temperature_c": 28.1,
+      "soc_percent": 78.3
+    },
+    "sampleOutputJson": {
+      "event_id": "EVT-003-001",
+      "battery_id": "BID-20260115-LFP-00001",
+      "validation_status": "TRUSTED",
+      "telemetry_trust_score": 95,
+      "checks": [
+        { "check": "timestamp_freshness", "result": "PASS", "detail": "Event 2s old, within 60s window" },
+        { "check": "sequence_continuity", "result": "PASS", "detail": "Sequence 1001 follows 1000" },
+        { "check": "physical_plausibility", "result": "PASS", "detail": "All values within safe ranges" },
+        { "check": "source_identity", "result": "PASS", "detail": "Battery ID registered and TRUSTED" }
+      ],
+      "rejection_reason": null,
+      "simulated": true
+    },
+    "acceptanceCriteria": [
+      "All 4 validation checks implemented (timestamp, sequence, plausibility, identity)",
+      "Telemetry failing any check returns UNTRUSTED with rejection reason",
+      "Telemetry trust score correctly computed from validation results",
+      "Architecture document includes component diagram, sequence diagram, and API contract",
+      "SIM-003 events validated correctly by the trust validator"
+    ],
+    "definitionOfDone": [
+      "All 4 telemetry validation checks implemented and tested",
+      "Telemetry trust score computation working",
+      "Architecture document with Mermaid diagrams in GitHub",
+      "API contract for trust validation endpoint documented",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Normal telemetry event with valid timestamp and sequence number receives TRUSTED status and trust score 95",
+      "Replayed event with stale timestamp is rejected with rejection reason STALE_TIMESTAMP"
+    ],
+    "negativeUseCases": [
+      "Telemetry with voltage 70V (above safe range) fails physical plausibility check",
+      "Telemetry from unregistered battery_id fails identity validation"
+    ],
+    "testCases": [
+      { "id": "TC-S2WP5-01", "name": "Valid telemetry TRUSTED", "type": "Unit", "description": "All 4 checks pass for normal event returning TRUSTED and trust score > 90" },
+      { "id": "TC-S2WP5-02", "name": "Stale timestamp UNTRUSTED", "type": "Unit", "description": "Event with timestamp 120s old fails freshness check and returns UNTRUSTED" },
+      { "id": "TC-S2WP5-03", "name": "Physical plausibility failure", "type": "Unit", "description": "Voltage 70V fails plausibility check with PHYSICAL_IMPOSSIBILITY reason" },
+      { "id": "TC-S2WP5-04", "name": "Unknown battery identity", "type": "Negative", "description": "Unregistered battery_id fails identity check with UNKNOWN_SOURCE reason" }
+    ],
+    "securityRequirements": [
+      "Validation pipeline is read-only — no modification of telemetry events",
+      "Rejection reasons do not expose internal system state",
+      "All validation results logged as audit events",
+      "Freshness window configurable but bounded (minimum 10s, maximum 300s)"
+    ],
+    "securityTestCases": [
+      "Verify stale timestamp event is rejected with correct reason without exposing server time",
+      "Verify validation audit events cannot be queried without authorisation"
+    ],
+    "manualVerificationSteps": [
+      "Submit valid telemetry event from SIM-003 and verify TRUSTED result and trust score",
+      "Submit replay telemetry from SIM-003 and verify UNTRUSTED result with STALE_TIMESTAMP reason",
+      "Submit event with voltage 70V and verify physical plausibility failure",
+      "Review architecture document in GitHub and verify Mermaid diagrams render",
+      "Run pytest and verify all validation tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-005-S3",
+    "title": "Replay Attack Detection Concept & Rule Engine",
+    "product": "Battery Cybersecurity Platform",
+    "workPackage": "WP-005",
+    "developerId": "DEV-008",
+    "simulatorIds": ["SIM-003", "SIM-005", "SIM-006", "SIM-004"],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "High",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Detect replayed battery telemetry before it corrupts trust score or triggers incorrect mission readiness decisions, protecting aerospace battery operations from replay-based manipulation.",
+    "problemStatement": "Attackers may capture and retransmit old valid MQTT packets to bypass freshness checks or manipulate historical state. Replay detection requires stateful tracking of sequence numbers and timestamps within a detection window.",
+    "userPersona": "Cybersecurity engineer responsible for implementing replay attack detection rules.",
+    "epic": "WP-005 — Battery Cybersecurity Platform: Replay Attack Detection",
+    "userStory": "As a cybersecurity engineer, I want replay attack detection rules implemented in a rule engine, so that old telemetry cannot be accepted as current battery state.",
+    "description": "This story implements the replay attack detection concept as a rule engine. Rule R-01 detects duplicate sequence numbers. The freshness window check rejects events older than 60 seconds. When replay is detected, a hard-fail gate is activated, trust score drops to zero, and a detection event is generated. SIM-003 provides replay telemetry, SIM-005 provides replay attack payload, SIM-006 evaluates R-01.",
+    "functionalRequirements": [
+      "Detect duplicate packet: same sequence_number seen within last 100 events (R-01 rule)",
+      "Detect stale timestamp: event older than configurable freshness window (default 60s)",
+      "Detect repeated sequence number within replay detection window",
+      "Trigger R-01 detection rule on replay confirmation",
+      "Activate hard-fail gate: block telemetry from affecting trust score",
+      "Drop trust score to 0 on confirmed replay attack",
+      "Generate detection event with evidence: original event, detection timestamp, rule triggered",
+      "Return detection summary with replay confidence score"
+    ],
+    "nonFunctionalRequirements": [
+      "Detection window configurable (default: last 100 events in memory)",
+      "Detection decision under 50ms per event",
+      "Hard-fail gate cannot be bypassed by any API call",
+      "Detection events persisted immutably"
+    ],
+    "uiRequirements": [
+      "Replay detection dashboard showing recent events with detection status",
+      "Alert panel highlighting detected replay events with evidence",
+      "Trust score timeline showing score drop on detection"
+    ],
+    "architectureNotes": "ReplayDetectionEngine maintains in-memory sequence window (last 100 events). Each incoming event checked: sequence in window → DUPLICATE → R-01. Timestamp check: age > freshness_window → STALE. On detection: HardFailGate activated, TrustScoreEngine notified with score=0.",
+    "sampleInputJson": {
+      "battery_id": "BID-001",
+      "event": {
+        "event_id": "EVT-REPLAY-001",
+        "sequence_number": 1001,
+        "timestamp": "2026-07-10T08:00:00Z",
+        "sent_at": "2026-07-10T09:10:00Z",
+        "voltage_v": 48.2,
+        "soc_percent": 78.3
+      },
+      "detection_config": {
+        "freshness_window_seconds": 60,
+        "sequence_window_size": 100
+      }
+    },
+    "sampleOutputJson": {
+      "battery_id": "BID-001",
+      "event_id": "EVT-REPLAY-001",
+      "detection_result": "REPLAY_DETECTED",
+      "confidence": "HIGH",
+      "indicators": [
+        { "indicator": "STALE_TIMESTAMP", "detail": "Event timestamp 70 minutes old, exceeds 60s freshness window" },
+        { "indicator": "DUPLICATE_SEQUENCE", "detail": "Sequence 1001 seen at 2026-07-10T08:00:00Z — duplicate" }
+      ],
+      "rule_triggered": "R-01",
+      "gate_decision": "HARD_FAIL",
+      "trust_score_override": 0,
+      "detection_event_id": "DET-20260710-001",
+      "simulated": true
+    },
+    "acceptanceCriteria": [
+      "Replayed event with stale timestamp triggers REPLAY_DETECTED and R-01 HARD_FAIL",
+      "Duplicate sequence number within detection window triggers DUPLICATE_SEQUENCE indicator",
+      "Trust score drops to 0 on confirmed replay detection",
+      "Hard-fail gate prevents replay event from affecting normal trust score calculation",
+      "Detection event generated with all evidence fields"
+    ],
+    "definitionOfDone": [
+      "Stale timestamp detection implemented with configurable freshness window",
+      "Sequence number duplicate detection with configurable window size",
+      "R-01 rule trigger and HARD_FAIL gate implemented",
+      "Trust score override to 0 on detection",
+      "Detection event persistence implemented",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Replay attack from SIM-005 detected within 50ms and trust score drops to 0 with HARD_FAIL gate",
+      "Normal telemetry passes detection checks and continues to trust score calculation normally"
+    ],
+    "negativeUseCases": [
+      "False positive: normal event with sequence gap (not replay) does not trigger REPLAY_DETECTED",
+      "Freshness window edge case: event exactly 60s old should be configurable as PASS or FAIL"
+    ],
+    "testCases": [
+      { "id": "TC-S3WP5-01", "name": "Stale timestamp detection", "type": "Security", "description": "Event 70s old triggers STALE_TIMESTAMP and R-01 HARD_FAIL" },
+      { "id": "TC-S3WP5-02", "name": "Duplicate sequence detection", "type": "Security", "description": "Duplicate sequence number within window triggers DUPLICATE_SEQUENCE indicator" },
+      { "id": "TC-S3WP5-03", "name": "Trust score drops to 0", "type": "Unit", "description": "Confirmed replay sets trust score override to 0" },
+      { "id": "TC-S3WP5-04", "name": "Normal event passes", "type": "Unit", "description": "Fresh event with new sequence number passes all detection checks" },
+      { "id": "TC-S3WP5-05", "name": "Configurable freshness window", "type": "Edge", "description": "Setting freshness window to 30s correctly rejects events 35s old" }
+    ],
+    "securityRequirements": [
+      "Hard-fail gate decision is irreversible per event — cannot be overridden via API",
+      "Detection events are immutable and cannot be deleted",
+      "Replay detection logic cannot be disabled at runtime",
+      "All detection decisions logged with full evidence chain"
+    ],
+    "securityTestCases": [
+      "Attempt to bypass hard-fail gate via API parameter — verify rejection",
+      "Verify detection event is logged and immutable after replay detection",
+      "Verify replay from SIM-005 payload triggers correct detection indicators"
+    ],
+    "manualVerificationSteps": [
+      "Run SIM-005 replay attack against detection engine and verify REPLAY_DETECTED",
+      "Verify trust score is 0 after detection and HARD_FAIL gate active",
+      "Submit normal telemetry immediately after and verify gate clears for new events",
+      "Check detection event log for evidence fields",
+      "Run pytest and verify all detection tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-005-S4",
+    "title": "Battery Security Checklist Framework",
+    "product": "Battery Cybersecurity Platform",
+    "workPackage": "WP-005",
+    "developerId": "DEV-009",
+    "simulatorIds": ["SIM-006", "SIM-009"],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Create a structured, repeatable cybersecurity assessment checklist for battery systems that enables consistent evaluation of firmware, telemetry, access control, physical security, and cloud interface security posture.",
+    "problemStatement": "Security assessments of battery systems are currently ad-hoc and inconsistent. Different assessors apply different criteria, leading to gaps in coverage. A structured checklist framework eliminates this inconsistency.",
+    "userPersona": "Security assessor / QA engineer conducting cybersecurity assessment of a battery system deployment.",
+    "epic": "WP-005 — Battery Cybersecurity Platform: Structured Security Assessment Framework",
+    "userStory": "As a security assessor, I want a structured battery security checklist, so that I can evaluate cybersecurity posture consistently across all battery deployments.",
+    "description": "This story creates the Battery Security Checklist Framework with structured checklist categories covering: firmware security, telemetry security, access control, physical security, and cloud/API security. Each checklist item has a check description, category, severity, status (Pass/Fail/NA), and evidence link. The framework generates a security posture score and exports a checklist report.",
+    "functionalRequirements": [
+      "Define firmware security checks: version control, hash verification, signing, update mechanism",
+      "Define telemetry security checks: encryption, freshness, sequence, identity validation",
+      "Define access control checks: authentication, authorisation, role separation, audit logging",
+      "Define physical security checks: tamper evidence, physical access controls, secure boot",
+      "Define cloud/API security checks: TLS, API keys, rate limiting, input validation",
+      "Allow assessor to mark each check: PASS, FAIL, NA, NOT_CHECKED",
+      "Generate security posture score: (PASS count / total non-NA checks) × 100",
+      "Export completed checklist as HTML report with evidence links"
+    ],
+    "nonFunctionalRequirements": [
+      "Checklist framework configurable via JSON — new checks addable without code change",
+      "Score calculated in real time as checks are marked",
+      "Report exported as self-contained HTML",
+      "Framework reusable across multiple battery system assessments"
+    ],
+    "uiRequirements": [
+      "Checklist form grouped by category with Pass/Fail/NA selector per item",
+      "Running score display updating as items are checked",
+      "Export HTML report button with evidence link fields"
+    ],
+    "architectureNotes": "SecurityChecklistEngine loads checklist definitions from JSON config. ChecklistSession tracks check results per assessment. PostureScoreCalculator computes score from results. ReportExporter generates HTML checklist report.",
+    "sampleInputJson": {
+      "assessment_id": "ASS-001",
+      "battery_id": "BID-001",
+      "assessor": "security-assessor@eveng.in",
+      "assessment_date": "2026-08-15",
+      "categories": ["firmware", "telemetry", "access_control", "physical", "cloud_api"]
+    },
+    "sampleOutputJson": {
+      "assessment_id": "ASS-001",
+      "battery_id": "BID-001",
+      "total_checks": 25,
+      "passed": 18,
+      "failed": 4,
+      "na": 3,
+      "posture_score": 81.8,
+      "posture_grade": "GOOD",
+      "critical_failures": 1,
+      "report_url": "/reports/ASS-001.html",
+      "generated_at": "2026-08-15T14:00:00Z",
+      "simulated": true
+    },
+    "acceptanceCriteria": [
+      "Checklist covers all 5 defined security categories with at least 5 checks each",
+      "Posture score calculated correctly as (PASS / non-NA) × 100",
+      "Critical failures highlighted separately from general failures",
+      "HTML report is self-contained and includes all check results and evidence links",
+      "Framework configurable — new check addable via JSON without code change"
+    ],
+    "definitionOfDone": [
+      "All 5 checklist categories implemented with minimum 5 checks each",
+      "Posture score calculation working correctly",
+      "HTML report export functional",
+      "Framework configurable via JSON",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Security assessor completes all 25 checklist items and receives posture score 85% GOOD",
+      "Assessor exports completed checklist as HTML for inclusion in QA evidence package"
+    ],
+    "negativeUseCases": [
+      "Attempting to submit checklist with no items checked returns 422 with 'minimum 1 check required' error",
+      "Checklist with all FAIL items returns score 0 and CRITICAL posture grade"
+    ],
+    "testCases": [
+      { "id": "TC-S4WP5-01", "name": "Posture score calculation", "type": "Unit", "description": "18 PASS, 4 FAIL, 3 NA returns posture score 81.8% (18/22 × 100)" },
+      { "id": "TC-S4WP5-02", "name": "All categories present", "type": "Unit", "description": "Default checklist includes all 5 categories with minimum 5 checks each" },
+      { "id": "TC-S4WP5-03", "name": "Critical failure highlighting", "type": "Unit", "description": "FAIL on a Critical severity check is highlighted separately in report" },
+      { "id": "TC-S4WP5-04", "name": "JSON configuration extensibility", "type": "Integration", "description": "Adding new check to JSON config includes it in checklist without code change" }
+    ],
+    "securityRequirements": [
+      "Checklist assessment records are audit-logged with assessor identity",
+      "Evidence links in checklist are URL-sanitised before storage",
+      "Assessment results cannot be modified after final submission",
+      "Checklist configuration file is version-controlled and change-tracked"
+    ],
+    "securityTestCases": [
+      "Verify assessment record includes assessor identity and timestamp",
+      "Submit checklist with malicious URL in evidence field — verify sanitisation"
+    ],
+    "manualVerificationSteps": [
+      "Complete full checklist for a sample battery and verify posture score calculation",
+      "Mark one Critical item as FAIL and verify it is highlighted in report",
+      "Export HTML report and verify self-contained rendering",
+      "Add new check to JSON config and verify it appears in next assessment",
+      "Run pytest and verify all checklist and scoring tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  },
+  {
+    "id": "WP-005-S5",
+    "title": "Security Event Log & Cybersecurity Posture Report",
+    "product": "Battery Cybersecurity Platform",
+    "workPackage": "WP-005",
+    "developerId": "DEV-010",
+    "simulatorIds": ["SIM-005", "SIM-006", "SIM-009", "SIM-010"],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "High",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Produce a comprehensive cybersecurity posture report from security event logs that enables cybersecurity managers to review incidents, assess battery security readiness, and meet compliance evidence requirements.",
+    "problemStatement": "Security events from detection rules, attack simulations, and checklist assessments are currently unconnected. A security event log and posture report unify these into a single cybersecurity readiness view.",
+    "userPersona": "Cybersecurity manager / auditor requiring a consolidated view of battery security incidents and overall posture.",
+    "epic": "WP-005 — Battery Cybersecurity Platform: Security Event Intelligence and Reporting",
+    "userStory": "As a cybersecurity manager, I want a security event log and posture report, so that I can review incidents and assess battery cybersecurity readiness for compliance.",
+    "description": "This story implements the security event log and generates the cybersecurity posture report. Events from SIM-005 (attacks), SIM-006 (detection rules), and SIM-009 (audit) are aggregated. Each event is classified by severity, linked to a battery ID, and tracked (OPEN/CLOSED). The posture score is computed from event severity distribution. The report is exportable as HTML.",
+    "functionalRequirements": [
+      "Log security events: event_type, battery_id, severity, source, timestamp, status (OPEN/CLOSED)",
+      "Classify severity: CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL",
+      "Track event status: OPEN, INVESTIGATING, CLOSED, FALSE_POSITIVE",
+      "Link each security event to battery_id for per-battery security view",
+      "Calculate cybersecurity posture score: 100 − (CRITICAL × 20 + HIGH × 10 + MEDIUM × 5 + LOW × 2)",
+      "Generate cybersecurity posture report: event summary, severity distribution, open incidents, posture score",
+      "Export report as HTML with all event details and evidence links"
+    ],
+    "nonFunctionalRequirements": [
+      "Event log supports minimum 1000 events without performance degradation",
+      "Posture score recalculated on each open/close event",
+      "Report generation under 3 seconds",
+      "Event logs are append-only (no deletion)"
+    ],
+    "uiRequirements": [
+      "Security event dashboard with filterable event table (severity, status, battery_id)",
+      "Posture score gauge with trend indicator",
+      "Export posture report HTML button"
+    ],
+    "architectureNotes": "SecurityEventLog appends events from SIM-005, SIM-006, SIM-009. PostureScoreEngine computes score from open event severity. SIM-010 integration test populates log with end-to-end events. ReportGenerator creates HTML posture report.",
+    "sampleInputJson": {
+      "report_scope": {
+        "battery_ids": ["BID-001", "BID-002"],
+        "date_from": "2026-07-01",
+        "date_to": "2026-09-25",
+        "include_closed": true
+      },
+      "requestor": "cybersec-manager@eveng.in"
+    },
+    "sampleOutputJson": {
+      "report_id": "SEC-RPT-001",
+      "generated_at": "2026-09-25T10:00:00Z",
+      "scope_batteries": 2,
+      "total_events": 15,
+      "open_events": 3,
+      "severity_distribution": { "CRITICAL": 1, "HIGH": 2, "MEDIUM": 5, "LOW": 7 },
+      "posture_score": 62,
+      "posture_grade": "MODERATE",
+      "top_threats": ["Replay Attack (2 events)", "Certificate Forgery (1 event)"],
+      "recommendation": "Close 3 open CRITICAL/HIGH incidents before next mission cycle",
+      "report_url": "/reports/SEC-RPT-001.html",
+      "simulated": true
+    },
+    "acceptanceCriteria": [
+      "Security event log accepts events from SIM-005, SIM-006, and SIM-009 sources",
+      "Posture score calculated correctly from severity distribution formula",
+      "Open incidents listed separately with battery_id and detection timestamp",
+      "HTML posture report is self-contained with embedded CSS",
+      "SIM-010 integration pipeline populates event log from end-to-end scenario"
+    ],
+    "definitionOfDone": [
+      "Security event log with severity classification and status tracking",
+      "Posture score formula implemented and tested",
+      "Cybersecurity posture report generator functional",
+      "HTML export self-contained",
+      "SIM-010 integration tested",
+      "pytest passing with 70%+ coverage",
+      "Evidence uploaded and QA review passed"
+    ],
+    "positiveUseCases": [
+      "Cybersecurity manager reviews posture report after integration test run and sees posture score with event breakdown",
+      "Auditor exports HTML report as compliance evidence for aerospace QA review"
+    ],
+    "negativeUseCases": [
+      "Request for posture report with no events in scope returns empty report with posture score 100",
+      "Event log query with invalid date range returns 422 validation error"
+    ],
+    "testCases": [
+      { "id": "TC-S5WP5-01", "name": "Posture score formula", "type": "Unit", "description": "1 CRITICAL + 2 HIGH + 5 MEDIUM + 7 LOW gives score 100−(20+20+25+14)=21" },
+      { "id": "TC-S5WP5-02", "name": "Event log append", "type": "Unit", "description": "Log 5 events and verify all 5 retrievable with correct severity and status" },
+      { "id": "TC-S5WP5-03", "name": "Open incident tracking", "type": "Unit", "description": "Close 2 of 5 events and verify open_events count is 3" },
+      { "id": "TC-S5WP5-04", "name": "SIM-010 integration", "type": "Integration", "description": "Run SIM-010 attack_detected pipeline and verify events logged in security event log" },
+      { "id": "TC-S5WP5-05", "name": "HTML report export", "type": "Integration", "description": "HTML report is self-contained, loads without internet, and includes all event data" }
+    ],
+    "securityRequirements": [
+      "Security event log is append-only — events cannot be deleted or modified",
+      "Posture report generation logged as audit event with requestor identity",
+      "Event log does not expose internal system implementation details in event descriptions",
+      "All simulated events tagged simulated=true in event log"
+    ],
+    "securityTestCases": [
+      "Attempt to delete security event via API — verify 405 Method Not Allowed",
+      "Verify simulated events are tagged simulated=true in event log",
+      "Verify posture report generation logged as audit event"
+    ],
+    "manualVerificationSteps": [
+      "Run SIM-010 integration pipeline and verify events appear in security event log",
+      "Close 2 open events and verify posture score updates",
+      "Generate posture report and verify severity distribution chart and score",
+      "Export HTML report and verify self-contained rendering",
+      "Run pytest and verify all event log and posture score tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "", "architectureDoc": "", "designDoc": "",
+      "githubRepo": "", "branch": "", "pullRequest": "",
+      "verificationReport": "", "securityReport": "", "demoVideo": "",
+      "presentation": "", "screenshots": "", "readme": "",
+      "apiDoc": "", "testReport": "", "coverageReport": "",
+      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+    },
+    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
+    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
+    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+  }
+]
