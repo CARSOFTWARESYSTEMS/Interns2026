@@ -12,6 +12,10 @@ export default function Developers() {
 
   const simulatorNames: Record<string, string> = Object.fromEntries(simulators.map(s => [s.id, s.name]))
   const storyTitles: Record<string, string>    = Object.fromEntries(stories.map(s => [s.id, s.title]))
+  const productNames = Array.from(new Set([
+    ...developers.map(d => d.product),
+    ...stories.map(s => s.product),
+  ].filter(Boolean)))
   const [search, setSearch] = useState('')
   const [filterProduct, setFilterProduct] = useState('All')
 
@@ -47,7 +51,7 @@ export default function Developers() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['All','Battery Pack Aadhaar System','Battery Cybersecurity Platform'].map(p => (
+          {['All', ...productNames].map(p => (
             <button
               key={p}
               onClick={() => setFilterProduct(p)}
@@ -57,7 +61,7 @@ export default function Developers() {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {p === 'All' ? 'All Products' : p === 'Battery Pack Aadhaar System' ? 'Product 1' : 'Product 2'}
+              {p === 'All' ? 'All Products' : p}
             </button>
           ))}
         </div>
@@ -95,14 +99,22 @@ export default function Developers() {
                     <p className="text-[10px] text-slate-400">{dev.id}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-medium ${dev.product === 'Battery Pack Aadhaar System' ? 'text-brand-700' : 'text-purple-700'}`}>
-                      {dev.product === 'Battery Pack Aadhaar System' ? 'Product 1' : 'Product 2'}
+                    <span className={`text-xs font-semibold ${
+                      dev.product === 'Battery Pack Aadhaar System' ? 'text-brand-700' :
+                      dev.product === 'AS9102 FAI Reports Platform' ? 'text-emerald-700' : 'text-purple-700'
+                    }`}>
+                      {dev.product}
                     </span>
-                    <p className="text-[10px] text-slate-400 truncate max-w-24">{dev.product}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-xs font-semibold text-slate-800">{dev.simulatorId}</p>
-                    <p className="text-[10px] text-slate-400 truncate max-w-32">{simulatorNames[dev.simulatorId]}</p>
+                    {dev.simulatorId ? (
+                      <>
+                        <p className="text-xs font-semibold text-slate-800">{dev.simulatorId}</p>
+                        <p className="text-[10px] text-slate-400 truncate max-w-32">{simulatorNames[dev.simulatorId]}</p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-300 italic">Not assigned</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-xs font-semibold text-slate-800">{dev.storyId}</p>
@@ -117,9 +129,11 @@ export default function Developers() {
                       <Link to={`/developers/${dev.id}`} className="btn-primary text-[10px] px-2 py-1">
                         <Eye size={10}/> Profile
                       </Link>
-                      <Link to={`/simulators/${dev.simulatorId}`} className="btn-secondary text-[10px] px-2 py-1">
-                        <ExternalLink size={10}/> Sim
-                      </Link>
+                      {dev.simulatorId && (
+                        <Link to={`/simulators/${dev.simulatorId}`} className="btn-secondary text-[10px] px-2 py-1">
+                          <ExternalLink size={10}/> Sim
+                        </Link>
+                      )}
                       <Link to={`/stories/${dev.storyId}`} className="btn-secondary text-[10px] px-2 py-1">
                         <ExternalLink size={10}/> Story
                       </Link>

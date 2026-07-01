@@ -113,13 +113,17 @@ function formatLink(url: string): string {
 
 function weeklyPlanTable(weeklyPlan: Maybe<WeeklyPlan[]>): string {
   if (!weeklyPlan || weeklyPlan.length === 0) return `<p class="muted">Not provided</p>`
-  return `<table class="plan-table"><thead><tr><th>Week</th><th>Dates</th><th>Focus</th><th>Activities</th></tr></thead><tbody>${weeklyPlan.map(week => `
-    <tr>
-      <td><strong>${value(week.week)}</strong><br/><span>${value(week.title)}</span></td>
-      <td>${value(week.dates)}</td>
-      <td>${value(week.focus)}</td>
-      <td>${formatList(week.activities)}</td>
-    </tr>`).join('')}</tbody></table>`
+  return `<div class="timeline-grid">${weeklyPlan.map(week => `
+    <article class="timeline-card">
+      <div class="timeline-head">
+        <span class="week-pill">${value(week.week)}</span>
+        <div>
+          <h4>${value(week.title)}</h4>
+          <p>${value(week.dates)} · ${value(week.focus)}</p>
+        </div>
+      </div>
+      ${formatList(week.activities)}
+    </article>`).join('')}</div>`
 }
 
 function assignmentSummary(assignments: Maybe<Assignment[]>, storyId?: string, simulatorId?: string): string {
@@ -165,9 +169,10 @@ function shell(content: string, title: string): string {
   .card { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 22px; margin-top: 16px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); break-inside: avoid; }
   .card h2 { color: #1e40af; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; margin: 0 0 14px; }
   .card h3 { margin: 18px 0 8px; font-size: 14px; color: #0f172a; }
+  .card h4 { margin: 0; font-size: 14px; color: #0f172a; }
   p { margin: 0 0 10px; }
   .muted { color: var(--muted); font-style: italic; }
-  .meta-table, .plan-table, .checklist { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .meta-table, .checklist { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #edf2f7; padding: 9px 8px; }
   th { color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: 0.9px; width: 30%; }
   td { color: #1e293b; }
@@ -186,13 +191,20 @@ function shell(content: string, title: string): string {
   .test-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
   code { background: #e2e8f0; color: #334155; border-radius: 5px; padding: 2px 5px; font-size: 11px; }
   .check { width: 38px; color: var(--green); font-weight: 700; font-size: 15px; }
+  .timeline-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .timeline-card { border: 1px solid #dbe4ef; border-radius: 10px; background: #f8fafc; padding: 14px; break-inside: avoid; }
+  .timeline-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .timeline-head p { margin: 3px 0 0; color: #64748b; font-size: 12px; }
+  .week-pill { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 58px; padding: 4px 8px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 11px; font-weight: 800; }
+  .timeline-card .list { padding-left: 18px; font-size: 12px; }
+  .timeline-card .list li { margin: 4px 0; }
   .footer { text-align: center; color: #64748b; font-size: 12px; padding: 26px 10px 0; }
   .page-break { page-break-before: always; }
   @media (max-width: 760px) {
     .page { padding: 12px; }
     .brand, .hero-main, .card { padding: 18px; }
     .hero h2 { font-size: 23px; }
-    .grid { grid-template-columns: 1fr; }
+    .grid, .timeline-grid { grid-template-columns: 1fr; }
     th { width: 38%; }
   }
   @media print {

@@ -89,8 +89,9 @@ export default function StoryDetail() {
   }
 
   const isProduct1 = story.product === 'Battery Pack Aadhaar System'
-  const accentColor = isProduct1 ? 'text-brand-600' : 'text-purple-600'
-  const progressColor = isProduct1 ? 'bg-brand-600' : 'bg-purple-600'
+  const isProduct3 = story.product === 'AS9102 FAI Reports Platform'
+  const accentColor = isProduct1 ? 'text-brand-600' : isProduct3 ? 'text-emerald-600' : 'text-purple-600'
+  const progressColor = isProduct1 ? 'bg-brand-600' : isProduct3 ? 'bg-emerald-600' : 'bg-purple-600'
   const ev = story.evidence
   const storyHtml = generateStoryHtml(story, developer, simulators, assignments, weeklyPlan)
   const storyFilename = `${sanitizeFilename(story.id)}_${sanitizeFilename(story.title)}_Assignment.html`
@@ -105,7 +106,7 @@ export default function StoryDetail() {
     <div className="space-y-4">
       <PageHeader
         title={story.title}
-        subtitle={`${story.id} · ${isProduct1 ? 'Product 1' : 'Product 2'} · Assigned to ${developer?.name ?? story.developerId}`}
+        subtitle={`${story.id} · ${story.product} · Assigned to ${developer?.name ?? story.developerId}`}
         icon={<FileText size={18} />}
         backTo="/stories"
         backLabel="User Stories"

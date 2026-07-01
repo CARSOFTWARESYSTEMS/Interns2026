@@ -49,7 +49,10 @@ export default function DeveloperDetail() {
     )
   }
 
-  const statusColor = dev.product === 'Battery Pack Aadhaar System' ? 'bg-brand-100 text-brand-700' : 'bg-purple-100 text-purple-700'
+  const statusColor =
+    dev.product === 'Battery Pack Aadhaar System' ? 'bg-brand-100 text-brand-700' :
+    dev.product === 'AS9102 FAI Reports Platform' ? 'bg-emerald-100 text-emerald-700' :
+    'bg-purple-100 text-purple-700'
 
   return (
     <div className="space-y-4">
@@ -74,7 +77,7 @@ export default function DeveloperDetail() {
             <p className="text-xs text-slate-500 mb-1">{dev.email}</p>
             <p className="text-xs font-semibold text-slate-400 mb-3">{dev.id}</p>
             <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
-              {dev.product === 'Battery Pack Aadhaar System' ? 'Product 1 — Aadhaar' : 'Product 2 — Cybersecurity'}
+              {dev.product}
             </div>
           </div>
 
