@@ -65,7 +65,7 @@ export default function Assignments() {
     <div className="space-y-4">
       <PageHeader
         title="Assignments"
-        subtitle="10 engineering assignments · Battery Trust Platform Intern Program 2026"
+        subtitle={`${assignments.length} engineering assignments · Battery Trust Platform Intern Program 2026`}
         icon={<ClipboardList size={18}/>}
       />
 
@@ -101,10 +101,15 @@ export default function Assignments() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['All','Battery Pack Aadhaar System','Battery Cybersecurity Platform'].map(p => (
-            <button key={p} onClick={() => setFilterProduct(p)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${filterProduct === p ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-              {p === 'All' ? 'All' : p === 'Battery Pack Aadhaar System' ? 'Product 1' : 'Product 2'}
+          {[
+            { value: 'All',                           label: 'All' },
+            { value: 'Battery Pack Aadhaar System',   label: 'Battery Aadhaar' },
+            { value: 'Battery Cybersecurity Platform', label: 'Cybersecurity' },
+            { value: 'AS9102 FAI Reports Platform',   label: 'FAI AS9102' },
+          ].map(({ value, label }) => (
+            <button key={value} onClick={() => setFilterProduct(value)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${filterProduct === value ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {label}
             </button>
           ))}
         </div>
@@ -151,8 +156,12 @@ export default function Assignments() {
                       <p className="text-[10px] text-slate-400">{a.workPackage}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold ${isProduct1 ? 'text-brand-700' : 'text-purple-700'}`}>
-                        {isProduct1 ? 'P1' : 'P2'}
+                      <span className={`text-xs font-semibold ${
+                        a.product === 'Battery Pack Aadhaar System' ? 'text-brand-700' :
+                        a.product === 'AS9102 FAI Reports Platform' ? 'text-emerald-700' : 'text-purple-700'
+                      }`}>
+                        {a.product === 'Battery Pack Aadhaar System' ? 'P1' :
+                         a.product === 'AS9102 FAI Reports Platform' ? 'P3' : 'P2'}
                       </span>
                     </td>
                     <td className="px-4 py-3 max-w-48">
@@ -179,7 +188,10 @@ export default function Assignments() {
                     <td className="px-4 py-3 min-w-28">
                       <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <ProgressBar value={a.progress} color={isProduct1 ? 'bg-brand-500' : 'bg-purple-500'} height="h-1.5" />
+                          <ProgressBar value={a.progress} color={
+                            a.product === 'Battery Pack Aadhaar System' ? 'bg-brand-500' :
+                            a.product === 'AS9102 FAI Reports Platform' ? 'bg-emerald-500' : 'bg-purple-500'
+                          } height="h-1.5" />
                         </div>
                         <span className="text-[10px] font-bold text-slate-600">{a.progress}%</span>
                       </div>

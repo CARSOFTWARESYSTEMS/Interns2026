@@ -111,7 +111,7 @@ export default function AssignmentDetail() {
   const story = stories.find(s => s.id === assignment?.storyId)
   const simulator = simulators.find(s => s.id === assignment?.simulatorId)
 
-  if (!assignment || !developer || !story || !simulator) {
+  if (!assignment || !developer || !story) {
     return (
       <div className="card text-center py-16">
         <ClipboardList size={40} className="mx-auto mb-3 opacity-30 text-slate-400" />
@@ -121,11 +121,12 @@ export default function AssignmentDetail() {
     )
   }
 
-  const isProduct1 = assignment.product === 'Battery Pack Aadhaar System'
-  const accentCls = isProduct1 ? 'text-brand-600' : 'text-purple-600'
+  const accentCls =
+    assignment.product === 'Battery Pack Aadhaar System' ? 'text-brand-600' :
+    assignment.product === 'AS9102 FAI Reports Platform' ? 'text-emerald-600' : 'text-purple-600'
 
   // Progress calculations
-  const simPct     = calcSimulatorProgress(simulator.status)
+  const simPct     = simulator ? calcSimulatorProgress(simulator.status) : 0
   const storyPct   = story.overallProgress
   const evidencePct = calcEvidenceProgress(assignment.evidence)
   const qaPct      = calcQAProgress(developer.qaStatus)
@@ -180,7 +181,7 @@ export default function AssignmentDetail() {
                   { label: 'Overall Progress', value: `${overallPct}%`, sub: 'Weighted avg', color: 'text-brand-700' },
                   { label: 'Days Remaining', value: `${daysRem}`, sub: 'Until due date', color: daysRem < 14 ? 'text-red-600' : daysRem < 30 ? 'text-amber-600' : 'text-slate-700' },
                   { label: 'Risk Level', node: <StatusBadge status={risk} />, sub: 'Schedule risk' },
-                  { label: 'Simulator', value: `${simPct}%`, sub: `${simulator.status}`, color: 'text-purple-700' },
+                  { label: 'Simulator', value: `${simPct}%`, sub: simulator ? simulator.status : 'No simulator', color: 'text-purple-700' },
                   { label: 'Story', value: `${storyPct}%`, sub: `${story.status}`, color: 'text-brand-700' },
                   { label: 'Evidence', value: `${evidencePct}%`, sub: `${evidenceSubmitted}/14 items`, color: evidencePct === 100 ? 'text-green-600' : 'text-amber-600' },
                 ].map(item => (
@@ -233,7 +234,7 @@ export default function AssignmentDetail() {
                 <div className="space-y-1.5">
                   {[
                     { label: developer.name, sub: 'Developer Profile', to: `/developers/${developer.id}`, icon: <Users size={13}/> },
-                    { label: simulator.name, sub: `${assignment.simulatorId}`, to: `/simulators/${simulator.id}`, icon: <FlaskConical size={13}/> },
+                    ...(simulator ? [{ label: simulator.name, sub: assignment.simulatorId, to: `/simulators/${simulator.id}`, icon: <FlaskConical size={13}/> }] : []),
                     { label: story.title, sub: `${assignment.storyId}`, to: `/stories/${story.id}`, icon: <FileText size={13}/> },
                   ].map(item => (
                     <Link key={item.label} to={item.to} className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-brand-50 group transition-colors border border-slate-100">
@@ -386,9 +387,11 @@ export default function AssignmentDetail() {
                 <Link to={`/stories/${story.id}`} className="btn-secondary flex-1 justify-center">
                   <FileText size={13}/> Open Story
                 </Link>
-                <Link to={`/simulators/${simulator.id}`} className="btn-secondary flex-1 justify-center">
-                  <FlaskConical size={13}/> Open Simulator
-                </Link>
+                {simulator && (
+                  <Link to={`/simulators/${simulator.id}`} className="btn-secondary flex-1 justify-center">
+                    <FlaskConical size={13}/> Open Simulator
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -396,40 +399,48 @@ export default function AssignmentDetail() {
 
         {/* ── SIMULATOR ────────────────────────────────────── */}
         {tab === 'simulator' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SectionCard title="Simulator Summary">
-                <MetricRow label="Simulator ID" value={simulator.id} />
-                <MetricRow label="Name" value={simulator.name} />
-                <MetricRow label="Status" node={<StatusBadge status={simulator.status} size="xs" />} />
-                <MetricRow label="Test Status" node={<StatusBadge status={simulator.testStatus as 'Not Started'} size="xs" />} />
-                <MetricRow label="Evidence" node={<StatusBadge status={simulator.evidenceStatus} size="xs" />} />
-                <MetricRow label="Progress" value={`${simPct}%`} />
-              </SectionCard>
-              <SectionCard title="Purpose & Links">
-                <p className="text-sm text-slate-700 mb-4 leading-relaxed">{simulator.purpose}</p>
-                <div className="space-y-1">
-                  {[
-                    { label: 'GitHub', value: simulator.githubRepo, icon: <Github size={12}/> },
-                    { label: 'Streamlit UI', value: simulator.streamlitLink, icon: <ExternalLink size={12}/> },
-                    { label: 'FastAPI', value: simulator.apiLink, icon: <ExternalLink size={12}/> },
-                  ].map(({ label, value, icon }) => (
-                    <div key={label} className="flex items-center justify-between py-1.5 text-xs border-b border-slate-50 last:border-0">
-                      <span className="text-slate-500 flex items-center gap-1.5">{icon}{label}</span>
-                      {value
-                        ? <a href={value} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline font-medium">Open</a>
-                        : <span className="text-slate-300 italic">Not configured</span>}
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
+          simulator ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <SectionCard title="Simulator Summary">
+                  <MetricRow label="Simulator ID" value={simulator.id} />
+                  <MetricRow label="Name" value={simulator.name} />
+                  <MetricRow label="Status" node={<StatusBadge status={simulator.status} size="xs" />} />
+                  <MetricRow label="Test Status" node={<StatusBadge status={simulator.testStatus as 'Not Started'} size="xs" />} />
+                  <MetricRow label="Evidence" node={<StatusBadge status={simulator.evidenceStatus} size="xs" />} />
+                  <MetricRow label="Progress" value={`${simPct}%`} />
+                </SectionCard>
+                <SectionCard title="Purpose & Links">
+                  <p className="text-sm text-slate-700 mb-4 leading-relaxed">{simulator.purpose}</p>
+                  <div className="space-y-1">
+                    {[
+                      { label: 'GitHub', value: simulator.githubRepo, icon: <Github size={12}/> },
+                      { label: 'Streamlit UI', value: simulator.streamlitLink, icon: <ExternalLink size={12}/> },
+                      { label: 'FastAPI', value: simulator.apiLink, icon: <ExternalLink size={12}/> },
+                    ].map(({ label, value, icon }) => (
+                      <div key={label} className="flex items-center justify-between py-1.5 text-xs border-b border-slate-50 last:border-0">
+                        <span className="text-slate-500 flex items-center gap-1.5">{icon}{label}</span>
+                        {value
+                          ? <a href={value} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline font-medium">Open</a>
+                          : <span className="text-slate-300 italic">Not configured</span>}
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+              <div className="flex gap-2">
+                <Link to={`/simulators/${simulator.id}`} className="btn-primary">
+                  <FlaskConical size={13}/> Open Simulator Detail
+                </Link>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Link to={`/simulators/${simulator.id}`} className="btn-primary">
-                <FlaskConical size={13}/> Open Simulator Detail
-              </Link>
+          ) : (
+            <div className="card text-center py-12 text-slate-400">
+              <FlaskConical size={32} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm font-medium">No simulator assigned</p>
+              <p className="text-xs mt-1">This product uses a desktop application instead of a simulator.</p>
             </div>
-          </div>
+          )
         )}
 
         {/* ── STORY ────────────────────────────────────────── */}
@@ -443,7 +454,10 @@ export default function AssignmentDetail() {
                 <MetricRow label="Progress" value={`${story.overallProgress}%`} />
               </div>
               <div className="mb-4">
-                <ProgressBar value={story.overallProgress} color={isProduct1 ? 'bg-brand-600' : 'bg-purple-600'} />
+                <ProgressBar value={story.overallProgress} color={
+                  assignment.product === 'Battery Pack Aadhaar System' ? 'bg-brand-600' :
+                  assignment.product === 'AS9102 FAI Reports Platform' ? 'bg-emerald-600' : 'bg-purple-600'
+                } />
               </div>
               <div className="bg-brand-50 border border-brand-100 rounded-xl p-4">
                 <p className="text-xs font-bold text-brand-600 mb-1 uppercase tracking-wide">User Story</p>

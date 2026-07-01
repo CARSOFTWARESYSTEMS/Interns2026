@@ -6,11 +6,11 @@ interface EmailPreviewProps {
   assignment: Assignment
   developer: Developer
   story: Story
-  simulator: Simulator
+  simulator?: Simulator
 }
 
 function buildEmailHTML(
-  a: Assignment, dev: Developer, story: Story, sim: Simulator
+  a: Assignment, dev: Developer, story: Story, sim: Simulator | undefined
 ): string {
   const daysRem = Math.ceil((new Date(a.dueDate).getTime() - new Date().getTime()) / 86400000)
 
@@ -99,14 +99,17 @@ function buildEmailHTML(
 
   <!-- Simulator -->
   <div class="section">
-    <h3>Your Simulator</h3>
-    <p style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:6px;">${sim.name}</p>
+    <h3>${sim ? 'Your Simulator' : 'Desktop Application'}</h3>
+    ${sim
+      ? `<p style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:6px;">${sim.name}</p>
     <p style="font-size:13px; color:#475569; line-height:1.7;">${sim.purpose}</p>
     <table style="margin-top:12px;">
       ${sim.githubRepo ? `<tr><td>GitHub Repository</td><td><a href="${sim.githubRepo}" style="color:#1e40af;">${sim.githubRepo}</a></td></tr>` : ''}
       ${sim.streamlitLink ? `<tr><td>Streamlit Dashboard</td><td><a href="${sim.streamlitLink}" style="color:#1e40af;">${sim.streamlitLink}</a></td></tr>` : ''}
       ${sim.apiLink ? `<tr><td>FastAPI Endpoint</td><td><a href="${sim.apiLink}" style="color:#1e40af;">${sim.apiLink}</a></td></tr>` : ''}
-    </table>
+    </table>`
+      : `<p style="font-size:13px; color:#475569; line-height:1.7;">This product uses a local desktop application (FastAPI + Streamlit) instead of a standalone simulator. Set up the application per the README and story instructions.</p>`
+    }
   </div>
 
   <!-- Developer Info -->
@@ -124,7 +127,7 @@ function buildEmailHTML(
   <!-- Deliverables -->
   <div class="section">
     <h3>Expected Deliverables</h3>
-    <div class="deliverable">Python simulator (CLI + Streamlit UI + FastAPI) — ${sim.name}</div>
+    ${sim ? `<div class="deliverable">Python simulator (CLI + Streamlit UI + FastAPI) — ${sim.name}</div>` : '<div class="deliverable">Local desktop application (FastAPI + Streamlit + SQLite)</div>'}
     <div class="deliverable">Functional user story implementation: ${story.title}</div>
     <div class="deliverable">Architecture document (Google Drive)</div>
     <div class="deliverable">GitHub repository with clean commit history</div>

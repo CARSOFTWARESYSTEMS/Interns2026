@@ -5,7 +5,10 @@
     "product": "Battery Pack Aadhaar System",
     "workPackage": "WP-001",
     "developerId": "DEV-001",
-    "simulatorIds": ["SIM-001", "SIM-002"],
+    "simulatorIds": [
+      "SIM-001",
+      "SIM-002"
+    ],
     "priority": "Critical",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -46,8 +49,8 @@
     "sampleInputJson": {
       "manufacturer": "EV.BATTERY LABS",
       "chemistry": "LFP",
-      "nominal_voltage_v": 48.0,
-      "capacity_ah": 100.0,
+      "nominal_voltage_v": 48,
+      "capacity_ah": 100,
       "cell_config": "16S4P",
       "manufacturing_date": "2026-01-15",
       "factory": "IN-PUNE-01",
@@ -86,11 +89,36 @@
       "Submitting registration with missing mandatory field (chemistry) returns 422 validation error"
     ],
     "testCases": [
-      { "id": "TC-S1-01", "name": "Successful registration", "type": "Unit", "description": "Register valid LFP battery and verify BPAN format and battery_id in response" },
-      { "id": "TC-S1-02", "name": "Duplicate BPAN rejection", "type": "Negative", "description": "Register same BPAN twice and verify second request returns 409 with error message" },
-      { "id": "TC-S1-03", "name": "Invalid BPAN format", "type": "Negative", "description": "Submit malformed BPAN string and verify 422 validation error with field details" },
-      { "id": "TC-S1-04", "name": "Audit event creation", "type": "Integration", "description": "Verify audit_event_id is present in response and corresponds to a retrievable audit log entry" },
-      { "id": "TC-S1-05", "name": "Query by BPAN", "type": "Unit", "description": "Register battery then retrieve by BPAN and verify identical static metadata" }
+      {
+        "id": "TC-S1-01",
+        "name": "Successful registration",
+        "type": "Unit",
+        "description": "Register valid LFP battery and verify BPAN format and battery_id in response"
+      },
+      {
+        "id": "TC-S1-02",
+        "name": "Duplicate BPAN rejection",
+        "type": "Negative",
+        "description": "Register same BPAN twice and verify second request returns 409 with error message"
+      },
+      {
+        "id": "TC-S1-03",
+        "name": "Invalid BPAN format",
+        "type": "Negative",
+        "description": "Submit malformed BPAN string and verify 422 validation error with field details"
+      },
+      {
+        "id": "TC-S1-04",
+        "name": "Audit event creation",
+        "type": "Integration",
+        "description": "Verify audit_event_id is present in response and corresponds to a retrievable audit log entry"
+      },
+      {
+        "id": "TC-S1-05",
+        "name": "Query by BPAN",
+        "type": "Unit",
+        "description": "Register battery then retrieve by BPAN and verify identical static metadata"
+      }
     ],
     "securityRequirements": [
       "All registration inputs sanitised and validated via Pydantic before persistence",
@@ -111,16 +139,48 @@
       "Run pytest and verify all test cases pass with coverage report"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-001-S2",
@@ -128,7 +188,10 @@
     "product": "Battery Pack Aadhaar System",
     "workPackage": "WP-001",
     "developerId": "DEV-002",
-    "simulatorIds": ["SIM-001", "SIM-002"],
+    "simulatorIds": [
+      "SIM-001",
+      "SIM-002"
+    ],
     "priority": "High",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -167,7 +230,13 @@
     "architectureNotes": "QRCodeService generates QR from battery data using qrcode Python library. Payload is JSON-encoded BPAN + public fields. PNG rendered in memory and returned as binary. Streamlit shows QR inline. FastAPI exposes /generate-qr and /scan-qr endpoints.",
     "sampleInputJson": {
       "battery_id": "BID-20260115-LFP-00001",
-      "include_fields": ["bpan", "manufacturer", "chemistry", "nominal_voltage_v", "manufacturing_date"],
+      "include_fields": [
+        "bpan",
+        "manufacturer",
+        "chemistry",
+        "nominal_voltage_v",
+        "manufacturing_date"
+      ],
       "format": "png",
       "dpi": 300
     },
@@ -204,11 +273,36 @@
       "Attempting to generate QR for non-existent battery_id returns 404 error"
     ],
     "testCases": [
-      { "id": "TC-S2-01", "name": "QR code generation", "type": "Unit", "description": "Generate QR for valid battery_id and verify BPAN encoded correctly in QR payload" },
-      { "id": "TC-S2-02", "name": "PNG download", "type": "Integration", "description": "Download PNG returns valid image with correct BPAN scannable by QR reader" },
-      { "id": "TC-S2-03", "name": "Private field exclusion", "type": "Security", "description": "QR payload does not contain SOH, SOC, custody, or owner data" },
-      { "id": "TC-S2-04", "name": "Scan validation", "type": "Unit", "description": "POST /scan-qr with valid QR payload returns matching battery metadata" },
-      { "id": "TC-S2-05", "name": "Unknown BPAN scan", "type": "Negative", "description": "Scanning QR with unregistered BPAN returns 404 with clear error message" }
+      {
+        "id": "TC-S2-01",
+        "name": "QR code generation",
+        "type": "Unit",
+        "description": "Generate QR for valid battery_id and verify BPAN encoded correctly in QR payload"
+      },
+      {
+        "id": "TC-S2-02",
+        "name": "PNG download",
+        "type": "Integration",
+        "description": "Download PNG returns valid image with correct BPAN scannable by QR reader"
+      },
+      {
+        "id": "TC-S2-03",
+        "name": "Private field exclusion",
+        "type": "Security",
+        "description": "QR payload does not contain SOH, SOC, custody, or owner data"
+      },
+      {
+        "id": "TC-S2-04",
+        "name": "Scan validation",
+        "type": "Unit",
+        "description": "POST /scan-qr with valid QR payload returns matching battery metadata"
+      },
+      {
+        "id": "TC-S2-05",
+        "name": "Unknown BPAN scan",
+        "type": "Negative",
+        "description": "Scanning QR with unregistered BPAN returns 404 with clear error message"
+      }
     ],
     "securityRequirements": [
       "QR payload must never include ownership, custody chain, SOH, or SOC data",
@@ -228,16 +322,48 @@
       "Run pytest and verify all tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-001-S3",
@@ -245,7 +371,10 @@
     "product": "Battery Pack Aadhaar System",
     "workPackage": "WP-001",
     "developerId": "DEV-003",
-    "simulatorIds": ["SIM-002", "SIM-009"],
+    "simulatorIds": [
+      "SIM-002",
+      "SIM-009"
+    ],
     "priority": "High",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -325,10 +454,30 @@
       "Transfer of DECOMMISSIONED battery returns 409 Conflict with battery status"
     ],
     "testCases": [
-      { "id": "TC-S3-01", "name": "Valid custody transfer", "type": "Unit", "description": "Transfer with matching from_owner returns TRANSFERRED status and updates current owner" },
-      { "id": "TC-S3-02", "name": "Wrong from_owner rejection", "type": "Negative", "description": "Mismatched from_owner returns 403 with ownership mismatch error" },
-      { "id": "TC-S3-03", "name": "Custody chain chronology", "type": "Unit", "description": "Three sequential transfers return chain in correct chronological order" },
-      { "id": "TC-S3-04", "name": "Decommissioned transfer block", "type": "Edge", "description": "Battery with DECOMMISSIONED status cannot be transferred" }
+      {
+        "id": "TC-S3-01",
+        "name": "Valid custody transfer",
+        "type": "Unit",
+        "description": "Transfer with matching from_owner returns TRANSFERRED status and updates current owner"
+      },
+      {
+        "id": "TC-S3-02",
+        "name": "Wrong from_owner rejection",
+        "type": "Negative",
+        "description": "Mismatched from_owner returns 403 with ownership mismatch error"
+      },
+      {
+        "id": "TC-S3-03",
+        "name": "Custody chain chronology",
+        "type": "Unit",
+        "description": "Three sequential transfers return chain in correct chronological order"
+      },
+      {
+        "id": "TC-S3-04",
+        "name": "Decommissioned transfer block",
+        "type": "Edge",
+        "description": "Battery with DECOMMISSIONED status cannot be transferred"
+      }
     ],
     "securityRequirements": [
       "Transfer authorisation requires authorised_by actor field — anonymous transfers rejected",
@@ -348,16 +497,48 @@
       "Run pytest and verify all test cases pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-001-S4",
@@ -365,7 +546,11 @@
     "product": "Battery Pack Aadhaar System",
     "workPackage": "WP-001",
     "developerId": "DEV-004",
-    "simulatorIds": ["SIM-001", "SIM-004", "SIM-008"],
+    "simulatorIds": [
+      "SIM-001",
+      "SIM-004",
+      "SIM-008"
+    ],
     "priority": "High",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -456,11 +641,36 @@
       "Search for non-existent BPAN returns empty result with 'No batteries found' message"
     ],
     "testCases": [
-      { "id": "TC-S4-01", "name": "Filter by readiness band", "type": "Unit", "description": "Filter by 'Mission Ready' returns only batteries with readiness band MISSION_READY" },
-      { "id": "TC-S4-02", "name": "BPAN search", "type": "Unit", "description": "Search for known BPAN returns exactly one result with correct battery data" },
-      { "id": "TC-S4-03", "name": "Combined filter", "type": "Integration", "description": "Filter by chemistry=LFP AND status=Active returns only LFP Active batteries" },
-      { "id": "TC-S4-04", "name": "CSV export", "type": "Integration", "description": "Export 10 filtered results returns CSV with correct headers and 10 data rows" },
-      { "id": "TC-S4-05", "name": "Pagination", "type": "Unit", "description": "Page 2 with page_size=5 returns correct offset results from total result set" }
+      {
+        "id": "TC-S4-01",
+        "name": "Filter by readiness band",
+        "type": "Unit",
+        "description": "Filter by 'Mission Ready' returns only batteries with readiness band MISSION_READY"
+      },
+      {
+        "id": "TC-S4-02",
+        "name": "BPAN search",
+        "type": "Unit",
+        "description": "Search for known BPAN returns exactly one result with correct battery data"
+      },
+      {
+        "id": "TC-S4-03",
+        "name": "Combined filter",
+        "type": "Integration",
+        "description": "Filter by chemistry=LFP AND status=Active returns only LFP Active batteries"
+      },
+      {
+        "id": "TC-S4-04",
+        "name": "CSV export",
+        "type": "Integration",
+        "description": "Export 10 filtered results returns CSV with correct headers and 10 data rows"
+      },
+      {
+        "id": "TC-S4-05",
+        "name": "Pagination",
+        "type": "Unit",
+        "description": "Page 2 with page_size=5 returns correct offset results from total result set"
+      }
     ],
     "securityRequirements": [
       "Search and filter queries validated and bounded to prevent injection",
@@ -480,16 +690,48 @@
       "Run pytest and verify all filter and search tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-001-S5",
@@ -497,7 +739,10 @@
     "product": "Battery Pack Aadhaar System",
     "workPackage": "WP-001",
     "developerId": "DEV-005",
-    "simulatorIds": ["SIM-002", "SIM-009"],
+    "simulatorIds": [
+      "SIM-002",
+      "SIM-009"
+    ],
     "priority": "High",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -579,10 +824,30 @@
       "Battery with FORGED certificate status shows UNVERIFIED overall trust status in report"
     ],
     "testCases": [
-      { "id": "TC-S5-01", "name": "Report generation", "type": "Unit", "description": "Report for registered battery contains all 7 required sections" },
-      { "id": "TC-S5-02", "name": "FORGED certificate handling", "type": "Unit", "description": "Battery with FORGED cert returns UNVERIFIED overall trust status in report" },
-      { "id": "TC-S5-03", "name": "HTML export self-contained", "type": "Integration", "description": "Downloaded HTML renders correctly with CSS embedded and no external dependencies" },
-      { "id": "TC-S5-04", "name": "Unknown battery report request", "type": "Negative", "description": "Report request for unknown battery_id returns 404 error" }
+      {
+        "id": "TC-S5-01",
+        "name": "Report generation",
+        "type": "Unit",
+        "description": "Report for registered battery contains all 7 required sections"
+      },
+      {
+        "id": "TC-S5-02",
+        "name": "FORGED certificate handling",
+        "type": "Unit",
+        "description": "Battery with FORGED cert returns UNVERIFIED overall trust status in report"
+      },
+      {
+        "id": "TC-S5-03",
+        "name": "HTML export self-contained",
+        "type": "Integration",
+        "description": "Downloaded HTML renders correctly with CSS embedded and no external dependencies"
+      },
+      {
+        "id": "TC-S5-04",
+        "name": "Unknown battery report request",
+        "type": "Negative",
+        "description": "Report request for unknown battery_id returns 404 error"
+      }
     ],
     "securityRequirements": [
       "Report HTML export must not include editable fields or form inputs",
@@ -602,16 +867,48 @@
       "Run pytest and verify all tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-005-S1",
@@ -619,7 +916,10 @@
     "product": "Battery Cybersecurity Platform",
     "workPackage": "WP-005",
     "developerId": "DEV-006",
-    "simulatorIds": ["SIM-005", "SIM-006"],
+    "simulatorIds": [
+      "SIM-005",
+      "SIM-006"
+    ],
     "priority": "Critical",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -662,7 +962,14 @@
       "version": "v1.0",
       "assessment_date": "2026-07-15",
       "assessor": "security-architect@eveng.in",
-      "scope": ["BMS", "Telemetry", "Identity", "Firmware", "Cloud API", "User Access"]
+      "scope": [
+        "BMS",
+        "Telemetry",
+        "Identity",
+        "Firmware",
+        "Cloud API",
+        "User Access"
+      ]
     },
     "sampleOutputJson": {
       "threat_model_id": "TM-BTP-001",
@@ -670,8 +977,19 @@
       "assets_count": 6,
       "trust_boundaries_count": 4,
       "threat_scenarios_count": 10,
-      "threats_by_severity": { "Critical": 3, "High": 4, "Medium": 2, "Low": 1 },
-      "stride_coverage": ["Spoofing", "Tampering", "Repudiation", "Information Disclosure", "Denial of Service"],
+      "threats_by_severity": {
+        "Critical": 3,
+        "High": 4,
+        "Medium": 2,
+        "Low": 1
+      },
+      "stride_coverage": [
+        "Spoofing",
+        "Tampering",
+        "Repudiation",
+        "Information Disclosure",
+        "Denial of Service"
+      ],
       "threat_scenarios": [
         {
           "id": "TS-001",
@@ -708,10 +1026,30 @@
       "Duplicate threat scenario ID rejected with clear error message"
     ],
     "testCases": [
-      { "id": "TC-S1WP5-01", "name": "Threat model completeness", "type": "Unit", "description": "Generated threat model includes all 6 asset types and at least 10 threat scenarios" },
-      { "id": "TC-S1WP5-02", "name": "STRIDE coverage", "type": "Unit", "description": "At least 5 STRIDE categories represented across threat scenarios" },
-      { "id": "TC-S1WP5-03", "name": "Severity distribution", "type": "Unit", "description": "At least one Critical and one High severity threat scenario present" },
-      { "id": "TC-S1WP5-04", "name": "Mitigation linkage", "type": "Integration", "description": "Mitigation rules reference valid rule IDs from SIM-006 /rules endpoint" }
+      {
+        "id": "TC-S1WP5-01",
+        "name": "Threat model completeness",
+        "type": "Unit",
+        "description": "Generated threat model includes all 6 asset types and at least 10 threat scenarios"
+      },
+      {
+        "id": "TC-S1WP5-02",
+        "name": "STRIDE coverage",
+        "type": "Unit",
+        "description": "At least 5 STRIDE categories represented across threat scenarios"
+      },
+      {
+        "id": "TC-S1WP5-03",
+        "name": "Severity distribution",
+        "type": "Unit",
+        "description": "At least one Critical and one High severity threat scenario present"
+      },
+      {
+        "id": "TC-S1WP5-04",
+        "name": "Mitigation linkage",
+        "type": "Integration",
+        "description": "Mitigation rules reference valid rule IDs from SIM-006 /rules endpoint"
+      }
     ],
     "securityRequirements": [
       "Threat model document is version-controlled and change-tracked",
@@ -731,16 +1069,48 @@
       "Run pytest and verify threat model structure tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-005-S2",
@@ -748,7 +1118,11 @@
     "product": "Battery Cybersecurity Platform",
     "workPackage": "WP-005",
     "developerId": "DEV-007",
-    "simulatorIds": ["SIM-003", "SIM-004", "SIM-006"],
+    "simulatorIds": [
+      "SIM-003",
+      "SIM-004",
+      "SIM-006"
+    ],
     "priority": "Critical",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -802,10 +1176,26 @@
       "validation_status": "TRUSTED",
       "telemetry_trust_score": 95,
       "checks": [
-        { "check": "timestamp_freshness", "result": "PASS", "detail": "Event 2s old, within 60s window" },
-        { "check": "sequence_continuity", "result": "PASS", "detail": "Sequence 1001 follows 1000" },
-        { "check": "physical_plausibility", "result": "PASS", "detail": "All values within safe ranges" },
-        { "check": "source_identity", "result": "PASS", "detail": "Battery ID registered and TRUSTED" }
+        {
+          "check": "timestamp_freshness",
+          "result": "PASS",
+          "detail": "Event 2s old, within 60s window"
+        },
+        {
+          "check": "sequence_continuity",
+          "result": "PASS",
+          "detail": "Sequence 1001 follows 1000"
+        },
+        {
+          "check": "physical_plausibility",
+          "result": "PASS",
+          "detail": "All values within safe ranges"
+        },
+        {
+          "check": "source_identity",
+          "result": "PASS",
+          "detail": "Battery ID registered and TRUSTED"
+        }
       ],
       "rejection_reason": null,
       "simulated": true
@@ -834,10 +1224,30 @@
       "Telemetry from unregistered battery_id fails identity validation"
     ],
     "testCases": [
-      { "id": "TC-S2WP5-01", "name": "Valid telemetry TRUSTED", "type": "Unit", "description": "All 4 checks pass for normal event returning TRUSTED and trust score > 90" },
-      { "id": "TC-S2WP5-02", "name": "Stale timestamp UNTRUSTED", "type": "Unit", "description": "Event with timestamp 120s old fails freshness check and returns UNTRUSTED" },
-      { "id": "TC-S2WP5-03", "name": "Physical plausibility failure", "type": "Unit", "description": "Voltage 70V fails plausibility check with PHYSICAL_IMPOSSIBILITY reason" },
-      { "id": "TC-S2WP5-04", "name": "Unknown battery identity", "type": "Negative", "description": "Unregistered battery_id fails identity check with UNKNOWN_SOURCE reason" }
+      {
+        "id": "TC-S2WP5-01",
+        "name": "Valid telemetry TRUSTED",
+        "type": "Unit",
+        "description": "All 4 checks pass for normal event returning TRUSTED and trust score > 90"
+      },
+      {
+        "id": "TC-S2WP5-02",
+        "name": "Stale timestamp UNTRUSTED",
+        "type": "Unit",
+        "description": "Event with timestamp 120s old fails freshness check and returns UNTRUSTED"
+      },
+      {
+        "id": "TC-S2WP5-03",
+        "name": "Physical plausibility failure",
+        "type": "Unit",
+        "description": "Voltage 70V fails plausibility check with PHYSICAL_IMPOSSIBILITY reason"
+      },
+      {
+        "id": "TC-S2WP5-04",
+        "name": "Unknown battery identity",
+        "type": "Negative",
+        "description": "Unregistered battery_id fails identity check with UNKNOWN_SOURCE reason"
+      }
     ],
     "securityRequirements": [
       "Validation pipeline is read-only — no modification of telemetry events",
@@ -857,16 +1267,48 @@
       "Run pytest and verify all validation tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-005-S3",
@@ -874,7 +1316,12 @@
     "product": "Battery Cybersecurity Platform",
     "workPackage": "WP-005",
     "developerId": "DEV-008",
-    "simulatorIds": ["SIM-003", "SIM-005", "SIM-006", "SIM-004"],
+    "simulatorIds": [
+      "SIM-003",
+      "SIM-005",
+      "SIM-006",
+      "SIM-004"
+    ],
     "priority": "Critical",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -933,8 +1380,14 @@
       "detection_result": "REPLAY_DETECTED",
       "confidence": "HIGH",
       "indicators": [
-        { "indicator": "STALE_TIMESTAMP", "detail": "Event timestamp 70 minutes old, exceeds 60s freshness window" },
-        { "indicator": "DUPLICATE_SEQUENCE", "detail": "Sequence 1001 seen at 2026-07-10T08:00:00Z — duplicate" }
+        {
+          "indicator": "STALE_TIMESTAMP",
+          "detail": "Event timestamp 70 minutes old, exceeds 60s freshness window"
+        },
+        {
+          "indicator": "DUPLICATE_SEQUENCE",
+          "detail": "Sequence 1001 seen at 2026-07-10T08:00:00Z — duplicate"
+        }
       ],
       "rule_triggered": "R-01",
       "gate_decision": "HARD_FAIL",
@@ -967,11 +1420,36 @@
       "Freshness window edge case: event exactly 60s old should be configurable as PASS or FAIL"
     ],
     "testCases": [
-      { "id": "TC-S3WP5-01", "name": "Stale timestamp detection", "type": "Security", "description": "Event 70s old triggers STALE_TIMESTAMP and R-01 HARD_FAIL" },
-      { "id": "TC-S3WP5-02", "name": "Duplicate sequence detection", "type": "Security", "description": "Duplicate sequence number within window triggers DUPLICATE_SEQUENCE indicator" },
-      { "id": "TC-S3WP5-03", "name": "Trust score drops to 0", "type": "Unit", "description": "Confirmed replay sets trust score override to 0" },
-      { "id": "TC-S3WP5-04", "name": "Normal event passes", "type": "Unit", "description": "Fresh event with new sequence number passes all detection checks" },
-      { "id": "TC-S3WP5-05", "name": "Configurable freshness window", "type": "Edge", "description": "Setting freshness window to 30s correctly rejects events 35s old" }
+      {
+        "id": "TC-S3WP5-01",
+        "name": "Stale timestamp detection",
+        "type": "Security",
+        "description": "Event 70s old triggers STALE_TIMESTAMP and R-01 HARD_FAIL"
+      },
+      {
+        "id": "TC-S3WP5-02",
+        "name": "Duplicate sequence detection",
+        "type": "Security",
+        "description": "Duplicate sequence number within window triggers DUPLICATE_SEQUENCE indicator"
+      },
+      {
+        "id": "TC-S3WP5-03",
+        "name": "Trust score drops to 0",
+        "type": "Unit",
+        "description": "Confirmed replay sets trust score override to 0"
+      },
+      {
+        "id": "TC-S3WP5-04",
+        "name": "Normal event passes",
+        "type": "Unit",
+        "description": "Fresh event with new sequence number passes all detection checks"
+      },
+      {
+        "id": "TC-S3WP5-05",
+        "name": "Configurable freshness window",
+        "type": "Edge",
+        "description": "Setting freshness window to 30s correctly rejects events 35s old"
+      }
     ],
     "securityRequirements": [
       "Hard-fail gate decision is irreversible per event — cannot be overridden via API",
@@ -992,16 +1470,48 @@
       "Run pytest and verify all detection tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-005-S4",
@@ -1009,7 +1519,10 @@
     "product": "Battery Cybersecurity Platform",
     "workPackage": "WP-005",
     "developerId": "DEV-009",
-    "simulatorIds": ["SIM-006", "SIM-009"],
+    "simulatorIds": [
+      "SIM-006",
+      "SIM-009"
+    ],
     "priority": "High",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -1052,7 +1565,13 @@
       "battery_id": "BID-001",
       "assessor": "security-assessor@eveng.in",
       "assessment_date": "2026-08-15",
-      "categories": ["firmware", "telemetry", "access_control", "physical", "cloud_api"]
+      "categories": [
+        "firmware",
+        "telemetry",
+        "access_control",
+        "physical",
+        "cloud_api"
+      ]
     },
     "sampleOutputJson": {
       "assessment_id": "ASS-001",
@@ -1092,10 +1611,30 @@
       "Checklist with all FAIL items returns score 0 and CRITICAL posture grade"
     ],
     "testCases": [
-      { "id": "TC-S4WP5-01", "name": "Posture score calculation", "type": "Unit", "description": "18 PASS, 4 FAIL, 3 NA returns posture score 81.8% (18/22 × 100)" },
-      { "id": "TC-S4WP5-02", "name": "All categories present", "type": "Unit", "description": "Default checklist includes all 5 categories with minimum 5 checks each" },
-      { "id": "TC-S4WP5-03", "name": "Critical failure highlighting", "type": "Unit", "description": "FAIL on a Critical severity check is highlighted separately in report" },
-      { "id": "TC-S4WP5-04", "name": "JSON configuration extensibility", "type": "Integration", "description": "Adding new check to JSON config includes it in checklist without code change" }
+      {
+        "id": "TC-S4WP5-01",
+        "name": "Posture score calculation",
+        "type": "Unit",
+        "description": "18 PASS, 4 FAIL, 3 NA returns posture score 81.8% (18/22 × 100)"
+      },
+      {
+        "id": "TC-S4WP5-02",
+        "name": "All categories present",
+        "type": "Unit",
+        "description": "Default checklist includes all 5 categories with minimum 5 checks each"
+      },
+      {
+        "id": "TC-S4WP5-03",
+        "name": "Critical failure highlighting",
+        "type": "Unit",
+        "description": "FAIL on a Critical severity check is highlighted separately in report"
+      },
+      {
+        "id": "TC-S4WP5-04",
+        "name": "JSON configuration extensibility",
+        "type": "Integration",
+        "description": "Adding new check to JSON config includes it in checklist without code change"
+      }
     ],
     "securityRequirements": [
       "Checklist assessment records are audit-logged with assessor identity",
@@ -1115,16 +1654,48 @@
       "Run pytest and verify all checklist and scoring tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   },
   {
     "id": "WP-005-S5",
@@ -1132,7 +1703,12 @@
     "product": "Battery Cybersecurity Platform",
     "workPackage": "WP-005",
     "developerId": "DEV-010",
-    "simulatorIds": ["SIM-005", "SIM-006", "SIM-009", "SIM-010"],
+    "simulatorIds": [
+      "SIM-005",
+      "SIM-006",
+      "SIM-009",
+      "SIM-010"
+    ],
     "priority": "Critical",
     "status": "Not Started",
     "dueDate": "2026-09-25",
@@ -1171,7 +1747,10 @@
     "architectureNotes": "SecurityEventLog appends events from SIM-005, SIM-006, SIM-009. PostureScoreEngine computes score from open event severity. SIM-010 integration test populates log with end-to-end events. ReportGenerator creates HTML posture report.",
     "sampleInputJson": {
       "report_scope": {
-        "battery_ids": ["BID-001", "BID-002"],
+        "battery_ids": [
+          "BID-001",
+          "BID-002"
+        ],
         "date_from": "2026-07-01",
         "date_to": "2026-09-25",
         "include_closed": true
@@ -1184,10 +1763,18 @@
       "scope_batteries": 2,
       "total_events": 15,
       "open_events": 3,
-      "severity_distribution": { "CRITICAL": 1, "HIGH": 2, "MEDIUM": 5, "LOW": 7 },
+      "severity_distribution": {
+        "CRITICAL": 1,
+        "HIGH": 2,
+        "MEDIUM": 5,
+        "LOW": 7
+      },
       "posture_score": 62,
       "posture_grade": "MODERATE",
-      "top_threats": ["Replay Attack (2 events)", "Certificate Forgery (1 event)"],
+      "top_threats": [
+        "Replay Attack (2 events)",
+        "Certificate Forgery (1 event)"
+      ],
       "recommendation": "Close 3 open CRITICAL/HIGH incidents before next mission cycle",
       "report_url": "/reports/SEC-RPT-001.html",
       "simulated": true
@@ -1217,11 +1804,36 @@
       "Event log query with invalid date range returns 422 validation error"
     ],
     "testCases": [
-      { "id": "TC-S5WP5-01", "name": "Posture score formula", "type": "Unit", "description": "1 CRITICAL + 2 HIGH + 5 MEDIUM + 7 LOW gives score 100−(20+20+25+14)=21" },
-      { "id": "TC-S5WP5-02", "name": "Event log append", "type": "Unit", "description": "Log 5 events and verify all 5 retrievable with correct severity and status" },
-      { "id": "TC-S5WP5-03", "name": "Open incident tracking", "type": "Unit", "description": "Close 2 of 5 events and verify open_events count is 3" },
-      { "id": "TC-S5WP5-04", "name": "SIM-010 integration", "type": "Integration", "description": "Run SIM-010 attack_detected pipeline and verify events logged in security event log" },
-      { "id": "TC-S5WP5-05", "name": "HTML report export", "type": "Integration", "description": "HTML report is self-contained, loads without internet, and includes all event data" }
+      {
+        "id": "TC-S5WP5-01",
+        "name": "Posture score formula",
+        "type": "Unit",
+        "description": "1 CRITICAL + 2 HIGH + 5 MEDIUM + 7 LOW gives score 100−(20+20+25+14)=21"
+      },
+      {
+        "id": "TC-S5WP5-02",
+        "name": "Event log append",
+        "type": "Unit",
+        "description": "Log 5 events and verify all 5 retrievable with correct severity and status"
+      },
+      {
+        "id": "TC-S5WP5-03",
+        "name": "Open incident tracking",
+        "type": "Unit",
+        "description": "Close 2 of 5 events and verify open_events count is 3"
+      },
+      {
+        "id": "TC-S5WP5-04",
+        "name": "SIM-010 integration",
+        "type": "Integration",
+        "description": "Run SIM-010 attack_detected pipeline and verify events logged in security event log"
+      },
+      {
+        "id": "TC-S5WP5-05",
+        "name": "HTML report export",
+        "type": "Integration",
+        "description": "HTML report is self-contained, loads without internet, and includes all event data"
+      }
     ],
     "securityRequirements": [
       "Security event log is append-only — events cannot be deleted or modified",
@@ -1242,15 +1854,1838 @@
       "Run pytest and verify all event log and posture score tests pass"
     ],
     "evidence": {
-      "driveFolder": "", "architectureDoc": "", "designDoc": "",
-      "githubRepo": "", "branch": "", "pullRequest": "",
-      "verificationReport": "", "securityReport": "", "demoVideo": "",
-      "presentation": "", "screenshots": "", "readme": "",
-      "apiDoc": "", "testReport": "", "coverageReport": "",
-      "researchNotes": "", "patentNotes": "", "releaseNotes": ""
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
     },
-    "qaReview": { "reviewer": "", "reviewDate": "", "status": "Pending", "issuesFound": "", "severity": "", "retestStatus": "", "comments": "" },
-    "architectApproval": { "reviewer": "Founder / Architect", "reviewDate": "", "status": "Pending", "comments": "", "finalDecision": "" },
-    "finalDemo": { "demoDate": "", "demoLink": "", "status": "Not Ready", "evSocietyComments": "", "certificateEligible": false }
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S001",
+    "title": "Local Product Foundation & Hexagonal Architecture",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-105",
+    "developerId": "DEV-015",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Create the local-first technical foundation for Product 3 without modifying Engineering Command Center.",
+    "problemStatement": "The product needs a clean architecture that supports parsing, ballooning, AS9102 generation, verification, and export without becoming tightly coupled to UI, database, or external services.",
+    "userPersona": "Lead Architect, Developer, QA Engineer",
+    "epic": "WP-105 — Desktop Application: Product 3 Foundation",
+    "userStory": "As a Product 3 developer, I want a clean Python 3.12 architecture so that each module can be built, tested, reviewed, and integrated independently.",
+    "description": "Create the local-first FastAPI + Streamlit + SQLite foundation for the FAI Reports Platform. Establishes hexagonal architecture with clear module boundaries: parser, detection, ballooning, as9102, verification, export, and integration. No cloud dependency required.",
+    "functionalRequirements": [
+      "Create FastAPI local backend with health check endpoint",
+      "Create Streamlit desktop UI shell with landing page, Create FAIR project, and evidence status panel",
+      "Create SQLModel SQLite database with FAIProject, DrawingFile, Characteristic, Balloon, AS9102Form, VerificationResult, EvidenceItem entities",
+      "Create Pydantic v2 schemas for all domain entities",
+      "Create product configuration JSON",
+      "Implement module boundaries: parser, detection, ballooning, as9102, verification, export, integration",
+      "Create local project workspace folder structure with evidence folder generation",
+      "Implement /health, /projects, /projects/{id}, /projects/{id}/evidence endpoints",
+      "Create dependency injection container"
+    ],
+    "nonFunctionalRequirements": [
+      "Python 3.12 with strict typing",
+      "pytest coverage baseline established",
+      "Docker compatible — Dockerfile provided",
+      "No paid AI service dependency",
+      "No cloud requirement — fully offline capable",
+      "No OpenAI or external AI API dependency"
+    ],
+    "uiRequirements": [
+      "Product landing page with FAI platform branding",
+      "Create FAIR project form",
+      "Import drawing placeholder page",
+      "Project dashboard with evidence status panel"
+    ],
+    "architectureNotes": "Hexagonal architecture with ports and adapters pattern. FastAPI as local REST server. Streamlit as desktop UI client. SQLModel + SQLite as local persistence. Pydantic v2 for all schema validation. Module entry points as dependency injection boundaries.",
+    "sampleInputJson": {
+      "project_name": "FAI-2026-PART-001",
+      "part_number": "PN-98765-REV-A",
+      "description": "Aerospace bracket assembly"
+    },
+    "sampleOutputJson": {
+      "project_id": "PRJ-20260701-001",
+      "project_name": "FAI-2026-PART-001",
+      "status": "Created",
+      "evidence_folder": "/workspace/FAI-2026-PART-001/evidence",
+      "created_at": "2026-07-10T09:00:00Z"
+    },
+    "acceptanceCriteria": [
+      "Product runs locally with single startup command",
+      "User can create a FAIR project via Streamlit UI",
+      "SQLite stores project metadata and is queryable",
+      "Streamlit UI connects to FastAPI local server",
+      "Evidence folder is generated on project creation",
+      "pytest suite passes with coverage baseline"
+    ],
+    "definitionOfDone": [
+      "Architecture document complete with component and data flow diagrams",
+      "README complete with setup and run instructions",
+      "Unit tests passing with minimum 70% coverage",
+      "Docker build passes successfully",
+      "QA report submitted",
+      "Architect report submitted"
+    ],
+    "positiveUseCases": [
+      "User creates a new FAIR project and sees it appear in the project dashboard",
+      "User opens an existing project and views evidence checklist",
+      "Developer runs health check endpoint and receives 200 OK with service metadata"
+    ],
+    "negativeUseCases": [
+      "Invalid project name (empty or special characters) is rejected with validation error",
+      "Missing workspace path is handled with descriptive error message",
+      "Corrupt or locked SQLite database is handled gracefully without crash",
+      "Duplicate project ID is blocked with conflict error"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S1-01",
+        "name": "Project creation",
+        "type": "Unit",
+        "description": "Create a new FAI project and verify project_id and evidence folder in response"
+      },
+      {
+        "id": "TC-P3S1-02",
+        "name": "Pydantic validation",
+        "type": "Unit",
+        "description": "Submit project with missing required fields and verify 422 validation error"
+      },
+      {
+        "id": "TC-P3S1-03",
+        "name": "Repository save/load",
+        "type": "Unit",
+        "description": "Save project to SQLite and retrieve it — verify all fields match"
+      },
+      {
+        "id": "TC-P3S1-04",
+        "name": "Evidence folder generation",
+        "type": "Integration",
+        "description": "Create project and verify evidence subfolder structure exists on disk"
+      },
+      {
+        "id": "TC-P3S1-05",
+        "name": "Streamlit to FastAPI",
+        "type": "Integration",
+        "description": "Launch both services and verify Streamlit can reach FastAPI /health endpoint"
+      }
+    ],
+    "securityRequirements": [
+      "Local file path validation — reject path traversal attempts",
+      "No arbitrary file execution from project names or user inputs",
+      "No secrets or credentials stored in logs",
+      "SQLite database file stored only within designated workspace directory"
+    ],
+    "securityTestCases": [
+      "Submit project_name containing path traversal (../etc/passwd) — verify rejection",
+      "Verify no credentials or environment secrets appear in FastAPI logs",
+      "Verify SQLite file is created only within the workspace directory"
+    ],
+    "manualVerificationSteps": [
+      "Run app locally: uvicorn app.main:app --reload",
+      "Launch Streamlit: streamlit run app/streamlit_app/main.py",
+      "Create a new FAIR project via UI and verify database row in SQLite",
+      "Verify evidence folder is created in workspace directory",
+      "Run pytest and verify all test cases pass with coverage report printed"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S002",
+    "title": "PDF, TIFF, PNG Drawing Import Engine",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-101",
+    "developerId": "DEV-011",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Allow users to import aerospace drawings from PDF, TIFF, and PNG into the FAI platform.",
+    "problemStatement": "FAI preparation starts with engineering drawings. The platform must reliably import drawings and normalize them into a consistent internal representation for analysis.",
+    "userPersona": "Quality Engineer, FAI Engineer",
+    "epic": "WP-101 — Drawing Import & Parser",
+    "userStory": "As a Quality Engineer, I want to import a PDF drawing so that the system can analyze its dimensions and requirements.",
+    "description": "Implement the drawing import engine using PyMuPDF for PDF parsing and Pillow for TIFF/PNG normalization. Extract page count, size, text blocks, and coordinate metadata. Store drawing file checksum. Provide drawing preview in Streamlit UI.",
+    "functionalRequirements": [
+      "Import PDF drawing using PyMuPDF — extract page count, page size, text blocks, and vector/image information",
+      "Import TIFF and PNG drawings — convert to normalized page images",
+      "Store original file checksum (SHA-256) for integrity verification",
+      "Store drawing metadata: file name, page count, page size, import status, coordinate system",
+      "Provide drawing preview in Streamlit UI showing page thumbnails",
+      "Expose /projects/{id}/drawings/import, /projects/{id}/drawings, /drawings/{id}/preview API endpoints",
+      "Reject corrupt, password-protected, or unsupported file types with safe error messages"
+    ],
+    "nonFunctionalRequirements": [
+      "Support large PDF files (up to 200 pages)",
+      "Preserve coordinate accuracy for downstream balloon placement",
+      "Do not modify source drawing file — preserve original",
+      "Work fully offline without external OCR or cloud services"
+    ],
+    "uiRequirements": [
+      "Upload drawing form with drag-and-drop support",
+      "Drawing preview page showing page thumbnails",
+      "Metadata panel: file name, page count, size, checksum, import status"
+    ],
+    "architectureNotes": "DrawingImportPort, PdfParserPort, ImageParserPort, DrawingRepositoryPort as hexagonal adapters. PyMuPDF (fitz) for PDF. Pillow for TIFF/PNG. SQLModel DrawingFile, DrawingPage, TextBlock entities.",
+    "sampleInputJson": {
+      "project_id": "PRJ-20260701-001",
+      "file_path": "/workspace/drawings/part-drawing.pdf",
+      "file_type": "PDF"
+    },
+    "sampleOutputJson": {
+      "drawing_id": "DRW-001",
+      "file_name": "part-drawing.pdf",
+      "page_count": 3,
+      "page_size": "A2",
+      "checksum": "sha256:abc123...",
+      "status": "Imported",
+      "preview_url": "/drawings/DRW-001/preview"
+    },
+    "acceptanceCriteria": [
+      "PDF import works for single-page and multi-page drawings",
+      "TIFF import works and normalizes to preview image",
+      "PNG import works and normalizes to preview image",
+      "Drawing preview renders correctly in Streamlit UI",
+      "Metadata stored in SQLite with correct field values",
+      "Corrupt or unsupported files fail safely with descriptive error"
+    ],
+    "definitionOfDone": [
+      "Parser tested with minimum 5 sample drawing files (PDF, TIFF, PNG)",
+      "Import evidence report generated",
+      "UI screenshot of drawing preview attached to evidence",
+      "Verification report complete",
+      "QA review passed"
+    ],
+    "positiveUseCases": [
+      "FAI engineer imports a 5-page PDF drawing and all pages appear in preview",
+      "Quality engineer imports a scanned PNG drawing and sees metadata correctly extracted"
+    ],
+    "negativeUseCases": [
+      "Unsupported file type (.docx) is rejected with clear error message",
+      "Password-protected PDF is handled gracefully with informative error",
+      "Empty or zero-byte file is rejected at upload validation",
+      "Very large drawing (500MB) is handled without memory crash"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S2-01",
+        "name": "PDF single-page import",
+        "type": "Unit",
+        "description": "Import single-page PDF and verify page count, size, and checksum in response"
+      },
+      {
+        "id": "TC-P3S2-02",
+        "name": "Multi-page PDF import",
+        "type": "Integration",
+        "description": "Import 5-page PDF and verify all 5 DrawingPage records created in SQLite"
+      },
+      {
+        "id": "TC-P3S2-03",
+        "name": "PNG normalization",
+        "type": "Unit",
+        "description": "Import PNG and verify normalized page image stored and preview URL returned"
+      },
+      {
+        "id": "TC-P3S2-04",
+        "name": "Corrupt file rejection",
+        "type": "Negative",
+        "description": "Import truncated PDF and verify safe error response with no crash"
+      },
+      {
+        "id": "TC-P3S2-05",
+        "name": "File type validation",
+        "type": "Negative",
+        "description": "Import .exe file and verify MIME type rejection before processing"
+      }
+    ],
+    "securityRequirements": [
+      "Reject executable files by MIME type and extension validation",
+      "Prevent path traversal in file_path parameter",
+      "Store imported files only under project workspace directory",
+      "Generate and verify SHA-256 checksum for every imported file"
+    ],
+    "securityTestCases": [
+      "Submit file_path with path traversal (../../etc/) — verify rejection",
+      "Upload file with .pdf extension but executable MIME type — verify MIME check blocks it",
+      "Verify imported file is stored only within designated project workspace directory"
+    ],
+    "manualVerificationSteps": [
+      "Import 3 different PDF drawings and compare preview thumbnails against original files",
+      "Import a TIFF drawing and confirm it appears in preview",
+      "Confirm drawing metadata (page count, size) matches file properties",
+      "Attempt to import a corrupt PDF and verify error is shown in UI without crash",
+      "Run pytest and verify all import tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S003",
+    "title": "Drawing Text, Dimension, and Requirement Extraction",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-101",
+    "developerId": "DEV-011",
+    "simulatorIds": [],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Extract drawing requirements from engineering drawings automatically to enable AS9102 Form 3 characteristic accountability.",
+    "problemStatement": "AS9102 Form 3 requires every product characteristic to be accounted for. The platform must identify candidate requirements from dimensions, tolerances, notes, and specifications embedded in the drawing.",
+    "userPersona": "FAI Engineer, Aerospace Inspector",
+    "epic": "WP-101 — Drawing Import & Parser: Requirement Extraction",
+    "userStory": "As an FAI Engineer, I want drawing dimensions and notes extracted automatically so that I can generate Form 3 faster.",
+    "description": "Implement hybrid rule-based requirement extraction engine. Uses text pattern rules and geometry proximity rules to detect linear/angular dimensions, GD&T frames, datums, tolerances, hole callouts, thread notes, surface finish, weld symbols, general notes, key characteristics, and critical characteristics. Each extraction result includes confidence score and source location.",
+    "functionalRequirements": [
+      "Detect and extract: linear, angular, diameter, and radius dimensions",
+      "Detect and extract: tolerances, GD&T frames, datums, flag notes, thread notes, hole callouts",
+      "Detect and extract: surface finish symbols, weld symbols, general notes",
+      "Detect and extract: critical characteristics and key characteristics",
+      "Assign confidence score (0.0–1.0) to each extracted requirement",
+      "Store page number and coordinate location for every requirement",
+      "Support user confirm/reject actions on each extracted requirement",
+      "Expose /drawings/{id}/extract-requirements, /drawings/{id}/requirements, /requirements/{id}/confirm, /requirements/{id}/reject endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "Extraction results are explainable — each result shows the matching rule",
+      "Config-driven extraction rules via drawing_detection_rules.json",
+      "Manual correction must be supported — user can edit any extracted requirement",
+      "OCR-ready architecture for future scanned drawing support"
+    ],
+    "uiRequirements": [
+      "Extracted requirements table with type, value, location, and confidence score",
+      "Confirm/reject action buttons per requirement row",
+      "Filter by requirement type (dimension, GD&T, note, etc.)",
+      "Source location highlight on drawing preview"
+    ],
+    "architectureNotes": "Rule-based extraction first: regex text patterns + geometry proximity scoring. Config-driven rules in drawing_detection_rules.json. ExtractedRequirement, RequirementType, RequirementSource, RequirementConfidence, RequirementReviewStatus entities. Symbol classifier as placeholder for future ML upgrade.",
+    "sampleInputJson": {
+      "drawing_id": "DRW-001",
+      "extraction_config": "configs/drawing_detection_rules.json"
+    },
+    "sampleOutputJson": {
+      "requirements_count": 47,
+      "extracted": [
+        {
+          "id": "REQ-001",
+          "type": "LinearDimension",
+          "value": "25.4 ± 0.05",
+          "page": 1,
+          "x": 450,
+          "y": 320,
+          "confidence": 0.92,
+          "status": "Pending"
+        }
+      ]
+    },
+    "acceptanceCriteria": [
+      "Extracted requirements are stored in SQLite with page and coordinate location",
+      "Each requirement has a confidence score between 0.0 and 1.0",
+      "User can confirm or reject any extracted requirement via UI",
+      "Confirmed requirements flow to the balloon assignment engine",
+      "Extraction rules are configurable via JSON without code change"
+    ],
+    "definitionOfDone": [
+      "Extraction rule config JSON created and documented",
+      "Test extraction set created with known ground-truth drawings",
+      "Extraction accuracy report generated (precision/recall on test set)",
+      "QA review complete"
+    ],
+    "positiveUseCases": [
+      "System detects 45 of 50 dimensions on a sample drawing with confidence above 0.8",
+      "FAI engineer confirms 40 requirements and rejects 5 — only confirmed flow to balloon engine"
+    ],
+    "negativeUseCases": [
+      "Ambiguous text is marked with low confidence score (< 0.5) rather than excluded",
+      "Duplicate dimension text in title block is not double-counted as a characteristic",
+      "Non-drawing text (revision history table) is classified as note type, not dimension"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S3-01",
+        "name": "Regex dimension extraction",
+        "type": "Unit",
+        "description": "Run extraction on known drawing and verify all linear dimensions are detected"
+      },
+      {
+        "id": "TC-P3S3-02",
+        "name": "Tolerance parser",
+        "type": "Unit",
+        "description": "Parse tolerance string \"25.4 ± 0.05\" and verify nominal, upper, lower values extracted"
+      },
+      {
+        "id": "TC-P3S3-03",
+        "name": "GD&T token parser",
+        "type": "Unit",
+        "description": "Parse GD&T frame text and verify symbol, tolerance, and datum correctly split"
+      },
+      {
+        "id": "TC-P3S3-04",
+        "name": "Confirm/reject workflow",
+        "type": "Integration",
+        "description": "Confirm a requirement via API and verify status changes to Confirmed in database"
+      },
+      {
+        "id": "TC-P3S3-05",
+        "name": "Config-driven rules",
+        "type": "Integration",
+        "description": "Modify detection rules JSON and verify new rule is picked up without code restart"
+      }
+    ],
+    "securityRequirements": [
+      "No external upload of drawing data to cloud OCR or AI services",
+      "No remote API calls during extraction — fully offline",
+      "Input drawing files accessed only via validated local paths"
+    ],
+    "securityTestCases": [
+      "Run extraction with network disabled — verify no outbound network calls are made",
+      "Submit drawing path with path traversal — verify extraction engine rejects it",
+      "Verify extraction results do not expose file system paths in API response"
+    ],
+    "manualVerificationSteps": [
+      "Import a known aerospace drawing and run extraction",
+      "Compare extracted requirements table against manually identified characteristics",
+      "Confirm 5 requirements and reject 2 — verify balloon engine only sees confirmed ones",
+      "Modify a detection rule in JSON and re-run extraction — verify rule change is applied",
+      "Run pytest and verify extraction unit tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S004",
+    "title": "Automatic Balloon Numbering Engine",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-102",
+    "developerId": "DEV-012",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Automatically assign balloon numbers to detected drawing characteristics for fast, error-free FAI preparation.",
+    "problemStatement": "Manual ballooning is slow and error-prone. The system must generate unique, traceable balloon numbers mapped to AS9102 Form 3 characteristics in a deterministic, auditable way.",
+    "userPersona": "Quality Engineer, Supplier Quality Engineer",
+    "epic": "WP-102 — Automatic Balloon Generation",
+    "userStory": "As a Quality Engineer, I want the system to automatically number drawing characteristics so that I can produce a ballooned drawing quickly.",
+    "description": "Implement the balloon numbering engine. Assigns unique, stable characteristic numbers to every confirmed requirement. Supports manual renumbering, renumber-all, and override. Links each balloon to its source requirement. Maintains audit log for all numbering changes. Prevents duplicate numbers.",
+    "functionalRequirements": [
+      "Assign unique characteristic numbers to all confirmed requirements",
+      "Maintain stable numbering across sessions (numbers do not change unless explicitly renumbered)",
+      "Support manual balloon renumber with duplicate detection",
+      "Support renumber-all to reset sequential numbering",
+      "Link each balloon record to its source requirement ID",
+      "Store coordinate location (page, x, y) for balloon placement",
+      "Prevent duplicate balloon numbers with conflict error response",
+      "Expose /drawings/{id}/balloons/generate, /drawings/{id}/balloons, /balloons/{id}/renumber, /balloons/validate endpoints",
+      "Export balloon map as JSON"
+    ],
+    "nonFunctionalRequirements": [
+      "Deterministic output — same input always produces same numbering",
+      "Full traceability — every balloon links to requirement and source location",
+      "Audit log for every numbering change (create, renumber, delete)",
+      "Configurable numbering style (numeric 1,2,3 or alphanumeric A1,A2)"
+    ],
+    "uiRequirements": [
+      "Balloon list table with number, requirement reference, page, and status",
+      "Requirement-to-balloon mapping view",
+      "Manual renumber inline edit",
+      "Unballooned requirements warning banner"
+    ],
+    "architectureNotes": "CharacteristicNumberingService, BalloonPlacementService, BalloonRepository, BalloonValidationService as hexagonal services. Balloon, Characteristic, BalloonNumber, BalloonStatus, BalloonAuditLog entities.",
+    "sampleInputJson": {
+      "drawing_id": "DRW-001",
+      "numbering_style": "numeric",
+      "start_from": 1
+    },
+    "sampleOutputJson": {
+      "balloons_generated": 47,
+      "first_balloon": {
+        "id": "BAL-001",
+        "number": 1,
+        "requirement_id": "REQ-001",
+        "page": 1,
+        "x": 450,
+        "y": 320,
+        "status": "Active"
+      }
+    },
+    "acceptanceCriteria": [
+      "Every confirmed requirement gets a unique balloon number",
+      "Balloon numbers are unique — duplicate is rejected with conflict error",
+      "Manual renumber updates the Form 3 mapping correctly",
+      "Audit log records every balloon creation and renumber event",
+      "Balloon map export contains all active balloons with locations"
+    ],
+    "definitionOfDone": [
+      "Balloon numbering rules documented in design doc",
+      "Unit tests passing — numbering, duplicate detection, renumbering, audit logging",
+      "UI workflow tested end-to-end",
+      "QA report complete and approved"
+    ],
+    "positiveUseCases": [
+      "System generates balloons 1–50 for a drawing with 50 confirmed requirements in under 2 seconds",
+      "Quality engineer renumbers balloon 23 to 99 — Form 3 row updates to 99 automatically"
+    ],
+    "negativeUseCases": [
+      "Attempting to assign balloon number 5 when number 5 already exists — conflict error returned",
+      "Generating balloons when zero confirmed requirements exist — handled with informative empty result",
+      "Invalid renumber value (0 or negative) rejected with validation error"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S4-01",
+        "name": "Sequential number generation",
+        "type": "Unit",
+        "description": "Generate balloons for 10 requirements and verify numbers 1–10 assigned in order"
+      },
+      {
+        "id": "TC-P3S4-02",
+        "name": "Duplicate detection",
+        "type": "Negative",
+        "description": "Attempt to assign number 5 when it exists — verify 409 conflict response"
+      },
+      {
+        "id": "TC-P3S4-03",
+        "name": "Manual renumber",
+        "type": "Unit",
+        "description": "Renumber balloon 3 to 99 and verify Form 3 row reflects new number"
+      },
+      {
+        "id": "TC-P3S4-04",
+        "name": "Audit log entry",
+        "type": "Integration",
+        "description": "Renumber a balloon and verify audit log entry contains old number, new number, and timestamp"
+      },
+      {
+        "id": "TC-P3S4-05",
+        "name": "Balloon map export",
+        "type": "Integration",
+        "description": "Generate balloon map JSON and verify all active balloons with page and coordinate data included"
+      }
+    ],
+    "securityRequirements": [
+      "Validate all user edits to balloon numbers — reject non-integer or out-of-range values",
+      "Prevent malformed or SQL-injectable IDs in renumber requests",
+      "Audit trail is immutable — previous audit log entries cannot be modified or deleted"
+    ],
+    "securityTestCases": [
+      "Submit renumber request with SQL injection in balloon_id — verify rejection",
+      "Submit balloon number value as string instead of integer — verify type validation",
+      "Verify audit log records cannot be deleted via API"
+    ],
+    "manualVerificationSteps": [
+      "Generate balloons for a drawing with 20 confirmed requirements",
+      "Compare balloon list to requirement list and verify 1:1 mapping",
+      "Manually renumber balloon 5 to 50 — verify update in UI and Form 3",
+      "Attempt to create a duplicate balloon number and verify error response",
+      "Run pytest and verify all balloon tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S005",
+    "title": "Balloon Drawing Rendering & PDF Export",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-102",
+    "developerId": "DEV-012",
+    "simulatorIds": [],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Create a professional, reviewer-ready ballooned drawing PDF for inclusion in the FAIR package.",
+    "problemStatement": "AS9102 Form 3 must correspond to clearly identified balloon numbers on the drawing. The system must render balloon circles over the original drawing and export a clean, auditable PDF.",
+    "userPersona": "FAI Engineer, AS9102 Reviewer",
+    "epic": "WP-102 — Automatic Balloon Generation: Balloon Drawing Output",
+    "userStory": "As an AS9102 Reviewer, I want a ballooned drawing PDF so that I can verify every characteristic against Form 3.",
+    "description": "Render balloon circles with numbers at stored coordinates over the original drawing using PyMuPDF. Export the ballooned drawing as a high-resolution PDF. Preserve the original drawing unchanged. Support configurable balloon size and page scale. Provide preview in Streamlit.",
+    "functionalRequirements": [
+      "Render balloon circles at stored coordinate locations on the drawing",
+      "Render balloon numbers inside circles — legible at A3 print size",
+      "Avoid major text overlap using proximity-based placement adjustment",
+      "Support configurable balloon size (small, medium, large)",
+      "Support page scale (A0, A1, A2, A3, A4)",
+      "Export ballooned drawing as high-resolution PDF",
+      "Export preview image for UI display",
+      "Keep original drawing file unchanged — render to a new artifact",
+      "Expose /drawings/{id}/ballooned-preview and /drawings/{id}/export-ballooned-pdf endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "High-resolution output (300 DPI minimum for print)",
+      "Coordinate accuracy — balloon must land on or adjacent to the characteristic it labels",
+      "Repeatable rendering — same input always produces identical output",
+      "Offline export — no external rendering services"
+    ],
+    "uiRequirements": [
+      "Side-by-side preview: original drawing vs ballooned drawing",
+      "Toggle original/ballooned view",
+      "Download ballooned PDF button"
+    ],
+    "architectureNotes": "PyMuPDFRenderer, ImageRenderer, PdfExportService as rendering adapters. BalloonRenderConfig, BalloonedDrawingArtifact, ExportJob entities. Rendering pipeline: load page → place balloons → export PDF artifact → generate checksum.",
+    "sampleInputJson": {
+      "drawing_id": "DRW-001",
+      "balloon_size": "medium",
+      "page_scale": "A2",
+      "output_path": "/workspace/FAI-2026-PART-001/artifacts/ballooned-drawing.pdf"
+    },
+    "sampleOutputJson": {
+      "artifact_id": "ART-BALLOON-001",
+      "pdf_url": "/artifacts/ART-BALLOON-001",
+      "checksum": "sha256:def456...",
+      "pages_rendered": 3,
+      "balloons_placed": 47,
+      "status": "Exported"
+    },
+    "acceptanceCriteria": [
+      "Ballooned PDF is generated with all active balloons rendered",
+      "Balloon numbers are visible and readable at standard print sizes",
+      "Original drawing file is not modified",
+      "Export artifact is stored with checksum",
+      "Preview renders correctly in Streamlit UI"
+    ],
+    "definitionOfDone": [
+      "Golden PDF test set created and passing",
+      "Manual visual verification of balloon placement quality",
+      "Export evidence report attached",
+      "Architect visual approval completed"
+    ],
+    "positiveUseCases": [
+      "FAI engineer exports ballooned PDF with 50 balloons — all visible and non-overlapping",
+      "AS9102 reviewer opens PDF and can match every balloon number to Form 3 table"
+    ],
+    "negativeUseCases": [
+      "Missing balloon coordinate is logged and that balloon skipped — export still completes",
+      "Invalid page reference in balloon record is handled without crash",
+      "Export failure (disk full) is logged and safe error returned to UI"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S5-01",
+        "name": "Single-page balloon render",
+        "type": "Unit",
+        "description": "Render balloons on single-page drawing and verify PDF artifact is created"
+      },
+      {
+        "id": "TC-P3S5-02",
+        "name": "Multi-page balloon render",
+        "type": "Integration",
+        "description": "Render 3-page drawing with balloons on pages 1 and 3 — verify all pages present in output PDF"
+      },
+      {
+        "id": "TC-P3S5-03",
+        "name": "Original drawing preservation",
+        "type": "Unit",
+        "description": "Verify source drawing file checksum is identical before and after rendering"
+      },
+      {
+        "id": "TC-P3S5-04",
+        "name": "Large drawing export",
+        "type": "Integration",
+        "description": "Export drawing with 100 balloons and verify all 100 appear in output PDF"
+      },
+      {
+        "id": "TC-P3S5-05",
+        "name": "Missing coordinate handling",
+        "type": "Negative",
+        "description": "Set one balloon coordinate to null and verify rendering skips it and completes without crash"
+      }
+    ],
+    "securityRequirements": [
+      "Output file path validated — only write to designated workspace/artifacts directory",
+      "No overwrite of existing artifact without version increment",
+      "Artifact checksum generated and stored at time of export"
+    ],
+    "securityTestCases": [
+      "Set output_path to ../etc/ — verify path validation blocks write outside workspace",
+      "Attempt to overwrite existing artifact without version bump — verify version conflict error",
+      "Verify exported artifact checksum matches the file on disk"
+    ],
+    "manualVerificationSteps": [
+      "Export a ballooned drawing PDF and open in PDF viewer",
+      "Confirm all balloon numbers are visible and readable at 100% zoom",
+      "Confirm balloon numbers match the balloon list table in UI",
+      "Verify original drawing file is unchanged (compare checksums)",
+      "Run pytest including golden PDF comparison tests"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S006",
+    "title": "AS9102 Form 1 Generator",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "developerId": "DEV-013",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Generate AS9102 Form 1 for Part Number Accountability from project metadata, reducing manual FAIR preparation time.",
+    "problemStatement": "Form 1 identifies the FAI part, drawing configuration, assembly details, and FAIR identity. Manual preparation is error-prone and time-consuming in aerospace supply chain workflows.",
+    "userPersona": "FAI Engineer, Quality Engineer",
+    "epic": "WP-103 — AS9102 Forms Engine",
+    "userStory": "As an FAI Engineer, I want Form 1 generated from project metadata so that I can reduce manual FAIR preparation.",
+    "description": "Implement AS9102 Rev C Form 1 generator. Captures part number, part name, serial number, FAIR identifier, drawing number, revision, organization details, supplier code, FAI reason, and BOM accountability rows. Validates required fields. Exports Form 1 as PDF/Excel-compatible structure. Supports draft save.",
+    "functionalRequirements": [
+      "Capture and validate: part number, part name, serial number, FAIR identifier, part revision",
+      "Capture and validate: drawing number, drawing revision, organization details, supplier code",
+      "Capture full/partial FAI reason with required justification",
+      "Support BOM/accountability rows — add, edit, remove",
+      "Validate all required and conditional-required fields per AS9102 Rev C schema",
+      "Save draft locally and resume editing",
+      "Export Form 1 to PDF-compatible structured output",
+      "Expose /projects/{id}/as9102/form1, /form1/validate, /form1/export endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "AS9102 Rev C compliant schema defined in as9102_rev_c_schema.json",
+      "Field-level validation with required/conditional-required rule engine",
+      "Audit-ready output — all fields traceable to input data",
+      "Form schema configurable via JSON without code change"
+    ],
+    "uiRequirements": [
+      "Form 1 editor with section grouping (Part Info, Drawing Info, Organization, BOM)",
+      "Required field indicators with red asterisk",
+      "Inline validation error messages",
+      "Save draft button and export preview button"
+    ],
+    "architectureNotes": "AS9102Form1, PartAccountabilityRow, FormFieldValidationResult entities. Config-driven schema from as9102_rev_c_schema.json. PDF export using ReportLab or WeasyPrint. Validation rule engine driven by JSON schema.",
+    "sampleInputJson": {
+      "project_id": "PRJ-20260701-001",
+      "part_number": "PN-98765",
+      "part_name": "Aerospace Bracket",
+      "revision": "A",
+      "serial_number": "SN-001",
+      "fair_id": "FAIR-2026-001",
+      "drawing_number": "DWG-98765",
+      "drawing_revision": "C",
+      "organization": "EV.ENGINEER Aerospace Division",
+      "supplier_code": "SUP-4421",
+      "fai_reason": "New Part"
+    },
+    "sampleOutputJson": {
+      "form1_id": "F1-001",
+      "project_id": "PRJ-20260701-001",
+      "status": "Draft",
+      "validation_status": "Pass",
+      "export_url": "/projects/PRJ-20260701-001/as9102/form1/export",
+      "created_at": "2026-07-15T09:00:00Z"
+    },
+    "acceptanceCriteria": [
+      "Form 1 can be created and saved as draft with all fields populated",
+      "Required fields validated — missing required field blocks export",
+      "Draft saved locally and retrievable on next open",
+      "Export generated as structured PDF output",
+      "BOM rows can be added, edited, and removed"
+    ],
+    "definitionOfDone": [
+      "Form 1 schema documented per AS9102 Rev C",
+      "Validation rule engine tested against required and optional field matrix",
+      "Export sample PDF attached to evidence",
+      "QA approved"
+    ],
+    "positiveUseCases": [
+      "FAI engineer fills complete Form 1 — all validations pass — export PDF generated in under 5 seconds",
+      "Engineer saves Form 1 draft, closes app, reopens — draft is fully restored"
+    ],
+    "negativeUseCases": [
+      "Export blocked when part number is missing — validation error shown in UI",
+      "Invalid drawing revision format (special characters) rejected with field-level error",
+      "Duplicate BOM row (same part number twice) triggers warning"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S6-01",
+        "name": "Form 1 creation",
+        "type": "Unit",
+        "description": "Create Form 1 with all fields populated and verify form1_id returned"
+      },
+      {
+        "id": "TC-P3S6-02",
+        "name": "Required field validation",
+        "type": "Negative",
+        "description": "Submit Form 1 with missing part_number and verify validation error with field name"
+      },
+      {
+        "id": "TC-P3S6-03",
+        "name": "Draft save and restore",
+        "type": "Integration",
+        "description": "Save draft, restart API, retrieve draft — verify all fields match original"
+      },
+      {
+        "id": "TC-P3S6-04",
+        "name": "BOM row management",
+        "type": "Unit",
+        "description": "Add 3 BOM rows, remove row 2, verify only 2 rows remain in form"
+      },
+      {
+        "id": "TC-P3S6-05",
+        "name": "Export mapping",
+        "type": "Integration",
+        "description": "Export Form 1 and verify exported PDF contains all entered field values"
+      }
+    ],
+    "securityRequirements": [
+      "Validate and sanitize all text input fields — prevent script injection in exported PDF",
+      "No macro-enabled output formats — export as PDF only, not .xlsm",
+      "Escape all user-entered content before rendering in export template"
+    ],
+    "securityTestCases": [
+      "Submit part_name containing <script>alert(1)</script> — verify it is escaped in exported PDF",
+      "Submit part_number with formula injection (=CMD()) — verify it is not executed in export",
+      "Verify exported PDF contains no active content (no JavaScript embedded)"
+    ],
+    "manualVerificationSteps": [
+      "Fill Form 1 with complete data and click export — verify PDF is generated",
+      "Open exported PDF and compare all fields against input form",
+      "Leave part_number empty and attempt export — verify blocked with validation message",
+      "Save draft, navigate away, return — verify draft is restored exactly",
+      "Run pytest and verify all Form 1 schema validation tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S007",
+    "title": "AS9102 Form 2 Generator",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "developerId": "DEV-013",
+    "simulatorIds": [],
+    "priority": "High",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Low",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Generate AS9102 Form 2 for Product Accountability documenting materials, special processes, and functional test evidence.",
+    "problemStatement": "Form 2 must account for materials, specifications, special processes, and functional testing. Manual preparation requires tracking multiple certificates, supplier codes, and approval references.",
+    "userPersona": "Manufacturing Engineer, Supplier Quality Engineer",
+    "epic": "WP-103 — AS9102 Forms Engine: Product Accountability",
+    "userStory": "As a Supplier Quality Engineer, I want Form 2 generated so that materials, processes, and test evidence are properly documented.",
+    "description": "Implement AS9102 Form 2 table editor. Supports material/process rows with specification number, supplier code, customer approval verification, certificate of conformance reference, functional test procedure, and acceptance report. Evidence references are linked to Form 3. Validates required rows.",
+    "functionalRequirements": [
+      "Add material and process rows to Form 2 table",
+      "Capture per row: specification number, supplier code, customer approval verification, certificate of conformance number",
+      "Capture per row: functional test procedure number, acceptance report number, comments",
+      "Link evidence reference (certificate, test report) to each row",
+      "Validate required fields per AS9102 Rev C schema",
+      "Export Form 2 as structured PDF",
+      "Expose /projects/{id}/as9102/form2, /form2/validate, /form2/export endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "AS9102 Rev C schema compliance enforced",
+      "Supports minimum 50 material/process rows without performance degradation",
+      "Evidence references are validated — missing reference flagged as warning not blocker"
+    ],
+    "uiRequirements": [
+      "Form 2 table editor with add/remove row functionality",
+      "Evidence attachment reference field per row",
+      "Validation panel showing pass/warn/fail per row",
+      "Export preview button"
+    ],
+    "architectureNotes": "AS9102Form2, ProductAccountabilityRow, MaterialProcessEvidence entities. Shares validation rule engine with Form 1. PDF export via same export service.",
+    "sampleInputJson": {
+      "project_id": "PRJ-20260701-001",
+      "rows": [
+        {
+          "type": "Raw Material",
+          "spec_number": "AMS-2770",
+          "supplier_code": "SUP-4421",
+          "approval_verification": "Approved",
+          "coc_number": "COC-2026-001"
+        }
+      ]
+    },
+    "sampleOutputJson": {
+      "form2_id": "F2-001",
+      "rows_count": 3,
+      "validation_status": "Pass",
+      "export_url": "/projects/PRJ-20260701-001/as9102/form2/export"
+    },
+    "acceptanceCriteria": [
+      "Form 2 rows can be created, edited, and removed",
+      "Evidence references are linked correctly to rows",
+      "Validation completes and reports missing required fields",
+      "Export generates correct PDF output"
+    ],
+    "definitionOfDone": [
+      "Form 2 schema documented",
+      "Row validation tested",
+      "Export sample PDF attached",
+      "QA review complete"
+    ],
+    "positiveUseCases": [
+      "Engineer adds 5 material rows with certificates and exports complete Form 2 PDF",
+      "Supplier quality engineer links COC number to each row and export includes references"
+    ],
+    "negativeUseCases": [
+      "Missing specification number triggers warning — row highlighted in UI",
+      "Invalid supplier code format shows field-level validation error",
+      "Exporting empty Form 2 requires justification comment"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S7-01",
+        "name": "Row addition and removal",
+        "type": "Unit",
+        "description": "Add 3 rows, remove row 2, verify only 2 rows remain in database"
+      },
+      {
+        "id": "TC-P3S7-02",
+        "name": "Evidence reference validation",
+        "type": "Unit",
+        "description": "Link COC number to row and verify reference stored correctly"
+      },
+      {
+        "id": "TC-P3S7-03",
+        "name": "Export mapping",
+        "type": "Integration",
+        "description": "Export Form 2 and verify all rows appear in exported PDF with correct field values"
+      },
+      {
+        "id": "TC-P3S7-04",
+        "name": "Missing spec warning",
+        "type": "Negative",
+        "description": "Submit row with empty spec_number and verify warning returned (not blocker)"
+      }
+    ],
+    "securityRequirements": [
+      "Validate all text fields in row submissions — prevent injection",
+      "Escape all user comments in export output",
+      "Evidence file paths validated — prevent path traversal in certificate references"
+    ],
+    "securityTestCases": [
+      "Submit row with script tag in comments field — verify escaped in exported PDF",
+      "Submit coc_number with path traversal — verify rejection",
+      "Verify no formula injection possible in exported PDF cells"
+    ],
+    "manualVerificationSteps": [
+      "Create Form 2 with 3 rows covering material, special process, and functional test",
+      "Attach certificate references to each row",
+      "Export Form 2 PDF and verify all rows and references are present",
+      "Remove row 2 and re-export — verify only 2 rows in new export",
+      "Run pytest and verify Form 2 tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S008",
+    "title": "AS9102 Form 3 Characteristic Accountability Generator",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "developerId": "DEV-013",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Generate AS9102 Form 3 automatically from ballooned drawing characteristics so FAI engineers can complete inspection documentation in minutes instead of hours.",
+    "problemStatement": "Form 3 is the core inspection characteristic accountability form — it must align exactly with ballooned drawing numbers. Manual creation for a 100-characteristic drawing takes 4–6 hours.",
+    "userPersona": "FAI Engineer, Aerospace Inspector",
+    "epic": "WP-103 — AS9102 Forms Engine: Characteristic Accountability",
+    "userStory": "As an FAI Engineer, I want Form 3 automatically generated from ballooned characteristics so that I can complete inspection documentation quickly.",
+    "description": "Generate AS9102 Form 3 rows directly from the balloon database. Each balloon becomes one Form 3 row with characteristic number, reference location, designator, requirement, result, designed tooling, nonconformance reference, and remarks. Supports manual result entry, CSV result import, and variable/attribute characteristic types.",
+    "functionalRequirements": [
+      "Generate Form 3 rows from all active balloons — one row per balloon",
+      "Include per row: characteristic number, reference location, characteristic designator, requirement, result, designed tooling, NC number, remarks",
+      "Support variable and attribute characteristic type classification",
+      "Support manual inspection result entry per row",
+      "Support CSV import of inspection results with column mapping",
+      "Flag missing inspection results for incomplete rows",
+      "Expose /projects/{id}/as9102/form3/generate, /form3, /form3/import-results, /form3/validate endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "Must generate 100+ characteristic rows in under 3 seconds",
+      "CSV import must handle up to 500 rows without timeout",
+      "Row-balloon number mapping is immutable once FAIR is released"
+    ],
+    "uiRequirements": [
+      "Form 3 table with search, filter by type, and missing results indicator",
+      "Inline result entry per row",
+      "Link row to drawing preview at characteristic location",
+      "CSV import wizard"
+    ],
+    "architectureNotes": "AS9102Form3, CharacteristicAccountabilityRow, InspectionResult, NonConformanceReference entities. Form 3 generation pipeline: load balloons → map to rows → persist → return row set. CSV parser with column header mapping.",
+    "sampleInputJson": {
+      "drawing_id": "DRW-001",
+      "project_id": "PRJ-20260701-001",
+      "include_unconfirmed": false
+    },
+    "sampleOutputJson": {
+      "form3_id": "F3-001",
+      "rows_generated": 47,
+      "missing_results": 47,
+      "validation_status": "Incomplete",
+      "rows": [
+        {
+          "characteristic_number": 1,
+          "requirement": "25.4 ± 0.05",
+          "type": "Variable",
+          "result": "",
+          "status": "Missing"
+        }
+      ]
+    },
+    "acceptanceCriteria": [
+      "Every active balloon becomes exactly one Form 3 row",
+      "Characteristic numbers match balloon drawing numbers",
+      "Missing inspection results are flagged in UI",
+      "CSV import correctly maps columns to Form 3 fields",
+      "Export generates complete AS9102-compliant output"
+    ],
+    "definitionOfDone": [
+      "Form 3 schema documented",
+      "CSV import tested with sample inspection results",
+      "Form 3 cross-validated against balloon drawing PDF",
+      "QA report complete and approved"
+    ],
+    "positiveUseCases": [
+      "System generates 100 Form 3 rows from 100 balloons in under 3 seconds",
+      "FAI engineer imports CSV with 100 inspection results — all mapped correctly to rows"
+    ],
+    "negativeUseCases": [
+      "Balloon without confirmed requirement flagged as warning in Form 3 row",
+      "Requirement without balloon flagged and excluded from Form 3 auto-generation",
+      "Duplicate characteristic number blocked — user must resolve before export",
+      "Invalid measured result (text in numeric field) flagged with field-level error"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S8-01",
+        "name": "Form 3 row generation",
+        "type": "Unit",
+        "description": "Generate Form 3 from 10 balloons and verify 10 rows created with correct characteristic numbers"
+      },
+      {
+        "id": "TC-P3S8-02",
+        "name": "Balloon number mapping",
+        "type": "Integration",
+        "description": "Verify Form 3 characteristic numbers match balloon numbers from drawing"
+      },
+      {
+        "id": "TC-P3S8-03",
+        "name": "CSV result import",
+        "type": "Integration",
+        "description": "Import CSV with 10 inspection results and verify all mapped to correct Form 3 rows"
+      },
+      {
+        "id": "TC-P3S8-04",
+        "name": "Missing result flagging",
+        "type": "Unit",
+        "description": "Generate Form 3 with no results entered and verify all rows have Missing status"
+      },
+      {
+        "id": "TC-P3S8-05",
+        "name": "Duplicate characteristic block",
+        "type": "Negative",
+        "description": "Attempt to create duplicate characteristic number via manual edit — verify 409 conflict"
+      }
+    ],
+    "securityRequirements": [
+      "Validate all CSV content before import — reject CSV with formula injection (=CMD())",
+      "Prevent formula injection in exported Form 3 cells",
+      "Escape all remarks and comments in PDF export"
+    ],
+    "securityTestCases": [
+      "Import CSV with formula injection in result column (=CMD(calc)) — verify it is escaped not executed",
+      "Submit NC number with HTML tags — verify escaped in exported output",
+      "Verify exported Form 3 PDF contains no active JavaScript or macros"
+    ],
+    "manualVerificationSteps": [
+      "Generate Form 3 from a drawing with 20 balloons — verify 20 rows created",
+      "Compare Form 3 characteristic numbers against the ballooned drawing PDF",
+      "Enter inspection results manually for 5 rows — verify results saved",
+      "Import a CSV with 20 results — verify all mapped correctly",
+      "Run pytest including Form 3 generation and CSV import tests"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S009",
+    "title": "Verification, QA Review, and FAIR Completeness Engine",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-104",
+    "developerId": "DEV-014",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Ensure generated FAIR package is complete, traceable, and review-ready before release.",
+    "problemStatement": "Automated FAI generation must not create incomplete or misleading reports. Missing balloons, missing form fields, and Form 3 mismatches are costly errors to catch at customer review.",
+    "userPersona": "AS9102 Reviewer, QA Engineer, Architect",
+    "epic": "WP-104 — Verification & Review Engine",
+    "userStory": "As an AS9102 Reviewer, I want automated verification so that I can trust the FAIR package before release.",
+    "description": "Implement the FAIR verification engine. Runs a catalog of rules checking: balloon-to-requirement completeness, Form 3 row-to-balloon alignment, Form 1/2/3 required field completeness, missing evidence, duplicate characteristic numbers, and missing drawing revision. Generates a verification report with PASS/WARN/FAIL per rule. Supports QA and Architect approval workflow.",
+    "functionalRequirements": [
+      "Verify all confirmed requirements have balloons",
+      "Verify all balloons have corresponding Form 3 rows",
+      "Verify all Form 3 rows map to active balloon numbers",
+      "Verify Form 1 required fields are complete",
+      "Verify Form 2 required rows and evidence references are present",
+      "Verify Form 3 inspection results are complete",
+      "Verify no duplicate characteristic numbers exist",
+      "Flag missing drawing revision and missing FAIR identifier",
+      "Generate export readiness score (0–100)",
+      "Support QA approve/reject workflow with comments",
+      "Support Architect approve/reject workflow with comments",
+      "Expose /projects/{id}/verify, /verification-report, /qa-review, /architect-review endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "Rule catalog configurable — new rules addable via JSON without code change",
+      "Verification runs in under 5 seconds for packages with 200 characteristics",
+      "Findings are categorized: FAIL (blocks export), WARN (advisory), INFO",
+      "Immutable release snapshot once architect approves"
+    ],
+    "uiRequirements": [
+      "Verification dashboard with PASS/WARN/FAIL status per rule",
+      "Issue list with click-to-navigate to failing section",
+      "Export readiness score widget",
+      "QA approval panel and Architect approval panel"
+    ],
+    "architectureNotes": "VerificationRun, VerificationRule, VerificationFinding, ReviewDecision, ReleaseReadinessScore entities. Rule engine iterates rule catalog. Each rule is a pure function: input = project state, output = VerificationFinding. Approval workflow enforces sequential QA then Architect sign-off.",
+    "sampleInputJson": {
+      "project_id": "PRJ-20260701-001",
+      "rule_set": "full"
+    },
+    "sampleOutputJson": {
+      "verification_id": "VER-001",
+      "readiness_score": 72,
+      "findings": [
+        {
+          "rule": "FORM3_RESULTS_COMPLETE",
+          "severity": "FAIL",
+          "message": "12 of 47 characteristics missing inspection results",
+          "blocker": true
+        }
+      ],
+      "qa_status": "Pending",
+      "architect_status": "Pending"
+    },
+    "acceptanceCriteria": [
+      "All verification rules run and produce categorized findings",
+      "Export readiness score calculated and displayed",
+      "Verification report can be exported as PDF",
+      "QA approval workflow saves reviewer name, date, and comments",
+      "Architect approval workflow saves decision and blocks export if rejected"
+    ],
+    "definitionOfDone": [
+      "Verification rule catalog documented",
+      "All rule tests passing",
+      "Full FAIR verification integration test passing",
+      "QA and Architect review workflow tested",
+      "Security report attached"
+    ],
+    "positiveUseCases": [
+      "Complete FAIR package scores 100/100 and passes all verification rules",
+      "QA engineer approves after review — approval recorded with timestamp",
+      "Architect approves — FAIR package marked as release-ready"
+    ],
+    "negativeUseCases": [
+      "Missing balloon for confirmed requirement produces FAIL finding — export blocked",
+      "Duplicate characteristic number produces FAIL finding — export blocked",
+      "Missing Form 1 required field produces FAIL finding",
+      "Missing inspection result produces FAIL finding with count of affected rows"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S9-01",
+        "name": "Rule engine execution",
+        "type": "Unit",
+        "description": "Run verification on known incomplete project and verify expected FAIL findings returned"
+      },
+      {
+        "id": "TC-P3S9-02",
+        "name": "Readiness score",
+        "type": "Unit",
+        "description": "Project with all required fields complete scores 100, partial project scores proportionally less"
+      },
+      {
+        "id": "TC-P3S9-03",
+        "name": "QA approval",
+        "type": "Integration",
+        "description": "Submit QA approval and verify reviewer, date, status saved to VerificationRun"
+      },
+      {
+        "id": "TC-P3S9-04",
+        "name": "Architect rejection",
+        "type": "Integration",
+        "description": "Architect rejects — verify export endpoint returns 403 with rejection reason"
+      },
+      {
+        "id": "TC-P3S9-05",
+        "name": "Immutable release snapshot",
+        "type": "Integration",
+        "description": "After architect approval, attempt to modify Form 3 row — verify immutability enforced"
+      }
+    ],
+    "securityRequirements": [
+      "All review actions (approve/reject) are audit logged with user identity and timestamp",
+      "Export cannot be triggered without completed verification run",
+      "Release snapshot is immutable after architect approval — no modification allowed",
+      "Approval cannot be submitted without prior verification run completion"
+    ],
+    "securityTestCases": [
+      "Attempt to trigger export without verification run — verify 403 response",
+      "Attempt to modify Form 3 row after architect approval — verify immutability error",
+      "Verify QA approval audit log entry contains reviewer identity and timestamp",
+      "Submit architect approval without prior QA approval — verify sequential enforcement"
+    ],
+    "manualVerificationSteps": [
+      "Create an incomplete FAIR (missing Form 3 results) and run verification — verify FAIL findings",
+      "Complete all requirements and re-run verification — verify score reaches 100",
+      "Submit QA approval and verify it is recorded in the dashboard",
+      "Submit Architect approval and verify FAIR is marked as release-ready",
+      "Run pytest and verify all verification rule tests pass"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
+  },
+  {
+    "id": "P3-S010",
+    "title": "FAIR PDF, ZIP Package, Evidence Sync & Release Workflow",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-105",
+    "developerId": "DEV-015",
+    "simulatorIds": [],
+    "priority": "Critical",
+    "status": "Not Started",
+    "dueDate": "2026-09-25",
+    "currentPhase": "Not Started",
+    "overallProgress": 0,
+    "riskStatus": "Medium",
+    "qaStatus": "Pending",
+    "architectStatus": "Pending",
+    "demoStatus": "Not Ready",
+    "businessGoal": "Export a complete, customer-ready FAIR package and sync evidence with Engineering Command Center.",
+    "problemStatement": "The final deliverable must include ballooned drawing, AS9102 Forms 1–3, verification reports, evidence, and release notes in a structured, checksummed package ready for aerospace customer submission.",
+    "userPersona": "FAI Engineer, Quality Manager, Customer Reviewer",
+    "epic": "WP-105 — Desktop Application: FAIR Release",
+    "userStory": "As a Quality Manager, I want a complete FAIR package exported as PDF and ZIP so that I can submit it to aerospace customers.",
+    "description": "Generate the complete FAIR package: combined FAIR PDF (Forms 1+2+3 + ballooned drawing), FAIR ZIP archive, verification report, QA report, Architect report, release notes, evidence manifest with checksums, and Engineering Command Center sync payload. Export is blocked until verification passes and both approvals are in place.",
+    "functionalRequirements": [
+      "Generate combined FAIR PDF containing: ballooned drawing, Form 1, Form 2, Form 3, verification report",
+      "Generate FAIR ZIP package containing: all PDFs, evidence files, evidence manifest with SHA-256 checksums",
+      "Generate evidence manifest listing every included artifact with name, type, and checksum",
+      "Generate release notes",
+      "Create immutable release snapshot — no modification after release",
+      "Generate Engineering Command Center sync payload for story evidence, Drive folder reference, GitHub branch/PR reference, QA and Architect status, release status",
+      "Block export if verification has FAIL findings",
+      "Block export if QA or Architect approval is missing",
+      "Expose /projects/{id}/export/fair-pdf, /export/fair-zip, /release, /sync/evidence endpoints"
+    ],
+    "nonFunctionalRequirements": [
+      "FAIR ZIP generation must complete in under 30 seconds for 50-characteristic packages",
+      "Checksums validated on ZIP creation and again on extraction",
+      "Release snapshot stored immutably — hash chain integrity",
+      "Sync payload generated even when Engineering Command Center is unreachable (queued for later sync)"
+    ],
+    "uiRequirements": [
+      "Export FAIR Package button — disabled until verification passes and approvals complete",
+      "Release readiness checklist showing verification, QA, and Architect status",
+      "Evidence manifest viewer",
+      "Download ZIP button",
+      "Sync to Engineering Command Center action"
+    ],
+    "architectureNotes": "FAIRPackage, ExportArtifact, EvidenceManifest, ReleaseSnapshot, CommandCenterSyncStatus entities. Export pipeline: collect artifacts → generate manifest → create ZIP → compute checksums → write release snapshot → queue sync payload.",
+    "sampleInputJson": {
+      "project_id": "PRJ-20260701-001",
+      "include_research_notes": true,
+      "include_patent_notes": false
+    },
+    "sampleOutputJson": {
+      "release_id": "REL-001",
+      "fair_pdf_url": "/releases/REL-001/fair-package.pdf",
+      "zip_url": "/releases/REL-001/fair-package.zip",
+      "checksum": "sha256:xyz789...",
+      "artifacts_count": 12,
+      "sync_status": "Queued",
+      "released_at": "2026-09-20T14:00:00Z"
+    },
+    "acceptanceCriteria": [
+      "FAIR ZIP package generated with all required artifacts",
+      "Combined FAIR PDF generated and openable",
+      "Evidence manifest included with SHA-256 checksums for every artifact",
+      "Export blocked when verification FAIL findings exist",
+      "Export blocked when QA or Architect approval is missing",
+      "Release snapshot is immutable after creation",
+      "Engineering Command Center sync payload generated"
+    ],
+    "definitionOfDone": [
+      "End-to-end FAIR generation integration test passing",
+      "FAIR ZIP sample attached as evidence",
+      "Combined PDF sample attached as evidence",
+      "Verification report sample attached",
+      "QA report and Architect report samples attached",
+      "Release notes sample attached",
+      "Demo video of full workflow recorded (5–10 min)",
+      "Architect final approval"
+    ],
+    "positiveUseCases": [
+      "Quality manager clicks Export FAIR Package — ZIP with all forms and checksums downloaded in 20 seconds",
+      "FAI engineer syncs evidence to Engineering Command Center — story evidence fields updated automatically"
+    ],
+    "negativeUseCases": [
+      "Export button disabled when 3 FAIL verification findings exist",
+      "Export blocked when QA approval is missing — clear message shown",
+      "ZIP checksum mismatch on extraction detected and flagged",
+      "Engineering Command Center sync failure is queued and logged — does not block local export"
+    ],
+    "testCases": [
+      {
+        "id": "TC-P3S10-01",
+        "name": "FAIR ZIP generation",
+        "type": "Integration",
+        "description": "Generate FAIR ZIP for complete project and verify all required artifacts present in archive"
+      },
+      {
+        "id": "TC-P3S10-02",
+        "name": "Checksum validation",
+        "type": "Unit",
+        "description": "Generate ZIP and verify manifest checksums match actual file hashes"
+      },
+      {
+        "id": "TC-P3S10-03",
+        "name": "Export gate enforcement",
+        "type": "Negative",
+        "description": "Attempt export with pending verification — verify 403 blocked response"
+      },
+      {
+        "id": "TC-P3S10-04",
+        "name": "Release immutability",
+        "type": "Integration",
+        "description": "After release, attempt to modify Form 3 result — verify immutability error"
+      },
+      {
+        "id": "TC-P3S10-05",
+        "name": "Sync payload generation",
+        "type": "Unit",
+        "description": "Generate sync payload and verify it contains story evidence fields and status values"
+      }
+    ],
+    "securityRequirements": [
+      "Immutable release artifact — hash chain integrity enforced",
+      "SHA-256 checksums generated for all exported artifacts",
+      "Safe ZIP creation — no path traversal or absolute paths inside ZIP entries",
+      "No local absolute file system paths exposed in sync payload",
+      "Sync failure handled safely — no sensitive data in error logs"
+    ],
+    "securityTestCases": [
+      "Verify ZIP entries contain only relative paths — no absolute or traversal paths",
+      "Verify release snapshot hash chain is intact after release creation",
+      "Attempt to trigger release without architect approval — verify 403 response",
+      "Verify Engineering Command Center sync payload contains no local file system paths"
+    ],
+    "manualVerificationSteps": [
+      "Complete all forms, run verification, get QA and Architect approvals",
+      "Click Export FAIR Package — verify ZIP downloads",
+      "Extract ZIP and verify all PDFs, evidence manifest, and release notes are present",
+      "Open combined FAIR PDF and verify all forms and ballooned drawing are included",
+      "Verify evidence manifest checksums match extracted file hashes",
+      "Run pytest and verify end-to-end FAIR generation test passes"
+    ],
+    "evidence": {
+      "driveFolder": "",
+      "architectureDoc": "",
+      "designDoc": "",
+      "githubRepo": "",
+      "branch": "",
+      "pullRequest": "",
+      "verificationReport": "",
+      "securityReport": "",
+      "demoVideo": "",
+      "presentation": "",
+      "screenshots": "",
+      "readme": "",
+      "apiDoc": "",
+      "testReport": "",
+      "coverageReport": "",
+      "researchNotes": "",
+      "patentNotes": "",
+      "releaseNotes": ""
+    },
+    "qaReview": {
+      "reviewer": "",
+      "reviewDate": "",
+      "status": "Pending",
+      "issuesFound": "",
+      "severity": "",
+      "retestStatus": "",
+      "comments": ""
+    },
+    "architectApproval": {
+      "reviewer": "Founder / Architect",
+      "reviewDate": "",
+      "status": "Pending",
+      "comments": "",
+      "finalDecision": ""
+    },
+    "finalDemo": {
+      "demoDate": "",
+      "demoLink": "",
+      "status": "Not Ready",
+      "evSocietyComments": "",
+      "certificateEligible": false
+    }
   }
 ]

@@ -17,24 +17,104 @@
     "createdDate": "2026-07-01",
     "dependencies": [],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Pack Aadhaar System" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-001 Arjun Sharma assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Pack Aadhaar System"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-001 Arjun Sharma assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -53,26 +133,108 @@
     "weeklyHours": 10,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-001"],
+    "dependencies": [
+      "ASSIGN-001"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Pack Aadhaar System" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-002 Priya Nair assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Pack Aadhaar System"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-002 Priya Nair assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -93,24 +255,104 @@
     "createdDate": "2026-07-01",
     "dependencies": [],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Pack Aadhaar System" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-003 Rahul Verma assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Pack Aadhaar System"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-003 Rahul Verma assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -129,26 +371,108 @@
     "weeklyHours": 8,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-001"],
+    "dependencies": [
+      "ASSIGN-001"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Pack Aadhaar System" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-004 Sneha Iyer assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Pack Aadhaar System"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-004 Sneha Iyer assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -167,26 +491,109 @@
     "weeklyHours": 10,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-001", "ASSIGN-002"],
+    "dependencies": [
+      "ASSIGN-001",
+      "ASSIGN-002"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Pack Aadhaar System" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-005 Karthik Menon assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Pack Aadhaar System"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-005 Karthik Menon assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -207,24 +614,104 @@
     "createdDate": "2026-07-01",
     "dependencies": [],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Cybersecurity Platform" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-006 Divya Pillai assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Cybersecurity Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-006 Divya Pillai assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -243,26 +730,108 @@
     "weeklyHours": 10,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-006"],
+    "dependencies": [
+      "ASSIGN-006"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Cybersecurity Platform" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-007 Aditya Kumar assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Cybersecurity Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-007 Aditya Kumar assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -283,24 +852,104 @@
     "createdDate": "2026-07-01",
     "dependencies": [],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Cybersecurity Platform" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-008 Meera Reddy assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Cybersecurity Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-008 Meera Reddy assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -319,26 +968,108 @@
     "weeklyHours": 8,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-006"],
+    "dependencies": [
+      "ASSIGN-006"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Cybersecurity Platform" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-009 Vivek Chandran assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Cybersecurity Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-009 Vivek Chandran assigned to this story and simulator"
+      }
     ]
   },
   {
@@ -357,26 +1088,1309 @@
     "weeklyHours": 10,
     "dueDate": "2026-09-25",
     "createdDate": "2026-07-01",
-    "dependencies": ["ASSIGN-006", "ASSIGN-007"],
+    "dependencies": [
+      "ASSIGN-006",
+      "ASSIGN-007"
+    ],
     "evidence": {
-      "architecture": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "design": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "github": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "branch": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "pr": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "readme": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "apiDoc": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "verification": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "security": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "presentation": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "demo": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "research": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "patent": { "status": "Missing", "link": "", "date": "", "comments": "" },
-      "releaseNotes": { "status": "Missing", "link": "", "date": "", "comments": "" }
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
     },
     "history": [
-      { "date": "2026-07-01", "action": "Assignment Created", "by": "System", "note": "Internship assignment created for Battery Cybersecurity Platform" },
-      { "date": "2026-07-01", "action": "Developer Assigned", "by": "Founder / Architect", "note": "DEV-010 Anjali Singh assigned to this story and simulator" }
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for Battery Cybersecurity Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-010 Anjali Singh assigned to this story and simulator"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-011",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-105",
+    "storyId": "P3-S001",
+    "simulatorId": "",
+    "developerId": "DEV-015",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 90,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-015 assigned to P3-S001"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-012",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-101",
+    "storyId": "P3-S002",
+    "simulatorId": "",
+    "developerId": "DEV-011",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 110,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S001"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-011 assigned to P3-S002"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-013",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-101",
+    "storyId": "P3-S003",
+    "simulatorId": "",
+    "developerId": "DEV-011",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "High",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 130,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S002"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-011 assigned to P3-S003"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-014",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-102",
+    "storyId": "P3-S004",
+    "simulatorId": "",
+    "developerId": "DEV-012",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 115,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S003"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-012 assigned to P3-S004"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-015",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-102",
+    "storyId": "P3-S005",
+    "simulatorId": "",
+    "developerId": "DEV-012",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "High",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 110,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S004"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-012 assigned to P3-S005"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-016",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "storyId": "P3-S006",
+    "simulatorId": "",
+    "developerId": "DEV-013",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 110,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S001"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-013 assigned to P3-S006"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-017",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "storyId": "P3-S007",
+    "simulatorId": "",
+    "developerId": "DEV-013",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "High",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 110,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S006"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-013 assigned to P3-S007"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-018",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-103",
+    "storyId": "P3-S008",
+    "simulatorId": "",
+    "developerId": "DEV-013",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 145,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S005",
+      "P3-S006",
+      "P3-S007"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-013 assigned to P3-S008"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-019",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-104",
+    "storyId": "P3-S009",
+    "simulatorId": "",
+    "developerId": "DEV-014",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 135,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S008"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-014 assigned to P3-S009"
+      }
+    ]
+  },
+  {
+    "id": "ASSIGN-020",
+    "product": "AS9102 FAI Reports Platform",
+    "workPackage": "WP-105",
+    "storyId": "P3-S010",
+    "simulatorId": "",
+    "developerId": "DEV-015",
+    "qaId": "",
+    "architectId": "Founder / Architect",
+    "priority": "Critical",
+    "status": "Assigned",
+    "progress": 0,
+    "estimatedHours": 135,
+    "weeklyHours": 10,
+    "dueDate": "2026-09-25",
+    "createdDate": "2026-07-01",
+    "dependencies": [
+      "P3-S009"
+    ],
+    "evidence": {
+      "architecture": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "design": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "github": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "branch": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "pr": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "readme": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "apiDoc": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "verification": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "security": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "presentation": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "demo": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "research": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "patent": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      },
+      "releaseNotes": {
+        "status": "Missing",
+        "link": "",
+        "date": "",
+        "comments": ""
+      }
+    },
+    "history": [
+      {
+        "date": "2026-07-01",
+        "action": "Assignment Created",
+        "by": "System",
+        "note": "Internship assignment created for AS9102 FAI Reports Platform"
+      },
+      {
+        "date": "2026-07-01",
+        "action": "Developer Assigned",
+        "by": "Founder / Architect",
+        "note": "DEV-015 assigned to P3-S010"
+      }
     ]
   }
 ]

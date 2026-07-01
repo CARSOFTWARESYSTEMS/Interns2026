@@ -33,7 +33,7 @@ export default function Stories() {
     <div className="space-y-4">
       <PageHeader
         title="User Stories"
-        subtitle="10 engineering stories across 2 products"
+        subtitle={`${stories.length} engineering stories across 3 products`}
         icon={<FileText size={18} />}
       />
 
@@ -50,11 +50,16 @@ export default function Stories() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['All','Battery Pack Aadhaar System','Battery Cybersecurity Platform'].map(p => (
-            <button key={p} onClick={() => setFilterProduct(p)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${filterProduct === p ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          {[
+            { value: 'All',                          label: 'All Products' },
+            { value: 'Battery Pack Aadhaar System',  label: 'Battery Aadhaar' },
+            { value: 'Battery Cybersecurity Platform', label: 'Cybersecurity' },
+            { value: 'AS9102 FAI Reports Platform',  label: 'FAI AS9102' },
+          ].map(({ value, label }) => (
+            <button key={value} onClick={() => setFilterProduct(value)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${filterProduct === value ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              {p === 'All' ? 'All Products' : p === 'Battery Pack Aadhaar System' ? 'Product 1' : 'Product 2'}
+              {label}
             </button>
           ))}
         </div>
@@ -85,20 +90,26 @@ export default function Stories() {
             {/* Header */}
             <div className="flex items-start gap-3 mb-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                story.product === 'Battery Pack Aadhaar System' ? 'bg-brand-50' : 'bg-purple-50'
+                story.product === 'Battery Pack Aadhaar System' ? 'bg-brand-50' :
+                story.product === 'AS9102 FAI Reports Platform' ? 'bg-emerald-50' : 'bg-purple-50'
               }`}>
-                <FileText size={16} className={story.product === 'Battery Pack Aadhaar System' ? 'text-brand-600' : 'text-purple-600'} />
+                <FileText size={16} className={
+                  story.product === 'Battery Pack Aadhaar System' ? 'text-brand-600' :
+                  story.product === 'AS9102 FAI Reports Platform' ? 'text-emerald-600' : 'text-purple-600'
+                } />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className={`text-[10px] font-bold tracking-widest ${
-                    story.product === 'Battery Pack Aadhaar System' ? 'text-brand-600' : 'text-purple-600'
+                    story.product === 'Battery Pack Aadhaar System' ? 'text-brand-600' :
+                    story.product === 'AS9102 FAI Reports Platform' ? 'text-emerald-600' : 'text-purple-600'
                   }`}>{story.id}</span>
                   <StatusBadge status={story.priority} size="xs" />
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 leading-tight">{story.title}</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  {story.product === 'Battery Pack Aadhaar System' ? 'Product 1' : 'Product 2'} · {story.workPackage}
+                  {story.product === 'Battery Pack Aadhaar System' ? 'Battery Aadhaar' :
+                   story.product === 'AS9102 FAI Reports Platform' ? 'FAI AS9102' : 'Cybersecurity'} · {story.workPackage}
                 </p>
               </div>
               <StatusBadge status={story.status} size="xs" />
@@ -110,7 +121,10 @@ export default function Stories() {
                 <span>Progress</span>
                 <span>{story.overallProgress}%</span>
               </div>
-              <ProgressBar value={story.overallProgress} color={story.product === 'Battery Pack Aadhaar System' ? 'bg-brand-600' : 'bg-purple-600'} />
+              <ProgressBar value={story.overallProgress} color={
+                story.product === 'Battery Pack Aadhaar System' ? 'bg-brand-600' :
+                story.product === 'AS9102 FAI Reports Platform' ? 'bg-emerald-600' : 'bg-purple-600'
+              } />
             </div>
 
             {/* Details */}

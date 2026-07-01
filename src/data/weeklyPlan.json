@@ -9,6 +9,7 @@
       "Learn EV battery fundamentals: chemistry, BMS, lifecycle, safety",
       "Study Battery Pack Aadhaar System product vision",
       "Study Battery Cybersecurity Platform product vision",
+      "Study AS9102 FAI Reports Platform product vision (Product 3)",
       "Review internship code of conduct, tooling, and communication norms",
       "Setup development environment: Python, Git, VS Code, Streamlit"
     ]
@@ -188,6 +189,7 @@
       "Present to EV Society review panel",
       "Demo Battery Pack Aadhaar System features",
       "Demo Battery Cybersecurity Platform features",
+      "Demo AS9102 FAI Reports Platform features (drawing import, balloon generation, FAIR export)",
       "Q&A with EV Society panel",
       "Receive feedback and log action items",
       "Confirm certificate eligibility"
