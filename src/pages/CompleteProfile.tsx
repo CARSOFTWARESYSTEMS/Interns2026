@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Battery, Shield, Check, ChevronRight, ChevronLeft, User, GraduationCap, Link2, Star } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
@@ -20,6 +20,17 @@ const STEPS = [
 const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => String(2024 + i))
 const DEGREES = ['B.E.', 'B.Tech', 'M.E.', 'M.Tech', 'MCA', 'MBA', 'Ph.D.', 'Diploma', 'Other']
 const EXPERIENCE = ['Fresher', '< 1 year', '1 year', '2 years', '3+ years']
+
+function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
 
 export default function CompleteProfile() {
   const { userProfile, firebaseUser, refreshProfile } = useAuthContext()
@@ -111,17 +122,6 @@ export default function CompleteProfile() {
     } finally {
       setSaving(false)
     }
-  }
-
-  function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-    return (
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-          {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-        </label>
-        {children}
-      </div>
-    )
   }
 
   const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 transition-colors"
