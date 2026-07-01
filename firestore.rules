@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ───────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Super admins are always Platform Admin regardless of stored role.
+    function isSuperAdminEmail() {
+      return isSignedIn() && request.auth.token.email in [
+        'carsoftwaresystems@gmail.com',
+        'sudarshana.karkala@gmail.com'
+      ];
+    }
+
+    // Reads the caller's role from their user document (costs 1 extra read).
+    // Returns empty string if the document doesn't exist yet (first login).
+    function callerRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '')
+        : '';
+    }
+
+    function isPlatformAdmin() { return isSuperAdminEmail() || callerRole() == 'Platform Admin'; }
+    function isManager()       { return callerRole() == 'Engineering Manager'; }
+    function isArchitect()     { return callerRole() == 'Architect'; }
+    function isQA()            { return callerRole() == 'QA Engineer'; }
+    function isDeveloper()     { return callerRole() == 'Developer'; }
+
+    function canManageUsers() { return isPlatformAdmin() || isManager(); }
+    function canReadAll()     { return isPlatformAdmin() || isManager() || isArchitect(); }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+    // Each user document is keyed by uid.
+    match /users/{uid} {
+      // Any authenticated user can read their own profile.
+      // Admin / Manager can read all profiles (needed for user management pages).
+      allow read: if isOwner(uid) || canReadAll();
+
+      // Create own profile on first login — no role check needed (doc doesn't exist yet).
+      allow create: if isOwner(uid);
+
+      // Update own profile, or admin can update any profile (role assignment).
+      allow update: if isOwner(uid) || isPlatformAdmin();
+
+      // Only Platform Admin can delete.
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Skills ─────────────────────────────────────────────────────────────
+    match /userSkills/{uid} {
+      allow read:  if isOwner(uid) || canReadAll();
+      allow write: if isOwner(uid) || isPlatformAdmin() || isManager();
+    }
+
+    // ── Resumes ────────────────────────────────────────────────────────────
+    match /userResumes/{uid} {
+      allow read:  if isOwner(uid) || canReadAll();
+      allow write: if isOwner(uid);
+    }
+
+    // ── Audit Logs ─────────────────────────────────────────────────────────
+    // Any signed-in user can write logs (system writes on their behalf).
+    // Users can only read their own logs; admins can read all.
+    match /auditLogs/{docId} {
+      allow create: if isSignedIn();
+      allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin());
+      allow update, delete: if false; // Logs are immutable.
+    }
+
+    // ── Login History ──────────────────────────────────────────────────────
+    match /loginHistory/{docId} {
+      allow create: if isSignedIn();
+      allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin());
+      allow update, delete: if false;
+    }
+
+    // ── Invitations ────────────────────────────────────────────────────────
+    match /invitations/{docId} {
+      allow read:   if isSignedIn();
+      allow create: if canManageUsers();
+      allow update: if canManageUsers();
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Organizations ──────────────────────────────────────────────────────
+    match /organizations/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isPlatformAdmin();
+    }
+
+    match /organizationMembers/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isPlatformAdmin();
+    }
+
+    // ── Engineering Data (Firebase adapter: VITE_DATA_MODE=firebase) ───────
+    // Collection path: ev_data/{collection}/items/{docId}
+    match /ev_data/{col}/items/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isPlatformAdmin() || isManager() || isArchitect();
+    }
+  }
+}

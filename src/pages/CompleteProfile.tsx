@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Battery, Shield, Check, ChevronRight, ChevronLeft, User, GraduationCap, Link2, Star } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import { updateUserProfile, setUserSkills } from '../firebase/firestore'
-import { SKILL_KEYS, SKILL_LABELS, emptySkillRatings, type SkillKey } from '../types/auth'
+import { isFirebaseConfigured } from '../firebase/config'
+import {
+  COMPETENCY_KEYS, COMPETENCY_FULL_LABELS, COMPETENCY_DESCRIPTIONS,
+  COMPETENCY_LEVEL_LABELS, emptyCompetencyRatings,
+  type EngineeringCompetencyKey,
+} from '../types/auth'
 
 const STEPS = [
   { id: 'personal', label: 'Personal', icon: User },
@@ -17,11 +22,12 @@ const DEGREES = ['B.E.', 'B.Tech', 'M.E.', 'M.Tech', 'MCA', 'MBA', 'Ph.D.', 'Dip
 const EXPERIENCE = ['Fresher', '< 1 year', '1 year', '2 years', '3+ years']
 
 export default function CompleteProfile() {
-  const { userProfile, firebaseUser, setProfileAfterComplete } = useAuthContext()
+  const { userProfile, firebaseUser, refreshProfile } = useAuthContext()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [form, setForm] = useState({
     displayName: userProfile?.displayName ?? firebaseUser?.displayName ?? '',
     mobile: userProfile?.mobile ?? '',
@@ -37,13 +43,13 @@ export default function CompleteProfile() {
     linkedin: userProfile?.linkedin ?? '',
     portfolio: userProfile?.portfolio ?? '',
   })
-  const [skills, setSkills] = useState(emptySkillRatings)
+  const [skills, setSkills] = useState(emptyCompetencyRatings)
 
   function setField(key: string, value: string) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  function setSkill(key: SkillKey, value: number) {
+  function setSkill(key: EngineeringCompetencyKey, value: number) {
     setSkills(prev => ({ ...prev, [key]: value }))
   }
 
@@ -55,20 +61,53 @@ export default function CompleteProfile() {
 
   async function handleFinish() {
     if (!userProfile) return
+    if (!isFirebaseConfigured) {
+      setSaveError('Firebase is not configured. Profile cannot be saved.')
+      return
+    }
+
     setSaving(true)
+    setSaveError(null)
+
+    const uid = userProfile.uid
+    const now = new Date().toISOString()
+
+    if (import.meta.env.DEV) console.log('[CompleteProfile] profile save started', uid)
+
     try {
-      const updates = { ...form, profileComplete: true }
+      const profileUpdates = {
+        ...form,
+        profileComplete: true,      // backward-compat field
+        profileCompleted: true,     // canonical field
+        profileCompletedAt: now,
+      }
+
       await Promise.all([
-        updateUserProfile(userProfile.uid, updates),
-        setUserSkills(userProfile.uid, {
-          uid: userProfile.uid,
+        updateUserProfile(uid, profileUpdates),
+        setUserSkills(uid, {
+          uid,
           ratings: skills,
           managerOverrides: {},
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
         }),
       ])
-      setProfileAfterComplete({ ...userProfile, ...updates })
+
+      if (import.meta.env.DEV) console.log('[CompleteProfile] profile save success')
+
+      // Reload from Firestore to confirm persistence before navigating.
+      // This ensures the next login also reads profileCompleted === true.
+      await refreshProfile()
+
+      if (import.meta.env.DEV) {
+        console.log('[CompleteProfile] profile reload success')
+        console.log('[CompleteProfile] profileCompleted:', true)
+      }
+
       navigate('/', { replace: true })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[CompleteProfile] profile save failed', err)
+      setSaveError(`Failed to save profile: ${msg}. Please check your connection and try again.`)
     } finally {
       setSaving(false)
     }
@@ -94,7 +133,7 @@ export default function CompleteProfile() {
       <div className="flex items-center gap-2 mb-8">
         <Battery size={22} className="text-brand-600" />
         <Shield size={14} className="text-brand-400 -ml-1" />
-        <span className="font-bold text-slate-800 text-base ml-1">EV.ENGINEER™</span>
+        <span className="font-bold text-slate-800 text-base ml-1">UFlight™ | EV.ENGINEER™</span>
       </div>
 
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-100">
@@ -200,31 +239,39 @@ export default function CompleteProfile() {
 
           {step === 3 && (
             <div>
-              <p className="text-xs text-slate-500 mb-4">Rate your current skill level (1 = beginner, 5 = expert). You can update these anytime.</p>
-              <div className="space-y-3">
-                {SKILL_KEYS.map(key => (
-                  <div key={key} className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-slate-600 w-32 flex-shrink-0">{SKILL_LABELS[key]}</span>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(n => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setSkill(key, n)}
-                          className={`w-7 h-7 rounded text-xs font-bold border transition-all ${
-                            skills[key] >= n
-                              ? 'bg-brand-600 text-white border-brand-600'
-                              : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-brand-300'
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
+              <p className="text-xs text-slate-500 mb-3">
+                Rate your current level across the 10 UFlight™ | EV.ENGINEER™ Engineering Competency domains. You can update these anytime from your profile.
+              </p>
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                {COMPETENCY_KEYS.map(key => (
+                  <div key={key} className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[11px] font-semibold text-slate-700 leading-tight">{COMPETENCY_FULL_LABELS[key]}</span>
+                        <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">{COMPETENCY_DESCRIPTIONS[key]}</p>
+                      </div>
+                      <div className="flex items-center gap-0.5 flex-shrink-0 mt-0.5">
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setSkill(key, n)}
+                            title={COMPETENCY_LEVEL_LABELS[n]}
+                            className={`w-6 h-6 rounded text-[10px] font-bold border transition-all ${
+                              skills[key] >= n
+                                ? 'bg-brand-600 text-white border-brand-600'
+                                : 'bg-white text-slate-400 border-slate-200 hover:border-brand-300'
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     {skills[key] > 0 && (
-                      <span className="text-[10px] text-brand-600 font-semibold">
-                        {['', 'Beginner', 'Basic', 'Intermediate', 'Advanced', 'Expert'][skills[key]]}
-                      </span>
+                      <p className="mt-1 text-[10px] text-brand-600 font-semibold text-right">
+                        {COMPETENCY_LEVEL_LABELS[skills[key]]}
+                      </p>
                     )}
                   </div>
                 ))}
@@ -232,6 +279,13 @@ export default function CompleteProfile() {
             </div>
           )}
         </div>
+
+        {/* Save error */}
+        {saveError && (
+          <div className="mx-8 mb-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+            {saveError}
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="px-8 py-5 border-t border-slate-100 flex justify-between">
@@ -260,6 +314,24 @@ export default function CompleteProfile() {
               {saving ? 'Saving…' : (<><Check size={14} /> Complete Profile</>)}
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Company footer */}
+      <div className="mt-6 text-center space-y-1">
+        <p className="text-[11px] font-semibold text-slate-500">iTelematics Software Private Limited · Bangalore, India</p>
+        <div className="flex items-center justify-center gap-3 text-[10px]">
+          <a href="mailto:info@iTelematics.com" className="text-brand-500 hover:text-brand-600 transition-colors">
+            info@iTelematics.com
+          </a>
+          <span className="text-slate-300">·</span>
+          <a href="tel:+919108206147" className="text-slate-400 hover:text-slate-600 transition-colors">
+            +91 91082 06147
+          </a>
+          <span className="text-slate-300">·</span>
+          <a href="https://wa.me/919108206147" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-600 transition-colors font-semibold">
+            WhatsApp
+          </a>
         </div>
       </div>
     </div>

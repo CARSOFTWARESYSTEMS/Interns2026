@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Cpu, FileText, FolderOpen,
   ClipboardCheck, ShieldCheck, Award, CalendarDays, X,
   ClipboardList, BarChart2, Mail, Settings, UserCog,
-  User, LogOut, Shield,
+  User, LogOut, Shield, SlidersHorizontal,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import UserAvatar from '../ui/UserAvatar'
@@ -29,8 +29,9 @@ const engineeringItems = [
 ]
 
 const adminItems = [
-  { to: '/admin/users',       label: 'Users',       icon: UserCog },
-  { to: '/admin/invitations', label: 'Invitations', icon: Mail },
+  { to: '/admin/users',               label: 'Users',               icon: UserCog },
+  { to: '/admin/invitations',         label: 'Invitations',         icon: Mail },
+  { to: '/admin/developer-settings',  label: 'Developer Settings',  icon: SlidersHorizontal },
 ]
 
 interface SidebarProps {
@@ -174,22 +175,27 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
           <div className="px-4 py-3 border-t border-slate-800">
             {userProfile ? (
-              <div className="flex items-center gap-2.5">
-                <UserAvatar
-                  photoURL={userProfile.photoURL}
-                  displayName={userProfile.displayName}
-                  size="xs"
-                  className="ring-slate-700"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-300 truncate">{userProfile.displayName}</p>
-                  <PermissionBadge role={userProfile.role} size="xs" />
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <UserAvatar
+                    photoURL={userProfile.photoURL}
+                    displayName={userProfile.displayName}
+                    size="xs"
+                    className="ring-slate-700"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold text-slate-300 truncate">{userProfile.displayName}</p>
+                    <PermissionBadge role={userProfile.role} size="xs" />
+                  </div>
                 </div>
+                <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide">iTelematics Software Pvt. Ltd. · Bangalore</p>
               </div>
             ) : (
               <div className="text-[10px] text-slate-500 leading-relaxed">
-                <p className="font-semibold text-slate-400 mb-0.5">EV.ENGINEER™</p>
+                <p className="font-semibold text-slate-400 mb-0.5">UFlight™ | EV.ENGINEER™</p>
                 <p>Battery Trust Platform</p>
+                <p className="mt-1 text-slate-600 font-semibold">iTelematics Software Pvt. Ltd.</p>
+                <p>Bangalore, India</p>
                 <p>v1.0 · M03 · Intern Program 2026</p>
               </div>
             )}

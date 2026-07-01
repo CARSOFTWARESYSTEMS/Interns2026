@@ -60,7 +60,7 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-slate-900">Battery Trust Platform</h1>
           <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wide">AS 9102 Beta</span>
         </div>
-        <p className="text-sm text-slate-500">Engineering Command Center &middot; Intern Program 2026 &middot; EV.ENGINEER™</p>
+        <p className="text-sm text-slate-500">Engineering Command Center &middot; Intern Program 2026 &middot; UFlight™ | EV.ENGINEER™</p>
       </div>
 
       {/* Primary Stats */}

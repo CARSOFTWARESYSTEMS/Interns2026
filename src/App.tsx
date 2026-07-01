@@ -45,6 +45,7 @@ import QADashboard from './pages/QADashboard'
 // Admin pages
 import AdminUsers from './pages/admin/Users'
 import AdminInvitations from './pages/admin/Invitations'
+import DeveloperSettings from './pages/admin/DeveloperSettings'
 
 /**
  * Routes to the correct role-specific dashboard.
@@ -134,6 +135,14 @@ export default function App() {
               element={
                 <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
                   <AdminInvitations />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/developer-settings"
+              element={
+                <RoleGuard allow={['Platform Admin']}>
+                  <DeveloperSettings />
                 </RoleGuard>
               }
             />

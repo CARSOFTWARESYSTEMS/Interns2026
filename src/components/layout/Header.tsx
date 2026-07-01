@@ -51,15 +51,15 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           <Battery size={18} className="text-brand-400" />
           <Shield size={14} className="text-brand-300 -ml-1" />
         </div>
-        <div className="flex flex-col leading-none">
-          <span className="text-white font-bold text-sm tracking-wide">EV.ENGINEER™</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-white font-bold text-sm tracking-wide">UFlight™ | EV.ENGINEER™</span>
           <span className="text-slate-400 text-[10px] tracking-widest uppercase">Battery Intelligence &amp; Cybersecurity</span>
         </div>
       </div>
 
       <div className="h-6 w-px bg-slate-700 mx-1" />
 
-      <div className="flex flex-col leading-none">
+      <div className="flex flex-col gap-0.5">
         <span className="text-slate-200 font-semibold text-xs">Battery Trust Platform</span>
         <span className="text-slate-500 text-[10px]">Engineering Command Center</span>
       </div>
@@ -86,7 +86,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 size="xs"
                 className="ring-slate-600"
               />
-              <div className="hidden sm:flex flex-col items-start leading-none">
+              <div className="hidden sm:flex flex-col items-start gap-0.5">
                 <span className="text-xs font-semibold text-slate-200 max-w-[120px] truncate">
                   {userProfile.displayName}
                 </span>
@@ -160,7 +160,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 <div className="border-t border-slate-100 py-1.5">
                   <div className="px-4 py-1.5">
                     <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Organization</p>
-                    <p className="text-xs text-slate-600 font-semibold">EV.ENGINEER</p>
+                    <p className="text-xs text-slate-600 font-semibold">UFlight™ | EV.ENGINEER™</p>
                   </div>
                   <button
                     onClick={handleSignOut}

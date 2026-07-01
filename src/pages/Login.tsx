@@ -49,7 +49,7 @@ export default function Login() {
               <Shield size={18} className="text-brand-300 absolute -bottom-1 -right-1" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">EV.ENGINEER™</h1>
+          <h1 className="text-2xl font-bold text-white tracking-wide">UFlight™ | EV.ENGINEER™</h1>
           <p className="text-slate-400 text-sm mt-1">Battery Trust Platform</p>
           <p className="text-slate-600 text-xs mt-0.5 tracking-widest uppercase">Engineering Command Center</p>
         </div>
@@ -85,17 +85,43 @@ export default function Login() {
           />
 
           <div className="mt-6 pt-5 border-t border-slate-800">
-            <p className="text-[10px] text-slate-600 text-center leading-relaxed">
-              Access is restricted to authorized EV.ENGINEER team members.
-              <br />Contact your manager to request access.
+            <p className="text-[10px] text-slate-600 text-center leading-relaxed mb-3">
+              Access is restricted to authorized UFlight™ | EV.ENGINEER™ team members.
             </p>
+            <div className="flex flex-col items-center gap-1.5">
+              <a
+                href="mailto:info@iTelematics.com"
+                className="text-[10px] text-brand-400 hover:text-brand-300 transition-colors"
+              >
+                info@iTelematics.com
+              </a>
+              <div className="flex items-center gap-3">
+                <a
+                  href="tel:+919108206147"
+                  className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  +91 91082 06147
+                </a>
+                <span className="text-slate-700">·</span>
+                <a
+                  href="https://wa.me/919108206147"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-green-500 hover:text-green-400 transition-colors"
+                >
+                  WhatsApp
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[10px] text-slate-700 mt-6">
-          v1.0 · M03 · Intern Program 2026 · AS 9102 Beta
-        </p>
+        <div className="text-center mt-6 space-y-1">
+          <p className="text-[10px] text-slate-600 font-semibold">iTelematics Software Private Limited</p>
+          <p className="text-[10px] text-slate-700">Bangalore, India</p>
+          <p className="text-[10px] text-slate-700">v1.0 · M03 · Intern Program 2026 · AS 9102 Beta</p>
+        </div>
       </div>
     </div>
   )

@@ -78,7 +78,7 @@ export default function AdminInvitations() {
     <div className="space-y-6">
       <PageHeader
         title="Invitations"
-        subtitle="Invite team members to the EV.ENGINEER platform"
+        subtitle="Invite team members to the UFlight™ | EV.ENGINEER™ platform"
         icon={<Mail size={18}/>}
         actions={
           <button onClick={() => setShowForm(s => !s)} className="btn-primary flex items-center gap-1.5">

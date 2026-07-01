@@ -71,7 +71,7 @@ export default function FinalDemo() {
         <div className="card p-4 text-center">
           <Star size={24} className="text-purple-500 mx-auto mb-2" />
           <p className="text-base font-bold text-slate-900">Certificate</p>
-          <p className="text-sm text-slate-600 font-medium">EV.ENGINEER™ Certified</p>
+          <p className="text-sm text-slate-600 font-medium">UFlight™ | EV.ENGINEER™ Certified</p>
           <p className="text-xs text-slate-400 mt-1">Issued on architect approval</p>
         </div>
       </div>

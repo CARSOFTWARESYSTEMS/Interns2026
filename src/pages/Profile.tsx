@@ -16,9 +16,9 @@ import {
   getUserResume, setUserResume,
 } from '../firebase/firestore'
 import {
-  calcProfileCompletion, emptySkillRatings,
-  SKILL_KEYS, SKILL_LABELS,
-  type SkillKey, type UserSkills, type AuditLog,
+  calcProfileCompletion, emptyCompetencyRatings,
+  COMPETENCY_KEYS, COMPETENCY_FULL_LABELS, COMPETENCY_LEVEL_LABELS,
+  type EngineeringCompetencyKey, type UserSkills, type AuditLog,
   type LoginHistory, type UserResume, AUDIT_ACTION_LABELS,
 } from '../types/auth'
 
@@ -35,8 +35,6 @@ const TABS = [
 const DEGREES = ['B.E.', 'B.Tech', 'M.E.', 'M.Tech', 'MCA', 'MBA', 'Ph.D.', 'Diploma', 'Other']
 const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => String(2024 + i))
 const EXPERIENCE_OPTS = ['Fresher', '< 1 year', '1 year', '2 years', '3+ years']
-const SKILL_LEVEL_LABELS = ['', 'Beginner', 'Basic', 'Intermediate', 'Advanced', 'Expert']
-
 export default function Profile() {
   const { userProfile, updateProfile } = useAuthContext()
   const [tab, setTab] = useState('personal')
@@ -46,7 +44,7 @@ export default function Profile() {
 
   const [skills, setSkillsState]     = useState<UserSkills | null>(null)
   const [skillsEdit, setSkillsEdit]  = useState(false)
-  const [skillForm, setSkillForm]    = useState(emptySkillRatings())
+  const [skillForm, setSkillForm]    = useState(emptyCompetencyRatings())
 
   const [auditLogs, setAuditLogs]       = useState<AuditLog[]>([])
   const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([])
@@ -67,7 +65,7 @@ export default function Profile() {
     if (!userProfile) return
     const s = await getUserSkills(userProfile.uid)
     setSkillsState(s)
-    setSkillForm(s?.ratings ?? emptySkillRatings())
+    setSkillForm(s?.ratings ?? emptyCompetencyRatings())
   }
 
   async function loadActivity() {
@@ -272,7 +270,7 @@ export default function Profile() {
           <SectionCard title="Platform Info" icon={<Shield size={14} />}>
             <InfoRow label="UID" value={userProfile.uid} />
             <InfoRow label="Role" value={userProfile.role} />
-            <InfoRow label="Organization" value="EV.ENGINEER — Battery Trust Platform" />
+            <InfoRow label="Organization" value="UFlight™ | EV.ENGINEER™ — Battery Trust Platform" />
             <InfoRow label="Status" value={userProfile.status} />
             <InfoRow label="Member Since" value={new Date(userProfile.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })} />
             <InfoRow label="Last Login" value={userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleString('en-IN') : ''} />
@@ -328,35 +326,43 @@ export default function Profile() {
                 <button onClick={saveSkills} className="btn-primary text-xs py-1 px-3"><Save size={12} /> Save</button>
               </div>
             ) : (
-              <button onClick={() => { setSkillsEdit(true); setSkillForm(skills?.ratings ?? emptySkillRatings()) }} className="btn-ghost text-xs py-1 px-2"><Edit3 size={12} /> Edit</button>
+              <button onClick={() => { setSkillsEdit(true); setSkillForm(skills?.ratings ?? emptyCompetencyRatings()) }} className="btn-ghost text-xs py-1 px-2"><Edit3 size={12} /> Edit</button>
             )
           }>
-            <div className="space-y-2.5">
-              {SKILL_KEYS.map(key => {
+            <div className="space-y-2">
+              {COMPETENCY_KEYS.map((key: EngineeringCompetencyKey) => {
                 const managerVal = skills?.managerOverrides?.[key]
                 const myVal = skillsEdit ? skillForm[key] : (skills?.ratings[key] ?? 0)
                 const displayVal = managerVal ?? myVal
                 return (
-                  <div key={key} className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-slate-600 w-28 flex-shrink-0">{SKILL_LABELS[key]}</span>
-                    {skillsEdit ? (
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map(n => (
-                          <button key={n} type="button" onClick={() => setSkillForm(prev => ({ ...prev, [key]: n }))}
-                            className={`w-7 h-7 rounded text-xs font-bold border transition-all ${skillForm[key] >= n ? 'bg-brand-600 text-white border-brand-600' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-brand-300'}`}>
-                            {n}
-                          </button>
-                        ))}
+                  <div key={key} className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-[11px] font-semibold text-slate-700 truncate">{COMPETENCY_FULL_LABELS[key]}</span>
+                        {managerVal && <span className="text-[9px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Manager</span>}
                       </div>
-                    ) : (
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map(n => (
-                          <div key={n} className={`w-6 h-6 rounded text-[10px] font-bold flex items-center justify-center ${displayVal >= n ? 'bg-brand-100 text-brand-700' : 'bg-slate-50 text-slate-300'}`}>{n}</div>
-                        ))}
-                      </div>
+                      {skillsEdit ? (
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button key={n} type="button"
+                              title={COMPETENCY_LEVEL_LABELS[n]}
+                              onClick={() => setSkillForm(prev => ({ ...prev, [key]: n }))}
+                              className={`w-6 h-6 rounded text-[10px] font-bold border transition-all ${skillForm[key] >= n ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-slate-400 border-slate-200 hover:border-brand-300'}`}>
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <div key={n} className={`w-6 h-6 rounded text-[10px] font-bold flex items-center justify-center ${displayVal >= n ? 'bg-brand-100 text-brand-700' : 'bg-white text-slate-300 border border-slate-100'}`}>{n}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {displayVal > 0 && (
+                      <p className="mt-0.5 text-[10px] text-brand-600 font-semibold text-right">{COMPETENCY_LEVEL_LABELS[displayVal]}</p>
                     )}
-                    <span className="text-[10px] text-slate-400">{SKILL_LEVEL_LABELS[displayVal] ?? ''}</span>
-                    {managerVal && <span className="text-[9px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">Manager</span>}
                   </div>
                 )
               })}
@@ -365,7 +371,7 @@ export default function Profile() {
 
           <SectionCard title="Skills Radar" icon={<Star size={14} />}>
             <div className="flex justify-center">
-              <SkillsRadar ratings={skills?.ratings ?? emptySkillRatings()} size={300} />
+              <SkillsRadar ratings={skills?.ratings ?? emptyCompetencyRatings()} size={300} />
             </div>
             <p className="text-[10px] text-slate-400 text-center mt-2">Self-rated · Manager can override scores</p>
           </SectionCard>
@@ -480,7 +486,7 @@ export default function Profile() {
           <SectionCard title="Access & Role" icon={<Shield size={14} />}>
             <InfoRow label="Role" value={userProfile.role} />
             <InfoRow label="Status" value={userProfile.status} />
-            <InfoRow label="Organization" value="EV.ENGINEER" />
+            <InfoRow label="Organization" value="UFlight™ | EV.ENGINEER™" />
             <InfoRow label="Auth Method" value="Google OAuth 2.0" />
             <InfoRow label="Manager" value={userProfile.managerId || 'Not assigned'} />
             <InfoRow label="Architect" value={userProfile.architectId || 'Not assigned'} />

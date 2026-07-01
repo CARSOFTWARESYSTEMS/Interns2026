@@ -1,3 +1,10 @@
+// ── Super Admins ──────────────────────────────────────────────────────────
+// These emails always receive Platform Admin role regardless of Firestore.
+export const SUPER_ADMIN_EMAILS: ReadonlySet<string> = new Set([
+  'carsoftwaresystems@gmail.com',
+  'sudarshana.karkala@gmail.com',
+])
+
 // ── Roles & Permissions ───────────────────────────────────────────────────
 
 export type UserRole =
@@ -77,7 +84,9 @@ export interface UserProfile {
   managerId: string
   architectId: string
   orgId: string
-  profileComplete: boolean    // false until wizard is finished
+  profileComplete: boolean    // @deprecated — kept for backward compat; use profileCompleted
+  profileCompleted: boolean   // true once the wizard is finished and persisted to Firestore
+  profileCompletedAt: string  // ISO 8601 timestamp of first completion
 }
 
 export function calcProfileCompletion(p: UserProfile): number {
@@ -101,46 +110,100 @@ export function buildEmptyProfile(uid: string, displayName: string, email: strin
     createdAt: now, updatedAt: now, lastLogin: now,
     status: 'Pending', role: 'Developer',
     managerId: '', architectId: '', orgId: 'ev-engineer',
-    profileComplete: false,
+    profileComplete: false, profileCompleted: false, profileCompletedAt: '',
   }
 }
 
-// ── Skills ────────────────────────────────────────────────────────────────
+// ── Engineering Competencies ──────────────────────────────────────────────
 
-export const SKILL_KEYS = [
-  'python', 'react', 'typescript', 'firebase', 'cybersecurity',
-  'batteryEngineering', 'mqtt', 'fastapi', 'testing', 'git', 'ai', 'machineLearning',
+export const COMPETENCY_KEYS = [
+  'aerospaceEngineering',
+  'electricVehicleEngineering',
+  'batteryIntelligence',
+  'batteryCybersecurity',
+  'artificialIntelligence',
+  'quantumComputing',
+  'digitalTwinEngineering',
+  'batterySafetyReliability',
+  'connectedSystemsTelematics',
+  'systemsEngineeringArchitecture',
 ] as const
 
-export type SkillKey = (typeof SKILL_KEYS)[number]
+export type EngineeringCompetencyKey = (typeof COMPETENCY_KEYS)[number]
 
-export const SKILL_LABELS: Record<SkillKey, string> = {
-  python:           'Python',
-  react:            'React',
-  typescript:       'TypeScript',
-  firebase:         'Firebase',
-  cybersecurity:    'Cybersecurity',
-  batteryEngineering: 'Battery Eng.',
-  mqtt:             'MQTT',
-  fastapi:          'FastAPI',
-  testing:          'Testing',
-  git:              'Git',
-  ai:               'AI',
-  machineLearning:  'Machine Learning',
+export const COMPETENCY_LABELS: Record<EngineeringCompetencyKey, string> = {
+  aerospaceEngineering:           'Aerospace Engineering',
+  electricVehicleEngineering:     'EV Engineering',
+  batteryIntelligence:            'Battery Intelligence',
+  batteryCybersecurity:           'Battery Cybersecurity',
+  artificialIntelligence:         'AI / ML',
+  quantumComputing:               'Quantum Computing',
+  digitalTwinEngineering:         'Digital Twin',
+  batterySafetyReliability:       'Battery Safety',
+  connectedSystemsTelematics:     'Connected Systems',
+  systemsEngineeringArchitecture: 'Systems Architecture',
 }
 
-export type SkillRatings = Record<SkillKey, number> // 1–5, 0 = not rated
+export const COMPETENCY_FULL_LABELS: Record<EngineeringCompetencyKey, string> = {
+  aerospaceEngineering:           'Aerospace Engineering',
+  electricVehicleEngineering:     'Electric Vehicle Engineering',
+  batteryIntelligence:            'Battery Intelligence',
+  batteryCybersecurity:           'Battery Cybersecurity',
+  artificialIntelligence:         'Artificial Intelligence (AI/ML)',
+  quantumComputing:               'Quantum Computing',
+  digitalTwinEngineering:         'Digital Twin Engineering',
+  batterySafetyReliability:       'Battery Safety & Reliability',
+  connectedSystemsTelematics:     'Connected Systems & Telematics',
+  systemsEngineeringArchitecture: 'Systems Engineering & Software Architecture',
+}
+
+export const COMPETENCY_DESCRIPTIONS: Record<EngineeringCompetencyKey, string> = {
+  aerospaceEngineering:           'Flight dynamics, propulsion, avionics, and space systems applied to EV and UAV platforms.',
+  electricVehicleEngineering:     'End-to-end EV design: powertrain, charging systems, BMS, and motor control.',
+  batteryIntelligence:            'Electrochemistry, SoC/SoH estimation, cell modelling, and battery data analytics.',
+  batteryCybersecurity:           'Attack surface analysis, V2G security, BMS firmware hardening, and CAN bus protection.',
+  artificialIntelligence:         'ML models, deep learning, and predictive analytics applied to battery and EV systems.',
+  quantumComputing:               'Quantum algorithms, optimisation, and simulation for battery chemistry and materials.',
+  digitalTwinEngineering:         'Physics-based modelling, simulation, virtual validation, and HIL/SIL testing.',
+  batterySafetyReliability:       'Thermal runaway prevention, FMEA, ISO 26262, and functional safety engineering.',
+  connectedSystemsTelematics:     'OTA updates, telematics protocols, fleet management, and V2X communication.',
+  systemsEngineeringArchitecture: 'MBSE, RTOS, distributed architecture, and CI/CD for embedded systems.',
+}
+
+/** Labels for the 1–5 competency rating scale */
+export const COMPETENCY_LEVEL_LABELS = [
+  '',                           // 0 — not rated
+  'Foundation',                 // 1
+  'Practitioner',               // 2
+  'Advanced Engineer',          // 3
+  'Technical Lead',             // 4
+  'Subject Matter Expert (SME)',// 5
+]
+
+export type EngineeringCompetencyRatings = Record<EngineeringCompetencyKey, number> // 1–5, 0 = not rated
 
 export interface UserSkills {
   uid: string
-  ratings: SkillRatings
-  managerOverrides: Partial<SkillRatings>  // manager can adjust ratings
+  ratings: EngineeringCompetencyRatings
+  managerOverrides: Partial<EngineeringCompetencyRatings>
   updatedAt: string
 }
 
-export function emptySkillRatings(): SkillRatings {
-  return Object.fromEntries(SKILL_KEYS.map(k => [k, 0])) as SkillRatings
+export function emptyCompetencyRatings(): EngineeringCompetencyRatings {
+  return Object.fromEntries(COMPETENCY_KEYS.map(k => [k, 0])) as EngineeringCompetencyRatings
 }
+
+// Legacy aliases — kept so old Firestore documents don't break reads
+/** @deprecated use EngineeringCompetencyKey */
+export type SkillKey = EngineeringCompetencyKey
+/** @deprecated use EngineeringCompetencyRatings */
+export type SkillRatings = EngineeringCompetencyRatings
+/** @deprecated use COMPETENCY_KEYS */
+export const SKILL_KEYS = COMPETENCY_KEYS
+/** @deprecated use COMPETENCY_LABELS */
+export const SKILL_LABELS = COMPETENCY_LABELS
+/** @deprecated use emptyCompetencyRatings */
+export const emptySkillRatings = emptyCompetencyRatings
 
 // ── Resume ────────────────────────────────────────────────────────────────
 

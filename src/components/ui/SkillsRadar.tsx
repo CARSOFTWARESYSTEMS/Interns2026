@@ -1,8 +1,8 @@
-import type { SkillRatings, SkillKey } from '../../types/auth'
-import { SKILL_LABELS } from '../../types/auth'
+import type { EngineeringCompetencyRatings, EngineeringCompetencyKey } from '../../types/auth'
+import { COMPETENCY_LABELS } from '../../types/auth'
 
 interface SkillsRadarProps {
-  ratings: SkillRatings
+  ratings: EngineeringCompetencyRatings
   size?: number
 }
 
@@ -17,7 +17,7 @@ function polarToXY(angleDeg: number, r: number, cx: number, cy: number) {
 }
 
 export default function SkillsRadar({ ratings, size = 280 }: SkillsRadarProps) {
-  const keys = Object.keys(ratings) as SkillKey[]
+  const keys = Object.keys(ratings) as EngineeringCompetencyKey[]
   const n = keys.length
   const cx = size / 2
   const cy = size / 2
@@ -96,7 +96,7 @@ export default function SkillsRadar({ ratings, size = 280 }: SkillsRadarProps) {
       {keys.map((k, i) => {
         const angle = (360 / n) * i
         const { x, y } = polarToXY(angle, labelR, cx, cy)
-        const label = SKILL_LABELS[k]
+        const label = COMPETENCY_LABELS[k]
         // Anchor based on position
         const anchor = x < cx - 4 ? 'end' : x > cx + 4 ? 'start' : 'middle'
         return (

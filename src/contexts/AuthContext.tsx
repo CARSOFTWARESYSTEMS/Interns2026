@@ -6,7 +6,7 @@ import {
   writeAuditLog, writeLoginHistory,
 } from '../firebase/firestore'
 import {
-  buildEmptyProfile, calcProfileCompletion,
+  buildEmptyProfile, calcProfileCompletion, SUPER_ADMIN_EMAILS,
   type UserProfile, type UserRole,
 } from '../types/auth'
 
@@ -37,24 +37,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading]           = useState(true)
 
   const loadProfile = useCallback(async (user: User) => {
+    const email = user.email ?? ''
+    const isSuperAdmin = SUPER_ADMIN_EMAILS.has(email)
+
     let profile = await getUserProfile(user.uid)
     if (!profile) {
       // First login — create skeleton profile
-      profile = buildEmptyProfile(user.uid, user.displayName ?? '', user.email ?? '', user.photoURL ?? '')
+      profile = buildEmptyProfile(user.uid, user.displayName ?? '', email, user.photoURL ?? '')
+      if (isSuperAdmin) {
+        const now = new Date().toISOString()
+        profile = {
+          ...profile,
+          role: 'Platform Admin', status: 'Active',
+          profileComplete: true, profileCompleted: true, profileCompletedAt: now,
+        }
+      }
       await createUserProfile(profile)
       await writeAuditLog({
-        uid: user.uid, userEmail: user.email ?? '',
+        uid: user.uid, userEmail: email,
         action: 'login', resource: 'auth',
         details: 'First login — profile created',
         orgId: 'ev-engineer',
       })
     } else {
-      // Existing user — update lastLogin
+      // Existing user — update lastLogin (and enforce super admin role if applicable)
       const now = new Date().toISOString()
-      await updateUserProfile(user.uid, { lastLogin: now })
-      profile = { ...profile, lastLogin: now }
+      const overrides = isSuperAdmin
+        ? { lastLogin: now, role: 'Platform Admin' as UserRole, status: 'Active' as const }
+        : { lastLogin: now }
+      await updateUserProfile(user.uid, overrides)
+      profile = { ...profile, ...overrides }
       await writeAuditLog({
-        uid: user.uid, userEmail: user.email ?? '',
+        uid: user.uid, userEmail: email,
         action: 'login', resource: 'auth',
         details: 'Signed in with Google',
         orgId: profile.orgId,
@@ -115,7 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserProfile(p)
   }, [])
 
-  const isProfileComplete = Boolean(userProfile?.profileComplete)
+  // Check canonical field first, fall back to legacy field for users created before migration
+  const isProfileComplete =
+    userProfile?.profileCompleted === true ||
+    userProfile?.profileComplete === true
 
   return (
     <AuthContext.Provider value={{
