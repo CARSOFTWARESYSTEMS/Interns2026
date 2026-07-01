@@ -1,1 +1,217 @@
-.pending
+---
+
+# Repository Security & Governance
+
+To maintain a secure, production-grade engineering environment, every developer, intern, QA engineer, and architect must follow these repository security practices.
+
+## 1. Git Ignore
+
+Never commit:
+
+- `.env`
+- `.env.local`
+- Firebase credentials
+- Google API credentials
+- Google OAuth secrets
+- Service account JSON files
+- Resume PDFs
+- Evidence documents
+- Local databases
+- Generated reports
+- Temporary files
+
+Only commit:
+
+- `.env.example`
+
+---
+
+## 2. Pre-Commit Hooks (Mandatory)
+
+Configure Git pre-commit hooks using Husky.
+
+The pre-commit hook should automatically prevent commits if it detects:
+
+- `.env` files
+- Firebase credentials
+- Google API secrets
+- OAuth tokens
+- Service account keys
+- Private certificates
+- PEM / P12 / PFX files
+- Large generated files
+- Accidentally committed evidence documents
+- Build artifacts
+- Node modules
+
+The hook should also execute:
+
+- ESLint
+- TypeScript type checking
+- Unit tests (where applicable)
+- Secret detection
+
+If any validation fails, the commit must be blocked.
+
+---
+
+## 3. GitHub Secret Scanning
+
+Enable GitHub Secret Scanning for the repository.
+
+Verify detection of:
+
+- Firebase API keys
+- Google OAuth credentials
+- Service Account JSON keys
+- GitHub Personal Access Tokens
+- JWT secrets
+- SSH private keys
+- AWS / Azure / GCP credentials
+- OpenAI API keys (future)
+- Ollama configuration secrets (future)
+
+Repository administrators should review and resolve all secret scanning alerts immediately.
+
+---
+
+## 4. Gitleaks
+
+Integrate Gitleaks into the development workflow.
+
+Run:
+
+- Before every Pull Request
+- During CI/CD pipeline
+- Before production releases
+
+The scan should detect:
+
+- Hardcoded passwords
+- API keys
+- Private keys
+- OAuth tokens
+- Database connection strings
+- Certificates
+- Secrets accidentally added to source code
+
+Pull Requests containing secrets must fail automatically.
+
+---
+
+## 5. Branch Protection
+
+Protect the following branches:
+
+- `main`
+- `release/*`
+
+Require:
+
+- Pull Request
+- Minimum one code review
+- Passing CI checks
+- No unresolved conversations
+- No direct pushes
+
+Only Platform Admins may merge into protected branches.
+
+---
+
+## 6. Code Review Requirements
+
+Every Pull Request must include:
+
+- Story ID
+- Simulator ID (if applicable)
+- Summary of changes
+- Test evidence
+- Security considerations
+- Screenshots (if UI changed)
+- Verification report link
+
+No code should be merged without review.
+
+---
+
+## 7. Dependency Security
+
+Before merging:
+
+- Run `npm audit`
+- Update vulnerable packages
+- Remove unused dependencies
+- Verify license compatibility
+- Review newly added packages
+
+High and Critical vulnerabilities must be resolved before release.
+
+---
+
+## 8. Security Validation
+
+Every completed story should pass:
+
+- ESLint
+- TypeScript compilation
+- Unit Tests
+- Integration Tests
+- Secret Scan
+- Dependency Audit
+- Manual Verification
+- QA Review
+- Architect Review
+
+---
+
+## 9. Developer Responsibilities
+
+Every developer is responsible for:
+
+- Never committing secrets
+- Never committing production credentials
+- Using feature branches
+- Keeping commits small and meaningful
+- Writing descriptive commit messages
+- Updating documentation
+- Uploading required engineering evidence
+- Completing all Definition of Done items
+
+---
+
+## 10. Repository Health Checklist
+
+Before every release verify:
+
+- No secrets committed
+- All CI checks passing
+- Build successful
+- Tests passing
+- Security scan passed
+- Dependency audit clean
+- Documentation updated
+- Story evidence complete
+- QA approval received
+- Architect approval received
+
+---
+
+## Future Enhancements
+
+As the EV.ENGINEER platform evolves, implement the following repository governance improvements:
+
+- Automated Dependency Updates (Dependabot or equivalent)
+- Automated License Compliance Checks
+- SBOM (Software Bill of Materials) generation
+- CodeQL static analysis
+- Signed commits for maintainers
+- Signed release tags
+- Automated release notes generation
+- Conventional Commit enforcement
+- Branch naming policy validation
+- AI-assisted Pull Request review
+- Automated architecture compliance checks
+- Repository health dashboard
+- Security scorecard reporting
+
+These controls are not mandatory for the internship MVP but should be part of the long-term roadmap toward an aerospace-grade engineering platform.
