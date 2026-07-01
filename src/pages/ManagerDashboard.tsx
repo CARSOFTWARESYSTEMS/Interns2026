@@ -1,21 +1,30 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users, AlertTriangle, Clock, CheckCircle,
-  BarChart3, FileText, Cpu, Battery,
+  BarChart3, FileText, Cpu, Battery, PlusSquare,
 } from 'lucide-react'
 import { useDevelopers, useStories, useSimulators } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
+import { getAllCapacities } from '../firebase/assignments'
+import type { DeveloperCapacity } from '../types/assignments'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import UserAvatar from '../components/ui/UserAvatar'
+import CapacityBar from '../components/assignments/CapacityBar'
 
 export default function ManagerDashboard() {
   const developers = useDevelopers()
   const stories    = useStories()
   const simulators = useSimulators()
   const { userProfile } = useAuthContext()
+  const [capacities, setCapacities] = useState<DeveloperCapacity[]>([])
+
+  useEffect(() => {
+    getAllCapacities().then(setCapacities).catch(() => {})
+  }, [])
 
   const blocked  = stories.filter(s => s.status === 'Blocked')
   const pending  = stories.filter(s => s.qaStatus === 'Pending')
@@ -125,24 +134,64 @@ export default function ManagerDashboard() {
         </SectionCard>
       </div>
 
-      {/* Product Split */}
-      <div className="grid grid-cols-2 gap-4">
-        {['Battery Pack Aadhaar System', 'Battery Cybersecurity Platform'].map((product, idx) => {
-          const ps = stories.filter(s => s.product === product)
+      {/* Product Split — 3 products */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { name: 'Battery Pack Aadhaar System',   label: 'Battery Aadhaar', color: 'bg-brand-500',   icon: <Battery size={14} className="text-brand-600"/> },
+          { name: 'Battery Cybersecurity Platform', label: 'Cybersecurity',   color: 'bg-purple-500',  icon: <FileText size={14} className="text-purple-600"/> },
+          { name: 'AS9102 FAI Reports Platform',    label: 'FAI AS9102',      color: 'bg-emerald-500', icon: <Cpu size={14} className="text-emerald-600"/> },
+        ].map(({ name, label, color, icon }) => {
+          const ps = stories.filter(s => s.product === name)
           const avg = ps.length ? Math.round(ps.reduce((sum, s) => sum + s.overallProgress, 0) / ps.length) : 0
           return (
-            <div key={product} className="card p-4">
+            <div key={name} className="card p-4">
               <div className="flex items-center gap-2 mb-3">
-                {idx === 0 ? <Battery size={14} className="text-brand-600"/> : <FileText size={14} className="text-purple-600"/>}
-                <p className="text-xs font-bold text-slate-800 truncate">{product}</p>
+                {icon}
+                <p className="text-xs font-bold text-slate-800 truncate">{label}</p>
               </div>
               <p className="text-2xl font-black text-slate-900 mb-1">{avg}%</p>
-              <ProgressBar value={avg} color={idx === 0 ? 'bg-brand-500' : 'bg-purple-500'} />
+              <ProgressBar value={avg} color={color} />
               <p className="text-[10px] text-slate-400 mt-1">{ps.length} stories</p>
             </div>
           )
         })}
       </div>
+
+      {/* M05 Capacity Overview */}
+      {capacities.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-slate-500" />
+              <p className="text-sm font-bold text-slate-700">Developer Capacity</p>
+            </div>
+            <Link to="/admin/capacity" className="text-xs text-brand-600 hover:underline">Manage →</Link>
+          </div>
+          <div className="space-y-3">
+            {capacities.map(cap => (
+              <div key={cap.developerId} className="flex items-center gap-4">
+                <p className="text-xs font-semibold text-slate-700 w-32 truncate">{cap.developerName}</p>
+                <div className="flex-1">
+                  <CapacityBar capacity={cap} showLabel={false} />
+                </div>
+                <p className="text-[10px] text-slate-400 w-20 text-right flex-shrink-0">
+                  {cap.currentAssignedHours}/{cap.weeklyCapacityHours}h
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <Link to="/admin/assignments/new" className="btn-primary text-xs gap-1.5">
+              <PlusSquare size={12}/> New Assignment
+            </Link>
+            <div className="flex gap-4 text-[10px] text-slate-400">
+              <span><span className="font-bold text-green-600">{capacities.filter(c => c.capacityPercent < 70).length}</span> Available</span>
+              <span><span className="font-bold text-amber-600">{capacities.filter(c => c.capacityPercent >= 70 && c.capacityPercent < 90).length}</span> Busy</span>
+              <span><span className="font-bold text-red-600">{capacities.filter(c => c.capacityPercent >= 90).length}</span> Full</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Cpu, FileText, FolderOpen,
   ClipboardCheck, ShieldCheck, Award, CalendarDays, X,
   ClipboardList, BarChart2, Mail, Settings, UserCog,
-  User, LogOut, Shield, SlidersHorizontal,
+  User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
+  PlusSquare,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { getUnreadCount } from '../../firebase/assignments'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 
@@ -32,6 +35,8 @@ const adminItems = [
   { to: '/admin/users',               label: 'Users',               icon: UserCog },
   { to: '/admin/invitations',         label: 'Invitations',         icon: Mail },
   { to: '/admin/developer-settings',  label: 'Developer Settings',  icon: SlidersHorizontal },
+  { to: '/admin/assignments/new',     label: 'New Assignment',      icon: PlusSquare },
+  { to: '/admin/capacity',            label: 'Capacity',            icon: Users },
 ]
 
 interface SidebarProps {
@@ -40,12 +45,18 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { userProfile, signOut, role } = useAuthContext()
+  const { userProfile, signOut, role, uid } = useAuthContext()
   const navigate = useNavigate()
+  const [unread, setUnread] = useState(0)
 
   const isAdmin   = role === 'Platform Admin'
   const isManager = role === 'Engineering Manager'
   const isDev     = role === 'Developer'
+
+  useEffect(() => {
+    if (!uid) return
+    getUnreadCount(uid).then(setUnread).catch(() => {})
+  }, [uid])
 
   async function handleSignOut() {
     onClose?.()
@@ -55,12 +66,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   // Developers get a filtered engineering nav
   const devItems = [
-    { to: '/assignments', label: 'My Assignment', icon: ClipboardList },
-    { to: '/stories',     label: 'My Story',      icon: FileText },
-    { to: '/simulators',  label: 'My Simulator',  icon: Cpu },
-    { to: '/evidence',    label: 'Evidence',       icon: FolderOpen },
-    { to: '/weekly',      label: 'Weekly',         icon: CalendarDays },
-    { to: '/demo',        label: 'Final Demo',     icon: Award },
+    { to: '/assignments',   label: 'My Assignment', icon: ClipboardList },
+    { to: '/stories',       label: 'My Story',      icon: FileText },
+    { to: '/simulators',    label: 'My Simulator',  icon: Cpu },
+    { to: '/evidence',      label: 'Evidence',      icon: FolderOpen },
+    { to: '/weekly',        label: 'Weekly',        icon: CalendarDays },
+    { to: '/demo',          label: 'Final Demo',    icon: Award },
+    { to: '/checkin',       label: 'Check-in',      icon: CheckSquare },
+    { to: '/notifications', label: 'Notifications', icon: Bell },
   ]
 
   const navItems = isDev ? devItems : engineeringItems
@@ -119,11 +132,35 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   onClick={onClose}
                 >
                   <Icon size={14} />
-                  <span>{label}</span>
+                  <span className="flex-1">{label}</span>
+                  {to === '/notifications' && unread > 0 && (
+                    <span className="ml-auto bg-brand-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </nav>
           </div>
+
+          {/* Notifications for managers/admins */}
+          {!isDev && (
+            <div>
+              <NavLink
+                to="/notifications"
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                onClick={onClose}
+              >
+                <Bell size={14} />
+                <span className="flex-1">Notifications</span>
+                {unread > 0 && (
+                  <span className="ml-auto bg-brand-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
+              </NavLink>
+            </div>
+          )}
 
           {/* Admin Section — Platform Admin only */}
           {isAdmin && (

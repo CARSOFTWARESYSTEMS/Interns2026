@@ -1,10 +1,14 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FileText, Cpu, ClipboardCheck, Award, Calendar,
   FolderOpen, ArrowRight, User, AlertTriangle, CheckCircle,
+  Bell, ThumbsUp, ThumbsDown, Loader2,
 } from 'lucide-react'
 import { useDevelopers, useSimulators, useStories, useWeeklyPlan } from '../data/DataProvider'
 import { useAuthContext } from '../contexts/AuthContext'
+import { getAssignmentsForDeveloper, acceptAssignment, declineAssignment } from '../firebase/assignments'
+import type { M05Assignment } from '../types/assignments'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import SectionCard from '../components/ui/SectionCard'
@@ -18,7 +22,33 @@ export default function DeveloperDashboard() {
   const simulators = useSimulators()
   const stories    = useStories()
   const weeklyPlan = useWeeklyPlan()
-  const { userProfile } = useAuthContext()
+  const { userProfile, uid } = useAuthContext()
+
+  const [invitations, setInvitations]     = useState<M05Assignment[]>([])
+  const [actioning, setActioning]         = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!uid) return
+    getAssignmentsForDeveloper(uid).then(all => {
+      setInvitations(all.filter(a => a.status === 'Assigned'))
+    }).catch(() => {})
+  }, [uid])
+
+  async function handleAccept(a: M05Assignment) {
+    if (!uid || !userProfile) return
+    setActioning(a.id)
+    await acceptAssignment(a.id, uid, userProfile.displayName, userProfile.email ?? '')
+    setInvitations(prev => prev.filter(x => x.id !== a.id))
+    setActioning(null)
+  }
+
+  async function handleDecline(a: M05Assignment) {
+    if (!uid || !userProfile) return
+    setActioning(a.id)
+    await declineAssignment(a.id, uid, userProfile.displayName, userProfile.email ?? '', 'Personal reason')
+    setInvitations(prev => prev.filter(x => x.id !== a.id))
+    setActioning(null)
+  }
 
   // Try to match by email to find the developer record for this user
   const myDev = developers.find(d => d.email === userProfile?.email) ?? developers[0]
@@ -52,6 +82,45 @@ export default function DeveloperDashboard() {
           </Link>
         )}
       </div>
+
+      {/* Assignment Invitations */}
+      {invitations.length > 0 && (
+        <div className="card p-4 border-l-4 border-brand-500 space-y-3">
+          <div className="flex items-center gap-2">
+            <Bell size={15} className="text-brand-500" />
+            <p className="text-sm font-bold text-slate-800">
+              {invitations.length} Assignment Invitation{invitations.length !== 1 ? 's' : ''} Pending
+            </p>
+          </div>
+          {invitations.map(a => (
+            <div key={a.id} className="flex items-start justify-between gap-4 bg-slate-50 rounded-xl px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-800">{a.storyTitle || a.simulatorTitle || a.assignmentId}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{a.productName} · {a.workPackageId} · {a.estimatedHours}h estimated</p>
+                {a.managerNotes && <p className="text-[10px] text-slate-400 mt-1 italic line-clamp-1">{a.managerNotes}</p>}
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => handleAccept(a)}
+                  disabled={actioning === a.id}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors disabled:opacity-50"
+                >
+                  {actioning === a.id ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleDecline(a)}
+                  disabled={actioning === a.id}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors disabled:opacity-50"
+                >
+                  {actioning === a.id ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+                  Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* My stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

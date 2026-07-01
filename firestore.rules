@@ -107,5 +107,87 @@ service cloud.firestore {
       allow read:  if isSignedIn();
       allow write: if isPlatformAdmin() || isManager() || isArchitect();
     }
+
+    // ── M05 Assignments ────────────────────────────────────────────────────
+    // Developers read/update only their own; managers/admins/architects read all.
+    match /assignments/{docId} {
+      allow read: if isSignedIn() && (
+        resource.data.developerId == request.auth.uid || canReadAll()
+      );
+      allow create: if canManageUsers();
+      allow update: if canManageUsers() ||
+        (isSignedIn() && resource.data.developerId == request.auth.uid);
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Assignment History (immutable audit trail) ─────────────────────────
+    match /assignmentHistory/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (
+        resource.data.performedBy == request.auth.uid || canReadAll()
+      );
+      allow update, delete: if false;
+    }
+
+    // ── Daily Engineering Check-ins ────────────────────────────────────────
+    // Doc ID format: {developerId}_{YYYY-MM-DD}
+    match /dailyEngineeringCheckins/{docId} {
+      allow read: if isSignedIn() && (
+        resource.data.developerId == request.auth.uid || canReadAll()
+      );
+      // Developer writes their own; use request.resource for create (resource doesn't exist yet).
+      allow create: if isSignedIn() && (
+        request.resource.data.developerId == request.auth.uid || canManageUsers()
+      );
+      allow update: if isSignedIn() && (
+        resource.data.developerId == request.auth.uid || canManageUsers()
+      );
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Weekly Engineering Reports ─────────────────────────────────────────
+    match /weeklyEngineeringReports/{docId} {
+      allow read: if isSignedIn() && (
+        resource.data.developerId == request.auth.uid || canReadAll()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.developerId == request.auth.uid || canManageUsers()
+      );
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Developer Capacity ─────────────────────────────────────────────────
+    // Non-sensitive — any authenticated user can read (managers need to see all).
+    match /developerCapacity/{devId} {
+      allow read:  if isSignedIn();
+      allow write: if canManageUsers();
+    }
+
+    // ── Notifications ──────────────────────────────────────────────────────
+    // Recipients read/update their own; any signed-in user can create
+    // (developers create notifications for managers on accept/decline).
+    match /notifications/{docId} {
+      allow read: if isSignedIn() && (
+        resource.data.recipientId == request.auth.uid || canReadAll()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.recipientId == request.auth.uid || canManageUsers()
+      );
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Assignment Comments ────────────────────────────────────────────────
+    match /assignmentComments/{docId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid || canManageUsers()
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid || isPlatformAdmin()
+      );
+    }
   }
 }

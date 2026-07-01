@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { useAuthContext } from './contexts/AuthContext'
 import { DataProvider } from './data/DataProvider'
 import RequireAuth from './components/auth/RequireAuth'
+import RequireCheckin from './components/auth/RequireCheckin'
 import RoleGuard from './components/auth/RoleGuard'
 import Layout from './components/layout/Layout'
 
@@ -46,6 +47,10 @@ import QADashboard from './pages/QADashboard'
 import AdminUsers from './pages/admin/Users'
 import AdminInvitations from './pages/admin/Invitations'
 import DeveloperSettings from './pages/admin/DeveloperSettings'
+import AssignmentCreate from './pages/admin/AssignmentCreate'
+import Capacity from './pages/admin/Capacity'
+import DailyCheckin from './pages/DailyCheckin'
+import Notifications from './pages/Notifications'
 
 /**
  * Routes to the correct role-specific dashboard.
@@ -86,13 +91,23 @@ export default function App() {
               </RequireAuth>
             }
           />
+          <Route
+            path="/checkin"
+            element={
+              <RequireAuth>
+                <DailyCheckin />
+              </RequireAuth>
+            }
+          />
 
-          {/* ── Main app (with layout + auth required) ──────────────── */}
+          {/* ── Main app (with layout + auth + daily check-in gate) ── */}
           <Route
             path="/"
             element={
               <RequireAuth>
-                <Layout />
+                <RequireCheckin>
+                  <Layout />
+                </RequireCheckin>
               </RequireAuth>
             }
           >
@@ -121,7 +136,10 @@ export default function App() {
             <Route path="reports"         element={<Reports />} />
             <Route path="settings"        element={<Settings />} />
 
-            {/* Admin — Platform Admin only */}
+            {/* M05 — all authenticated users */}
+            <Route path="notifications" element={<Notifications />} />
+
+            {/* Admin — Platform Admin + Engineering Manager */}
             <Route
               path="admin/users"
               element={
@@ -143,6 +161,22 @@ export default function App() {
               element={
                 <RoleGuard allow={['Platform Admin']}>
                   <DeveloperSettings />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/assignments/new"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
+                  <AssignmentCreate />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/capacity"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
+                  <Capacity />
                 </RoleGuard>
               }
             />
