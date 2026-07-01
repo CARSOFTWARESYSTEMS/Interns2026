@@ -155,7 +155,7 @@ export class GDriveAdapter implements DataAdapter {
   private error:         string | null = null
 
   constructor() {
-    this.clientId      = import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID ?? ''
+    this.clientId      = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
     this.rootFolderId  = localStorage.getItem(LS_ROOT_ID)
     this.configFolderId= localStorage.getItem(LS_CONFIG_ID)
     this.lastSync      = localStorage.getItem(LS_LAST_SYNC)
