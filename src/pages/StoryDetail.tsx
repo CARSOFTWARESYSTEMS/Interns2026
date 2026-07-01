@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { FileText, Printer, Shield, CheckCircle2, Trophy, ArrowRight } from 'lucide-react'
-import { useStories, useDevelopers } from '../data/DataProvider'
+import { ArrowRight, CheckCircle2, Copy, Download, FileText, Printer, Shield, Trophy } from 'lucide-react'
+import { useAssignments, useDevelopers, useSimulators, useStories, useWeeklyPlan } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import TabNav from '../components/ui/TabNav'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
 import EvidenceRow from '../components/ui/EvidenceRow'
+import { copyHtml, downloadHtml, generateStoryHtml, sanitizeFilename } from '../utils/htmlExport'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -67,8 +68,12 @@ function CheckList({ items }: { items: string[] }) {
 export default function StoryDetail() {
   const stories    = useStories()
   const developers = useDevelopers()
+  const simulators = useSimulators()
+  const assignments = useAssignments()
+  const weeklyPlan = useWeeklyPlan()
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState('overview')
+  const [copied, setCopied] = useState(false)
 
   const story = stories.find(s => s.id === id)
   const developer = developers.find(d => d.id === story?.developerId)
@@ -87,6 +92,14 @@ export default function StoryDetail() {
   const accentColor = isProduct1 ? 'text-brand-600' : 'text-purple-600'
   const progressColor = isProduct1 ? 'bg-brand-600' : 'bg-purple-600'
   const ev = story.evidence
+  const storyHtml = generateStoryHtml(story, developer, simulators, assignments, weeklyPlan)
+  const storyFilename = `${sanitizeFilename(story.id)}_${sanitizeFilename(story.title)}_Assignment.html`
+
+  async function handleCopyHtml() {
+    await copyHtml(storyHtml)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="space-y-4">
@@ -97,11 +110,18 @@ export default function StoryDetail() {
         backTo="/stories"
         backLabel="User Stories"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <StatusBadge status={story.priority} size="xs" />
             <StatusBadge status={story.status} />
+            <button onClick={() => downloadHtml(storyFilename, storyHtml)} className="btn-primary no-print">
+              <Download size={13}/> Download HTML
+            </button>
+            <button onClick={handleCopyHtml} className="btn-secondary no-print">
+              {copied ? <CheckCircle2 size={13} className="text-green-500"/> : <Copy size={13}/>}
+              {copied ? 'Copied' : 'Copy HTML'}
+            </button>
             <button onClick={() => window.print()} className="btn-secondary no-print">
-              <Printer size={13}/> Print / Export
+              <Printer size={13}/> Print
             </button>
           </div>
         }

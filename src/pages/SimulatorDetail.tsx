@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { FlaskConical, Github, Globe, ExternalLink, Printer, Terminal, Shield, CheckCircle2, FileText } from 'lucide-react'
-import { useSimulators, useDevelopers } from '../data/DataProvider'
+import { CheckCircle2, Copy, Download, ExternalLink, FileText, FlaskConical, Github, Globe, Printer, Shield, Terminal } from 'lucide-react'
+import { useAssignments, useDevelopers, useSimulators, useStories, useWeeklyPlan } from '../data/DataProvider'
 import PageHeader from '../components/ui/PageHeader'
 import TabNav from '../components/ui/TabNav'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import EvidenceRow from '../components/ui/EvidenceRow'
+import { copyHtml, downloadHtml, generateSimulatorHtml, sanitizeFilename } from '../utils/htmlExport'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -52,8 +53,12 @@ function BulletList({ items }: { items: string[] }) {
 export default function SimulatorDetail() {
   const simulators = useSimulators()
   const developers = useDevelopers()
+  const stories = useStories()
+  const assignments = useAssignments()
+  const weeklyPlan = useWeeklyPlan()
   const { id } = useParams<{ id: string }>()
   const [tab, setTab] = useState('overview')
+  const [copied, setCopied] = useState(false)
 
   const sim = simulators.find(s => s.id === id)
   const owner = developers.find(d => d.id === sim?.ownerId)
@@ -69,6 +74,14 @@ export default function SimulatorDetail() {
   }
 
   const ev = sim.evidence
+  const simulatorHtml = generateSimulatorHtml(sim, owner, stories, assignments, weeklyPlan)
+  const simulatorFilename = `${sanitizeFilename(sim.id)}_${sanitizeFilename(sim.name)}_Simulator.html`
+
+  async function handleCopyHtml() {
+    await copyHtml(simulatorHtml)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="space-y-4">
@@ -79,8 +92,15 @@ export default function SimulatorDetail() {
         backTo="/simulators"
         backLabel="Simulators"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <StatusBadge status={sim.status} />
+            <button onClick={() => downloadHtml(simulatorFilename, simulatorHtml)} className="btn-primary no-print">
+              <Download size={13}/> Download HTML
+            </button>
+            <button onClick={handleCopyHtml} className="btn-secondary no-print">
+              {copied ? <CheckCircle2 size={13} className="text-green-500"/> : <Copy size={13}/>}
+              {copied ? 'Copied' : 'Copy HTML'}
+            </button>
             <button onClick={() => window.print()} className="btn-secondary no-print">
               <Printer size={13}/> Print
             </button>

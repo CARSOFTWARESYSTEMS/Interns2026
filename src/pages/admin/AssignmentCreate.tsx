@@ -12,54 +12,63 @@ const PRODUCTS = [
   { id: 'P2', name: 'Battery Cybersecurity Platform' },
   { id: 'P3', name: 'AS9102 FAI Reports Platform' },
 ]
-
 const WORK_PACKAGES = ['WP-001','WP-002','WP-003','WP-004','WP-005','WP-006','WP-101','WP-102','WP-103','WP-104','WP-105']
 const MILESTONES    = ['M01','M02','M03','M04','M05']
 const CATEGORIES: AssignmentCategory[] = ['Simulator','Story','QA','Architect','Research','Mentor','Support']
 const ROLES: AssignmentRole[]           = ['Primary Developer','Secondary Developer','QA Reviewer','Architect','Observer','Mentor']
 const PRIORITIES                        = ['Critical','High','Medium','Low'] as const
 
+// Shared Tailwind classes — matches the dashboard input style
+const selectCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors appearance-none'
+const inputCls  = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors'
+const labelCls  = 'block text-xs font-semibold text-slate-600 mb-1.5'
+
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className={labelCls}>
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
 export default function AssignmentCreate() {
   const { userProfile, uid } = useAuthContext()
-  const navigate  = useNavigate()
-  const developers  = useDevelopers()
-  const stories     = useStories()
-  const simulators  = useSimulators()
+  const navigate   = useNavigate()
+  const developers = useDevelopers()
+  const stories    = useStories()
+  const simulators = useSimulators()
 
-  const [form, setForm] = useState(emptyM05Assignment())
+  const [form, setForm]         = useState(emptyM05Assignment())
   const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]             = useState(false)
-  const [error, setError]           = useState('')
-  const [createdId, setCreatedId]   = useState('')
+  const [done, setDone]         = useState(false)
+  const [error, setError]       = useState('')
+  const [createdId, setCreatedId] = useState('')
 
   function set<K extends keyof typeof form>(key: K, val: typeof form[K]) {
     setForm(prev => ({ ...prev, [key]: val }))
   }
 
-  // Filter stories/simulators by chosen product
   const filteredStories   = stories.filter(s => !form.productName || s.product === form.productName)
   const filteredSimulators = simulators.filter(s => !form.productName || s.product === form.productName)
 
-  // Auto-fill developer fields when developerId changes
   function handleDevChange(devId: string) {
     const dev = developers.find(d => d.id === devId)
-    set('developerId', devId)
-    set('developerName', dev?.name ?? '')
-    set('developerEmail', dev?.email ?? '')
+    setForm(prev => ({ ...prev, developerId: devId, developerName: dev?.name ?? '', developerEmail: dev?.email ?? '' }))
   }
-
-  // Auto-fill story title when storyId changes
   function handleStoryChange(storyId: string) {
     const story = stories.find(s => s.id === storyId)
-    set('storyId', storyId)
-    set('storyTitle', story?.title ?? '')
+    setForm(prev => ({ ...prev, storyId, storyTitle: story?.title ?? '' }))
   }
-
-  // Auto-fill simulator title when simulatorId changes
   function handleSimChange(simId: string) {
     const sim = simulators.find(s => s.id === simId)
-    set('simulatorId', simId)
-    set('simulatorTitle', sim?.name ?? '')
+    setForm(prev => ({ ...prev, simulatorId: simId, simulatorTitle: sim?.name ?? '' }))
+  }
+  function handleProductChange(name: string) {
+    const product = PRODUCTS.find(p => p.name === name)
+    setForm(prev => ({ ...prev, productName: name, productId: product?.id ?? '', storyId: '', storyTitle: '', simulatorId: '', simulatorTitle: '' }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -69,17 +78,17 @@ export default function AssignmentCreate() {
       setError('Developer, product, start date, and end date are required.')
       return
     }
-
     setSubmitting(true)
     setError('')
     try {
+      const now = new Date().toISOString()
       const id = await createM05Assignment({
         ...form,
         status: 'Assigned' as M05AssignmentStatus,
         assignedBy: uid,
         assignedByName: userProfile.displayName,
-        assignedDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
+        assignedDate: now,
+        lastUpdated: now,
       })
       await recordHistory({
         assignmentId: id,
@@ -94,7 +103,7 @@ export default function AssignmentCreate() {
       })
       setCreatedId(id)
       setDone(true)
-    } catch (err) {
+    } catch {
       setError('Failed to create assignment. Please try again.')
     } finally {
       setSubmitting(false)
@@ -105,14 +114,18 @@ export default function AssignmentCreate() {
     return (
       <div className="space-y-4">
         <PageHeader title="Assignment Created" subtitle="M05 Assignment Management" icon={<ClipboardList size={18}/>} />
-        <div className="card p-10 flex flex-col items-center gap-4">
-          <CheckCircle size={48} className="text-green-500" />
-          <h2 className="text-xl font-bold text-slate-800">Assignment Created</h2>
-          <p className="text-slate-500 text-sm">ID: <span className="font-mono font-bold text-slate-700">{createdId}</span></p>
-          <p className="text-slate-500 text-sm">
-            A notification has been sent to <strong>{form.developerName}</strong>. They can accept or decline from their dashboard.
-          </p>
-          <div className="flex gap-3">
+        <div className="card p-10 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle size={28} className="text-green-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Assignment Created</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Assigned to <strong>{form.developerName}</strong> · ID: <span className="font-mono text-slate-700">{createdId}</span>
+            </p>
+            <p className="text-xs text-slate-400 mt-1">The developer can accept or decline from their dashboard.</p>
+          </div>
+          <div className="flex gap-3 mt-2">
             <button onClick={() => navigate('/admin/capacity')} className="btn-secondary">View Capacity</button>
             <button onClick={() => { setForm(emptyM05Assignment()); setDone(false) }} className="btn-primary">Create Another</button>
           </div>
@@ -130,108 +143,99 @@ export default function AssignmentCreate() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Developer & Role */}
+
+        {/* ── Developer & Role ──────────────────────────────────── */}
         <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Developer & Role</h2>
+          <p className="data-label">Developer & Role</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Developer <span className="text-red-500">*</span></label>
-              <select value={form.developerId} onChange={e => handleDevChange(e.target.value)} className="form-select">
+            <Field label="Developer" required>
+              <select value={form.developerId} onChange={e => handleDevChange(e.target.value)} className={selectCls}>
                 <option value="">Select developer…</option>
                 {developers.map(d => <option key={d.id} value={d.id}>{d.name} ({d.id})</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Assignment Role</label>
-              <select value={form.assignmentRole} onChange={e => set('assignmentRole', e.target.value as AssignmentRole)} className="form-select">
+            </Field>
+            <Field label="Assignment Role">
+              <select value={form.assignmentRole} onChange={e => set('assignmentRole', e.target.value as AssignmentRole)} className={selectCls}>
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Category</label>
-              <select value={form.assignmentCategory} onChange={e => set('assignmentCategory', e.target.value as AssignmentCategory)} className="form-select">
+            </Field>
+            <Field label="Category">
+              <select value={form.assignmentCategory} onChange={e => set('assignmentCategory', e.target.value as AssignmentCategory)} className={selectCls}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Priority</label>
-              <select value={form.priority} onChange={e => set('priority', e.target.value as typeof form.priority)} className="form-select">
+            </Field>
+            <Field label="Priority">
+              <select value={form.priority} onChange={e => set('priority', e.target.value as typeof form.priority)} className={selectCls}>
                 {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
-            </div>
+            </Field>
           </div>
         </div>
 
-        {/* Product & Work */}
+        {/* ── Product & Work Items ──────────────────────────────── */}
         <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Product & Work Items</h2>
+          <p className="data-label">Product & Work Items</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Product <span className="text-red-500">*</span></label>
-              <select value={form.productName} onChange={e => { set('productName', e.target.value); set('productId', PRODUCTS.find(p => p.name === e.target.value)?.id ?? '') }} className="form-select">
+            <Field label="Product" required>
+              <select value={form.productName} onChange={e => handleProductChange(e.target.value)} className={selectCls}>
                 <option value="">Select product…</option>
                 {PRODUCTS.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Work Package</label>
-              <select value={form.workPackageId} onChange={e => set('workPackageId', e.target.value)} className="form-select">
+            </Field>
+            <Field label="Work Package">
+              <select value={form.workPackageId} onChange={e => set('workPackageId', e.target.value)} className={selectCls}>
                 <option value="">Select work package…</option>
                 {WORK_PACKAGES.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Milestone</label>
-              <select value={form.milestoneId} onChange={e => set('milestoneId', e.target.value)} className="form-select">
+            </Field>
+            <Field label="Milestone">
+              <select value={form.milestoneId} onChange={e => set('milestoneId', e.target.value)} className={selectCls}>
                 <option value="">Select milestone…</option>
                 {MILESTONES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">User Story</label>
-              <select value={form.storyId} onChange={e => handleStoryChange(e.target.value)} className="form-select">
+            </Field>
+            <Field label="User Story">
+              <select value={form.storyId} onChange={e => handleStoryChange(e.target.value)} className={selectCls}>
                 <option value="">Select story…</option>
                 {filteredStories.map(s => <option key={s.id} value={s.id}>{s.id} — {s.title}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="form-label">Simulator</label>
-              <select value={form.simulatorId} onChange={e => handleSimChange(e.target.value)} className="form-select">
-                <option value="">None (desktop app or N/A)</option>
-                {filteredSimulators.map(s => <option key={s.id} value={s.id}>{s.id} — {s.name}</option>)}
-              </select>
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Simulator">
+                <select value={form.simulatorId} onChange={e => handleSimChange(e.target.value)} className={selectCls}>
+                  <option value="">None (desktop app or N/A)</option>
+                  {filteredSimulators.map(s => <option key={s.id} value={s.id}>{s.id} — {s.name}</option>)}
+                </select>
+              </Field>
             </div>
           </div>
         </div>
 
-        {/* Timeline & Hours */}
+        {/* ── Timeline & Hours ──────────────────────────────────── */}
         <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Timeline & Hours</h2>
+          <p className="data-label">Timeline & Hours</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="form-label">Planned Start <span className="text-red-500">*</span></label>
-              <input type="date" value={form.plannedStartDate} onChange={e => set('plannedStartDate', e.target.value)} className="form-input" />
-            </div>
-            <div>
-              <label className="form-label">Planned End <span className="text-red-500">*</span></label>
-              <input type="date" value={form.plannedEndDate} onChange={e => set('plannedEndDate', e.target.value)} className="form-input" />
-            </div>
-            <div>
-              <label className="form-label">Estimated Hours</label>
-              <input type="number" min={1} max={500} value={form.estimatedHours} onChange={e => set('estimatedHours', Number(e.target.value))} className="form-input" />
-            </div>
+            <Field label="Planned Start" required>
+              <input type="date" value={form.plannedStartDate} onChange={e => set('plannedStartDate', e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Planned End" required>
+              <input type="date" value={form.plannedEndDate} onChange={e => set('plannedEndDate', e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Estimated Hours">
+              <input type="number" min={1} max={500} value={form.estimatedHours} onChange={e => set('estimatedHours', Number(e.target.value))} className={inputCls} />
+            </Field>
           </div>
         </div>
 
-        {/* Notes */}
-        <div className="card p-5 space-y-4">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Manager Notes</h2>
+        {/* ── Manager Notes ─────────────────────────────────────── */}
+        <div className="card p-5 space-y-3">
+          <p className="data-label">Manager Notes</p>
           <textarea
             rows={3}
             value={form.managerNotes}
             onChange={e => set('managerNotes', e.target.value)}
             placeholder="Instructions, context, or expectations for the developer…"
-            className="form-textarea"
+            className={`${inputCls} resize-none`}
           />
         </div>
 
@@ -242,12 +246,15 @@ export default function AssignmentCreate() {
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
-          <button type="button" onClick={() => navigate(-1)} className="btn-secondary">Cancel</button>
-          <button type="submit" disabled={submitting} className="btn-primary gap-1.5">
-            {submitting ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><ClipboardList size={14}/> Create Assignment</>}
+        <div className="flex justify-end gap-3 pb-2">
+          <button type="button" onClick={() => navigate(-1)} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+          <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
+            {submitting
+              ? <><Loader2 size={14} className="animate-spin" /> Creating…</>
+              : <><ClipboardList size={14}/> Create Assignment</>}
           </button>
         </div>
+
       </form>
     </div>
   )
