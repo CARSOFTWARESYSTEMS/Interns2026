@@ -50,7 +50,7 @@ export default function Login() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-wide">UFlight™ | EV.ENGINEER™</h1>
-          <p className="text-slate-400 text-sm mt-1">Battery Trust Platform</p>
+          <p className="text-slate-400 text-sm mt-1">Aerospace Intelligence &amp; Cybersecurity Platform</p>
           <p className="text-slate-600 text-xs mt-0.5 tracking-widest uppercase">Engineering Command Center</p>
         </div>
 

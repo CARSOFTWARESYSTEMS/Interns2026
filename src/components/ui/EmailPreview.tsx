@@ -53,7 +53,7 @@ function buildEmailHTML(
   <!-- Header -->
   <div class="header">
     <h1>UFlight™ | EV.ENGINEER™</h1>
-    <p>Battery Trust Platform · Intern Program 2026</p>
+    <p>Aerospace Intelligence & Cybersecurity Platform · Intern Program 2026</p>
   </div>
 
   <!-- Banner -->
@@ -66,7 +66,7 @@ function buildEmailHTML(
   <div class="section">
     <p style="font-size:15px; line-height:1.7;">Dear <strong>${dev.name}</strong>,</p>
     <p style="font-size:14px; color:#475569; line-height:1.7;">
-      Welcome to the <strong>UFlight™ | EV.ENGINEER™ Battery Trust Platform Internship Program 2026</strong>.
+      Welcome to the <strong>UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform Internship Program 2026</strong>.
       You have been assigned to build a critical engineering module for the ${a.product}.
       This document is your official engineering contract — please read it carefully and confirm acceptance by replying to this email.
     </p>
@@ -172,7 +172,7 @@ function buildEmailHTML(
   <div class="footer">
     <p><strong>Questions?</strong> Reply to this email or contact your mentor.</p>
     <p>Please reply <strong>"Accepted"</strong> to confirm you have read and understood this assignment.</p>
-    <p style="margin-top:16px; color:#cbd5e1;">UFlight™ | EV.ENGINEER™ Battery Trust Platform · Intern Program 2026</p>
+    <p style="margin-top:16px; color:#cbd5e1;">UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform · Intern Program 2026</p>
     <p style="margin-top:12px; color:#94a3b8; font-weight:700; font-size:12px;">iTelematics Software Private Limited</p>
     <p style="color:#94a3b8; font-size:11px;">Bangalore, India</p>
     <p style="margin-top:6px; font-size:11px;">

@@ -60,7 +60,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       <div className="h-6 w-px bg-slate-700 mx-1" />
 
       <div className="flex flex-col gap-0.5">
-        <span className="text-slate-200 font-semibold text-xs">Battery Trust Platform</span>
+        <span className="text-slate-200 font-semibold text-xs">Aerospace Intelligence &amp; Cybersecurity Platform</span>
         <span className="text-slate-500 text-[10px]">Engineering Command Center</span>
       </div>
 

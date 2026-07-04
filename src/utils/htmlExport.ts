@@ -242,7 +242,7 @@ export function generateStoryHtml(
 
   return shell(`
     <header class="hero">
-      <div class="brand"><h1>UFlight&trade; | EV.ENGINEER&trade;</h1><p>Battery Trust Platform</p></div>
+      <div class="brand"><h1>UFlight&trade; | EV.ENGINEER&trade;</h1><p>Aerospace Intelligence &amp; Cybersecurity Platform</p></div>
       <div class="hero-main">
         <p class="eyebrow">${value(story.product)} · ${value(story.workPackage)}</p>
         <h2>${value(story.title)}</h2>
@@ -364,7 +364,7 @@ export function generateSimulatorHtml(
 
   return shell(`
     <header class="hero">
-      <div class="brand"><h1>UFlight&trade; | EV.ENGINEER&trade;</h1><p>Battery Trust Platform</p></div>
+      <div class="brand"><h1>UFlight&trade; | EV.ENGINEER&trade;</h1><p>Aerospace Intelligence &amp; Cybersecurity Platform</p></div>
       <div class="hero-main">
         <p class="eyebrow">${value(simulator.product)}</p>
         <h2>${value(simulator.name)}</h2>

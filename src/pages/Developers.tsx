@@ -34,7 +34,7 @@ export default function Developers() {
     <div className="space-y-4">
       <PageHeader
         title="Developers"
-        subtitle={`${developers.length} interns assigned to Battery Trust Platform`}
+        subtitle={`${developers.length} interns assigned to Aerospace Intelligence & Cybersecurity Platform`}
         icon={<Users size={18} />}
       />
 

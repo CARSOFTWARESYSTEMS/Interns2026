@@ -70,7 +70,7 @@ export default function Reports() {
     <div className="space-y-6">
       <PageHeader
         title="Reports"
-        subtitle="Assignment analytics and progress reports · Battery Trust Platform 2026"
+        subtitle="Assignment analytics and progress reports · Aerospace Intelligence & Cybersecurity Platform 2026"
         icon={<BarChart2 size={18}/>}
       />
 

@@ -230,7 +230,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             ) : (
               <div className="text-[10px] text-slate-500 leading-relaxed">
                 <p className="font-semibold text-slate-400 mb-0.5">UFlight™ | EV.ENGINEER™</p>
-                <p>Battery Trust Platform</p>
+                <p>Aerospace Intelligence &amp; Cybersecurity Platform</p>
                 <p className="mt-1 text-slate-600 font-semibold">iTelematics Software Pvt. Ltd.</p>
                 <p>Bangalore, India</p>
                 <p>v1.0 · M03 · Intern Program 2026</p>

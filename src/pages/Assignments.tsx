@@ -65,7 +65,7 @@ export default function Assignments() {
     <div className="space-y-4">
       <PageHeader
         title="Assignments"
-        subtitle={`${assignments.length} engineering assignments · Battery Trust Platform Intern Program 2026`}
+        subtitle={`${assignments.length} engineering assignments · Aerospace Intelligence & Cybersecurity Platform Intern Program 2026`}
         icon={<ClipboardList size={18}/>}
       />
 

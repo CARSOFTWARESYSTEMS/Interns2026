@@ -276,7 +276,7 @@ export default function Settings() {
       <SectionCard title="Platform Information">
         <div className="grid grid-cols-2 gap-4">
           {[
-            { label: 'Platform',     value: 'UFlight™ | EV.ENGINEER™ Battery Trust Platform' },
+            { label: 'Platform',     value: 'UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform' },
             { label: 'Version',      value: 'v1.0 — Milestone 04' },
             { label: 'Data Mode',    value: MODE_LABELS[DATA_MODE] },
             { label: 'Architecture', value: 'React 18 + TypeScript 5 + Vite 5' },

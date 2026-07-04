@@ -88,7 +88,7 @@ export default function DailyCheckin() {
         </div>
         <span className="text-white font-bold text-sm">UFlight™ | EV.ENGINEER™</span>
         <span className="text-slate-600 text-sm ml-1">·</span>
-        <span className="text-slate-400 text-sm">Battery Trust Platform · Intern Program 2026</span>
+        <span className="text-slate-400 text-sm">Aerospace Intelligence &amp; Cybersecurity Platform · Intern Program 2026</span>
       </header>
 
       {/* Page content — same padding as dashboard Layout */}
