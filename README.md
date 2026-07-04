@@ -1,4 +1,4 @@
-# UFlight™ | EV.ENGINEER™ — Battery Trust Platform
+# UFlight™ | EV.ENGINEER™ — Aerospace Intelligence & Cybersecurity
 Intern Engineering Program 2026 · iTelematics Software Private Limited
 
 ## Data Storage Architecture
