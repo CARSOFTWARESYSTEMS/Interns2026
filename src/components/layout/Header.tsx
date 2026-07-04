@@ -53,7 +53,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-white font-bold text-sm tracking-wide">UFlight™ | EV.ENGINEER™</span>
-          <span className="text-slate-400 text-[10px] tracking-widest uppercase">Battery Intelligence &amp; Cybersecurity</span>
+          <span className="text-slate-400 text-[10px] tracking-widest uppercase">Aerospace Intelligence &amp; Cybersecurity</span>
         </div>
       </div>
 
