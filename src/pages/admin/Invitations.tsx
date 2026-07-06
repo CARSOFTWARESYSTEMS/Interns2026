@@ -7,7 +7,7 @@ import { getInvitations, createInvitation, updateInvitationStatus } from '../../
 import { useAuthContext } from '../../contexts/AuthContext'
 import type { Invitation, UserRole, InvitationStatus } from '../../types/auth'
 
-const ROLES: UserRole[] = ['Developer', 'QA Engineer', 'Architect', 'Engineering Manager', 'Viewer']
+const ROLES: UserRole[] = ['Developer', 'QA Engineer', 'Architect', 'Engineering Manager', 'HR Manager', 'Viewer']
 
 const STATUS_META: Record<InvitationStatus, { color: string; icon: React.ReactNode }> = {
   Pending:  { color: 'bg-amber-100 text-amber-700 border-amber-200',  icon: <Clock size={11}/> },

@@ -7,6 +7,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   'QA Engineer':          'bg-green-100 text-green-700 border-green-200',
   'Developer':            'bg-blue-100 text-blue-700 border-blue-200',
   'Viewer':               'bg-slate-100 text-slate-600 border-slate-200',
+  'HR Manager':           'bg-pink-100 text-pink-700 border-pink-200',
 }
 
 interface PermissionBadgeProps {

@@ -43,6 +43,19 @@ import ManagerDashboard from './pages/ManagerDashboard'
 import ArchitectDashboard from './pages/ArchitectDashboard'
 import QADashboard from './pages/QADashboard'
 
+// People Operations pages
+import PeopleDashboard from './pages/people/PeopleDashboard'
+import PeopleRecruitment from './pages/people/Recruitment'
+import PeopleCandidates from './pages/people/Candidates'
+import PeopleInterviews from './pages/people/Interviews'
+import PeopleOffers from './pages/people/Offers'
+import PeopleOnboarding from './pages/people/Onboarding'
+import PeopleProfiles from './pages/people/Profiles'
+import PeopleReviews from './pages/people/Reviews'
+import PeopleLeave from './pages/people/Leave'
+import PeoplePolicies from './pages/people/Policies'
+import PeopleCulture from './pages/people/Culture'
+
 // Admin pages
 import AdminUsers from './pages/admin/Users'
 import AdminInvitations from './pages/admin/Invitations'
@@ -138,6 +151,64 @@ export default function App() {
 
             {/* M05 — all authenticated users */}
             <Route path="notifications" element={<Notifications />} />
+
+            {/* People Operations — dashboard/profiles/reviews/leave/culture are
+                self-scoped at the data layer for Developer/Architect/QA Engineer;
+                recruitment/candidates/interviews/offers/onboarding/policies are
+                restricted to org/team/people-ops-level roles. */}
+            <Route path="people" element={<PeopleDashboard />} />
+            <Route
+              path="people/recruitment"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeopleRecruitment />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/candidates"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeopleCandidates />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/interviews"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeopleInterviews />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/offers"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeopleOffers />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/onboarding"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeopleOnboarding />
+                </RoleGuard>
+              }
+            />
+            <Route path="people/profiles"     element={<PeopleProfiles />} />
+            <Route path="people/reviews"      element={<PeopleReviews />} />
+            <Route path="people/leave"        element={<PeopleLeave />} />
+            <Route
+              path="people/policies"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                  <PeoplePolicies />
+                </RoleGuard>
+              }
+            />
+            <Route path="people/culture"      element={<PeopleCulture />} />
 
             {/* Admin — Platform Admin + Engineering Manager */}
             <Route

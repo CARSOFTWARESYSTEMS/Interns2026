@@ -5,7 +5,8 @@ import {
   ClipboardCheck, ShieldCheck, Award, CalendarDays, X,
   ClipboardList, BarChart2, Mail, Settings, UserCog,
   User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
-  PlusSquare,
+  PlusSquare, UserPlus, Contact, MessagesSquare, Handshake,
+  UserCheck, MessageCircle, Plane, BookOpen, Sparkles,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { getUnreadCount } from '../../firebase/assignments'
@@ -29,6 +30,20 @@ const engineeringItems = [
   { to: '/email-queue', label: 'Email Queue',  icon: Mail },
   { to: '/reports',     label: 'Reports',      icon: BarChart2 },
   { to: '/settings',    label: 'Settings',     icon: Settings },
+]
+
+const peopleItems = [
+  { to: '/people',              label: 'People Dashboard', icon: Contact },
+  { to: '/people/recruitment',  label: 'Recruitment',      icon: UserPlus },
+  { to: '/people/candidates',   label: 'Candidates',       icon: Users },
+  { to: '/people/interviews',   label: 'Interviews',       icon: MessagesSquare },
+  { to: '/people/offers',       label: 'Offers',           icon: Handshake },
+  { to: '/people/onboarding',   label: 'Onboarding',       icon: UserCheck },
+  { to: '/people/profiles',     label: 'People',           icon: Users },
+  { to: '/people/reviews',      label: '1:1 Reviews',      icon: MessageCircle },
+  { to: '/people/leave',        label: 'Leave',            icon: Plane },
+  { to: '/people/policies',     label: 'Policies',         icon: BookOpen },
+  { to: '/people/culture',      label: 'Culture',          icon: Sparkles },
 ]
 
 const adminItems = [
@@ -138,6 +153,27 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                       {unread > 9 ? '9+' : unread}
                     </span>
                   )}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+
+          <div className="border-t border-slate-800" />
+
+          {/* People Operations Section — full nav for admin/manager/HR roles, self-service subset for developers */}
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 px-3 mb-1.5">People Operations</p>
+            <nav className="space-y-0.5">
+              {(isDev ? peopleItems.filter(i => ['/people/profiles', '/people/reviews', '/people/leave'].includes(i.to)) : peopleItems).map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/people'}
+                  className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                  onClick={onClose}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
                 </NavLink>
               ))}
             </nav>

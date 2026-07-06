@@ -33,9 +33,17 @@ service cloud.firestore {
     function isArchitect()     { return callerRole() == 'Architect'; }
     function isQA()            { return callerRole() == 'QA Engineer'; }
     function isDeveloper()     { return callerRole() == 'Developer'; }
+    function isHRManager()     { return callerRole() == 'HR Manager'; }
 
     function canManageUsers() { return isPlatformAdmin() || isManager(); }
     function canReadAll()     { return isPlatformAdmin() || isManager() || isArchitect(); }
+
+    // People Operations — Platform Admin (full), Engineering Manager (team),
+    // HR Manager (people ops) can manage recruitment/onboarding/policies.
+    // Everyone signed in can read/write their own profile-linked records
+    // (self profile, self leave, self reviews) via the isOwnPeopleRecord check.
+    function canManagePeopleOps() { return isPlatformAdmin() || isManager() || isHRManager(); }
+    function isOwnPeopleRecord()  { return isSignedIn() && resource.data.get('uid', '') == request.auth.uid; }
 
     // ── Users ──────────────────────────────────────────────────────────────
     // Each user document is keyed by uid.
@@ -176,6 +184,95 @@ service cloud.firestore {
         resource.data.recipientId == request.auth.uid || canManageUsers()
       );
       allow delete: if isPlatformAdmin();
+    }
+
+    // ── People Operations ──────────────────────────────────────────────────
+    // Foundation collections for interns/employees/contractors: recruitment,
+    // onboarding, lifecycle profiles, 1:1 reviews, leave, policies, culture.
+
+    match /peopleProfiles/{docId} {
+      allow read:   if isSignedIn() && (isOwnPeopleRecord() || canManagePeopleOps() || canReadAll());
+      allow create: if canManagePeopleOps();
+      allow update: if canManagePeopleOps() || isOwnPeopleRecord();
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /peopleJobOpenings/{docId} {
+      allow read:   if isSignedIn();
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleCandidates/{docId} {
+      allow read:   if canManagePeopleOps() || canReadAll();
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleApplications/{docId} {
+      allow read:   if canManagePeopleOps() || canReadAll();
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleInterviews/{docId} {
+      allow read:   if canManagePeopleOps() || canReadAll() ||
+        (isSignedIn() && resource.data.interviewerId == request.auth.uid);
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleOffers/{docId} {
+      allow read:   if canManagePeopleOps() || canReadAll();
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleOnboarding/{docId} {
+      allow read:   if canManagePeopleOps() || canReadAll() || isOwnPeopleRecord();
+      allow write:  if canManagePeopleOps();
+    }
+
+    match /peopleOneOnOneReviews/{docId} {
+      allow read: if isSignedIn() && (
+        canManagePeopleOps() || canReadAll() ||
+        resource.data.managerId == request.auth.uid
+      );
+      allow create: if canManagePeopleOps() || isManager();
+      allow update: if canManagePeopleOps() || resource.data.managerId == request.auth.uid;
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /peopleLeaveRequests/{docId} {
+      allow read: if isSignedIn() && (
+        canManagePeopleOps() || canReadAll() ||
+        resource.data.createdBy == request.auth.uid
+      );
+      allow create: if isSignedIn();
+      allow update: if canManagePeopleOps() || resource.data.createdBy == request.auth.uid;
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /peoplePolicies/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if canManagePeopleOps();
+    }
+
+    match /peoplePolicyAcknowledgements/{docId} {
+      allow read: if isSignedIn() && (
+        canManagePeopleOps() || resource.data.createdBy == request.auth.uid
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Acknowledgements are immutable.
+    }
+
+    match /peopleCultureSignals/{docId} {
+      allow read: if isSignedIn() && (
+        canManagePeopleOps() || canReadAll() ||
+        (resource.data.get('visibleToPerson', false) == true && resource.data.createdBy == request.auth.uid)
+      );
+      allow write: if canManagePeopleOps();
+    }
+
+    match /peopleAuditLogs/{docId} {
+      allow create: if isSignedIn();
+      allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin() || canManagePeopleOps());
+      allow update, delete: if false; // Logs are immutable.
     }
 
     // ── Assignment Comments ────────────────────────────────────────────────

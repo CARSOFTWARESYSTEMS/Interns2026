@@ -11,7 +11,7 @@ import ProfileCompletion from '../../components/ui/ProfileCompletion'
 import { getAllUsers, setUserRole } from '../../firebase/firestore'
 import { calcProfileCompletion, type UserProfile, type UserRole, type UserStatus } from '../../types/auth'
 
-const ROLES: UserRole[] = ['Platform Admin', 'Engineering Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer']
+const ROLES: UserRole[] = ['Platform Admin', 'Engineering Manager', 'HR Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer']
 const STATUS_COLORS: Record<UserStatus, string> = {
   Active:    'bg-green-100 text-green-700 border-green-200',
   Pending:   'bg-amber-100 text-amber-700 border-amber-200',

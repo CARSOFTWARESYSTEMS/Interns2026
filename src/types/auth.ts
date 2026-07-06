@@ -14,23 +14,51 @@ export type UserRole =
   | 'QA Engineer'
   | 'Developer'
   | 'Viewer'
+  | 'HR Manager'
 
 export type UserStatus = 'Pending' | 'Active' | 'Blocked' | 'Inactive' | 'Deleted' | 'Suspended'
+
+// ── People Operations role mapping ──────────────────────────────────────────
+// People Operations MVP does not introduce a full new role hierarchy — it maps
+// onto existing platform roles plus one new role ('HR Manager'). This mapping
+// is consumed by People Operations pages/services and firestore.rules; it does
+// not alter behaviour of any existing (non-People) route or permission.
+export type PeopleAccessLevel = 'full' | 'org' | 'team' | 'people_ops' | 'self' | 'read_only' | 'none'
+
+export const PEOPLE_ROLE_ACCESS: Record<UserRole, PeopleAccessLevel> = {
+  'Platform Admin':      'full',        // full access
+  'Engineering Manager': 'team',        // team people access (treated as "Manager")
+  'HR Manager':          'people_ops',  // people operations access
+  'Architect':           'self',        // self profile, self leave, self reviews only
+  'QA Engineer':         'self',
+  'Developer':           'self',        // covers intern/employee/contractor engineers
+  'Viewer':              'read_only',   // read-only if allowed
+}
 
 // Flat permission strings checked by RoleGuard
 const _ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'Platform Admin':       ['*'],
-  'Engineering Manager':  ['assignments:write', 'reports:read', 'users:read', 'stories:write', 'developers:write', 'qa:assign', 'architect:assign', 'weekly:approve'],
-  'Architect':            ['architecture:approve', 'evidence:approve', 'stories:read', 'simulators:read', 'assignments:read'],
-  'QA Engineer':          ['stories:qa', 'evidence:verify', 'assigned:read'],
-  'Developer':            ['own:read', 'own:write'],
-  'Viewer':               ['dashboard:read', 'stories:read', 'simulators:read', 'reports:read'],
+  'Engineering Manager':  ['assignments:write', 'reports:read', 'users:read', 'stories:write', 'developers:write', 'qa:assign', 'architect:assign', 'weekly:approve', 'people:team'],
+  'Architect':            ['architecture:approve', 'evidence:approve', 'stories:read', 'simulators:read', 'assignments:read', 'people:self'],
+  'QA Engineer':          ['stories:qa', 'evidence:verify', 'assigned:read', 'people:self'],
+  'Developer':            ['own:read', 'own:write', 'people:self'],
+  'Viewer':               ['dashboard:read', 'stories:read', 'simulators:read', 'reports:read', 'people:read'],
+  'HR Manager':           ['people:write', 'people:read', 'people:recruitment', 'people:leave:approve', 'people:policies:write'],
 }
 
 export function hasPermission(role: UserRole, action: string): boolean {
   const perms = _ROLE_PERMISSIONS[role] ?? []
   return perms.includes('*') || perms.includes(action) || perms.includes(action.split(':')[0] + ':*')
 }
+
+// People Operations routes that require org/team/people_ops-level access.
+// Self-level roles (Developer/Architect/QA Engineer) are restricted to their
+// own profile, leave and reviews — enforced at the data layer, not the route
+// layer, since /people/profiles etc. render a single-person view for them.
+const PEOPLE_MANAGED_ROUTES = [
+  '/people/recruitment', '/people/candidates', '/people/interviews',
+  '/people/offers', '/people/onboarding', '/people/policies',
+]
 
 export function canAccessRoute(role: UserRole, path: string): boolean {
   // Routes openly accessible to authenticated users with a complete profile
@@ -40,15 +68,22 @@ export function canAccessRoute(role: UserRole, path: string): boolean {
   // Admin-only routes
   if (path.startsWith('/admin')) return role === 'Platform Admin'
 
+  // People Operations — recruitment/pipeline/policy management routes are
+  // restricted to full/org/team/people_ops access levels.
+  if (PEOPLE_MANAGED_ROUTES.some(r => path === r || path.startsWith(r + '/'))) {
+    const level = PEOPLE_ROLE_ACCESS[role]
+    return level === 'full' || level === 'org' || level === 'team' || level === 'people_ops'
+  }
+
   // Developer can only see own story/simulator (enforced at data layer)
   if (role === 'Developer') {
-    const allowed = ['/assignments', '/stories', '/simulators', '/evidence', '/qa', '/weekly', '/demo']
+    const allowed = ['/assignments', '/stories', '/simulators', '/evidence', '/qa', '/weekly', '/demo', '/people']
     return allowed.some(r => path === r || path.startsWith(r + '/'))
   }
 
   // Viewer: read-only access to main pages
   if (role === 'Viewer') {
-    const allowed = ['/', '/stories', '/simulators', '/developers', '/assignments', '/reports', '/evidence']
+    const allowed = ['/', '/stories', '/simulators', '/developers', '/assignments', '/reports', '/evidence', '/people']
     return allowed.some(r => path === r || path.startsWith(r + '/'))
   }
 
