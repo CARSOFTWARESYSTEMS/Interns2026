@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileSignature, Settings2, FileCheck2, FolderOpen, ArrowRight } from 'lucide-react'
+import { FileSignature, Settings2, FileCheck2, FolderOpen, ArrowRight, LayoutGrid } from 'lucide-react'
 import PageHeader from '../../../components/ui/PageHeader'
 import SectionCard from '../../../components/ui/SectionCard'
 import { getAllLetters } from '../../../firebase/peopleLetters'
 import { SEED_GENERATED_LETTERS } from '../../../data/peopleLettersSeed'
+import { DOCUMENT_CATALOG, type DocumentCatalogCategory } from '../../../types/documentCatalog'
 import type { PeopleGeneratedLetter } from '../../../types/peopleLetters'
+
+const CATALOG_CATEGORIES = Array.from(new Set(DOCUMENT_CATALOG.map(d => d.category))) as DocumentCatalogCategory[]
 
 const CARDS = [
   {
@@ -95,6 +98,34 @@ export default function DocumentsHome() {
           </Link>
         ))}
       </div>
+
+      <SectionCard
+        title="Document Catalog"
+        subtitle="The Corporate Document Engine's full roadmap — Offer & Joining Letter are live today, the rest are architecture-ready and not yet built."
+        icon={<LayoutGrid size={14} />}
+      >
+        <div className="space-y-4">
+          {CATALOG_CATEGORIES.map(category => (
+            <div key={category}>
+              <p className="text-xs font-semibold text-slate-500 mb-1.5">{category}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {DOCUMENT_CATALOG.filter(d => d.category === category).map(d => (
+                  <span
+                    key={d.key}
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border whitespace-nowrap ${
+                      d.implemented
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : 'bg-slate-50 text-slate-400 border-slate-200'
+                    }`}
+                  >
+                    {d.label}{!d.implemented && ' · Coming soon'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
     </div>
   )
 }

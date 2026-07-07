@@ -48,5 +48,9 @@ export const SEED_GENERATED_LETTERS: PeopleGeneratedLetter[] = [
     pdfUrl: '',
     pdfStoragePath: '',
     rejectionReason: '',
+    templateVersion: '1.0',
+    isDisabled: false,
+    isArchived: false,
+    deletedAt: '',
   },
 ]

@@ -45,6 +45,7 @@ export default function OfferLetter() {
     await createDraftLetter({
       letterType: 'offer',
       templateId: template?.id ?? 'default',
+      templateVersion: template?.version ?? '1.0',
       candidateId: '',
       candidateName: form.candidateName,
       candidateEmail: form.candidateEmail,
@@ -69,7 +70,7 @@ export default function OfferLetter() {
 
   async function handleGeneratePdf(letter: PeopleGeneratedLetter) {
     if (!uid || !template) return
-    downloadLetterPdf(letter, template)
+    await downloadLetterPdf(letter, template)
     await markPdfGenerated(letter.id, uid, letterStoragePath(letter))
   }
 

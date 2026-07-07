@@ -60,9 +60,58 @@ export const LETTER_STATUSES: LetterStatus[] = [
   'PDF Generated', 'Sent', 'Downloaded', 'Accepted',
 ]
 
+// ── Premium branding / theme (PEOPLE-003) ───────────────────────────────────
+
+export type TemplateTheme =
+  | 'classic' | 'corporate' | 'premium' | 'aerospace' | 'defence' | 'minimal'
+
+export const TEMPLATE_THEMES: TemplateTheme[] = [
+  'classic', 'corporate', 'premium', 'aerospace', 'defence', 'minimal',
+]
+
+export const TEMPLATE_THEME_LABELS: Record<TemplateTheme, string> = {
+  classic:   'Classic',
+  corporate: 'Corporate',
+  premium:   'Premium',
+  aerospace: 'Aerospace',
+  defence:   'Defence',
+  minimal:   'Minimal',
+}
+
+// Only 'Inter' is actually embedded as a PDF font in this iteration (bundled
+// TTFs registered with jsPDF). The others are stored for a future sprint and
+// currently only affect nothing in the generated PDF.
+export const TEMPLATE_FONTS = ['Inter', 'Plus Jakarta Sans', 'Manrope', 'Source Sans 3', 'Poppins'] as const
+export type TemplateFont = (typeof TEMPLATE_FONTS)[number]
+
+export interface TemplateBrandColors {
+  primary: string    // Primary Green
+  secondary: string  // Primary Blue
+  accent: string      // Orange
+  navy: string        // Dark Navy
+  lightGray: string   // Light Gray
+  success: string     // Success Green
+}
+
+export const DEFAULT_BRAND_COLORS: TemplateBrandColors = {
+  primary:   '#00E676',
+  secondary: '#246BFD',
+  accent:    '#FF8A00',
+  navy:      '#0B1220',
+  lightGray: '#F5F7FA',
+  success:   '#16A34A',
+}
+
 // ── Template configuration ───────────────────────────────────────────────────
 // One reusable template drives every generated letter. HR only fills in
 // candidate-specific fields on the letter itself (see PeopleGeneratedLetter).
+//
+// Versioning: a template as HR thinks of it is a `templateGroupId`. Editing
+// and saving a new version writes a NEW Firestore doc with the same
+// `templateGroupId`, an incremented `version`, and `isLatest: true` — the
+// previous latest doc for that group is flipped to `isLatest: false`. The
+// template list UI shows one row per group (its latest version); version
+// history queries all docs sharing a `templateGroupId`.
 
 export interface PeopleLetterTemplate extends PeopleDocBase {
   id: string
@@ -78,6 +127,7 @@ export interface PeopleLetterTemplate extends PeopleDocBase {
   companyAddress: string
   companyEmail: string
   companyWebsite: string
+  companyPhone: string
   letterheadImageUrl: string
   companyLogoUrl: string
 
@@ -93,6 +143,7 @@ export interface PeopleLetterTemplate extends PeopleDocBase {
   // HR signatory
   hrManagerName: string
   hrManagerDesignation: string
+  hrManagerEmail: string
   signatureImageUrl: string
 
   // Toggleable sections / clauses
@@ -102,6 +153,27 @@ export interface PeopleLetterTemplate extends PeopleDocBase {
   codeOfConductClause: string
   terminationClause: string
   acceptanceInstructionText: string
+
+  // Premium branding (PEOPLE-003)
+  theme: TemplateTheme
+  fontFamily: TemplateFont
+  brandColors: TemplateBrandColors
+  heroBannerEnabled: boolean
+  heroBannerImageUrl: string
+  watermarkEnabled: boolean
+  watermarkText: string
+  qrCodeEnabled: boolean
+  companySealEnabled: boolean
+  companySealImageUrl: string
+
+  // Versioning & lifecycle (PEOPLE-003)
+  templateGroupId: string
+  version: string          // e.g. "1.0", "1.1", "2.0"
+  isLatest: boolean
+  versionNote: string
+  isDefault: boolean
+  isArchived: boolean
+  deletedAt: string        // '' when not soft-deleted
 }
 
 export function emptyLetterTemplate(): Omit<PeopleLetterTemplate,
@@ -111,12 +183,13 @@ export function emptyLetterTemplate(): Omit<PeopleLetterTemplate,
     isActive: true,
     companyName: 'iTelematics Software Private Limited',
     businessUnit: 'EV.ENGINEER',
-    department: 'Engineering',
-    domain: 'Electric Vehicles & Aerospace Cybersecurity',
+    department: 'Energy Battery Intelligence',
+    domain: 'Aerospace',
     specialisation: '',
     companyAddress: 'Bangalore, Karnataka, India',
-    companyEmail: 'people@evengineer.com',
-    companyWebsite: 'https://evengineer.com',
+    companyEmail: 'info@itelematics.com',
+    companyWebsite: 'https://itelematics.com',
+    companyPhone: '',
     letterheadImageUrl: '',
     companyLogoUrl: '',
     internshipType: 'Remote Research Internship',
@@ -124,8 +197,9 @@ export function emptyLetterTemplate(): Omit<PeopleLetterTemplate,
     weeklyHours: '20-25 hours/week',
     headerText: 'iTelematics Software Private Limited — EV.ENGINEER',
     footerText: 'This is a system-generated letter and is valid without a physical signature.',
-    hrManagerName: '',
+    hrManagerName: 'Tanuja Revansidh Jadhav',
     hrManagerDesignation: 'HR Manager',
+    hrManagerEmail: 'tanujajadhav725@gmail.com',
     signatureImageUrl: '',
     stipendSectionEnabledByDefault: false,
     certificateEligibilityText:
@@ -138,6 +212,25 @@ export function emptyLetterTemplate(): Omit<PeopleLetterTemplate,
       'Either party may terminate this internship engagement with written notice, in case of unsatisfactory performance, misconduct, or business need.',
     acceptanceInstructionText:
       'Please confirm your acceptance of this offer by replying to this email before the acceptance deadline stated above.',
+
+    theme: 'premium',
+    fontFamily: 'Inter',
+    brandColors: { ...DEFAULT_BRAND_COLORS },
+    heroBannerEnabled: true,
+    heroBannerImageUrl: 'https://www.ev.engineer/_next/image?url=%2Fimages%2FSudarshana%20Karkala%20EV%20ENGINEER.png&w=3840&q=75',
+    watermarkEnabled: false,
+    watermarkText: 'CONFIDENTIAL',
+    qrCodeEnabled: true,
+    companySealEnabled: false,
+    companySealImageUrl: '',
+
+    templateGroupId: 'default',
+    version: '1.0',
+    isLatest: true,
+    versionNote: 'Initial version',
+    isDefault: true,
+    isArchived: false,
+    deletedAt: '',
   }
 }
 
@@ -177,10 +270,23 @@ export interface PeopleGeneratedLetter extends PeopleDocBase {
   pdfStoragePath: string
 
   rejectionReason: string
+
+  // Template traceability (PEOPLE-003) — which exact version generated this.
+  templateVersion: string
+
+  // Generated-document lifecycle (PEOPLE-003)
+  isDisabled: boolean
+  isArchived: boolean
+  deletedAt: string        // '' when not soft-deleted
 }
 
 export function letterDocPrefix(letterType: LetterType): string {
   return letterType === 'offer' ? 'OFFER' : 'JOIN'
+}
+
+/** Future verification URL encoded into every generated document's QR code. */
+export function letterVerificationUrl(documentId: string): string {
+  return `https://ev.engineer/verify/${documentId}`
 }
 
 // ── Approvals (explicit approval history, separate from the convenience
@@ -222,6 +328,20 @@ export type PeopleLetterAuditAction =
   | 'letter_sent'
   | 'letter_downloaded'
   | 'letter_accepted'
+  // Template lifecycle (PEOPLE-003)
+  | 'template_created'
+  | 'template_cloned'
+  | 'template_archived'
+  | 'template_restored'
+  | 'template_deleted'
+  | 'template_version_created'
+  | 'template_set_default'
+  // Generated-document lifecycle (PEOPLE-003)
+  | 'document_regenerated'
+  | 'document_disabled'
+  | 'document_archived'
+  | 'document_soft_deleted'
+  | 'document_restored'
 
 export interface PeopleLetterAuditLog extends PeopleDocBase {
   id: string

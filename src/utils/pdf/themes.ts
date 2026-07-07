@@ -1,0 +1,23 @@
+// ── Template Theme Presets (PEOPLE-003) ──────────────────────────────────────
+// A shared layout engine (see letterPdf.ts) renders every theme — themes are
+// small preset tweaks (corner radius, card density, which brand color drives
+// section headings) layered on top of the template's own brandColors, not
+// six independently-built layouts.
+
+import type { TemplateTheme, TemplateBrandColors } from '../../types/peopleLetters'
+
+export interface ThemePreset {
+  cornerRadius: number                    // mm, rounded-rect corner radius for cards
+  cardFillOpacity: number                 // 0–1, card background tint strength
+  headingColorKey: keyof TemplateBrandColors  // which brand color drives section headings
+  rule: boolean                           // draw a divider rule under the masthead
+}
+
+export const THEME_PRESETS: Record<TemplateTheme, ThemePreset> = {
+  classic:   { cornerRadius: 0,   cardFillOpacity: 0.40, headingColorKey: 'navy',      rule: true  },
+  corporate: { cornerRadius: 1.5, cardFillOpacity: 0.50, headingColorKey: 'secondary', rule: true  },
+  premium:   { cornerRadius: 3,   cardFillOpacity: 0.60, headingColorKey: 'primary',   rule: false },
+  aerospace: { cornerRadius: 0.5, cardFillOpacity: 0.50, headingColorKey: 'secondary', rule: true  },
+  defence:   { cornerRadius: 0,   cardFillOpacity: 0.45, headingColorKey: 'navy',      rule: true  },
+  minimal:   { cornerRadius: 2,   cardFillOpacity: 0.25, headingColorKey: 'navy',      rule: false },
+}

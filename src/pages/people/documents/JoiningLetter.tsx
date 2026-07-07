@@ -51,6 +51,7 @@ export default function JoiningLetter() {
     await createDraftLetter({
       letterType: 'joining',
       templateId: template?.id ?? 'default',
+      templateVersion: template?.version ?? '1.0',
       candidateId: offer.candidateId,
       candidateName: offer.candidateName,
       candidateEmail: offer.candidateEmail,
@@ -75,7 +76,7 @@ export default function JoiningLetter() {
 
   async function handleGeneratePdf(letter: PeopleGeneratedLetter) {
     if (!uid || !template) return
-    downloadLetterPdf(letter, template)
+    await downloadLetterPdf(letter, template)
     await markPdfGenerated(letter.id, uid, letterStoragePath(letter))
   }
 

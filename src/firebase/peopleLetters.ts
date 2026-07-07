@@ -9,7 +9,9 @@ import type {
   PeopleLetterCounter, PeopleLetterAuditLog, PeopleLetterAuditAction,
   LetterType, LetterStatus,
 } from '../types/peopleLetters'
-import { DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID, letterDocPrefix } from '../types/peopleLetters'
+import {
+  DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID, letterDocPrefix, emptyLetterTemplate,
+} from '../types/peopleLetters'
 
 // ── Envelope helper (mirrors src/firebase/people.ts) ─────────────────────────
 
@@ -53,18 +55,109 @@ export async function getLetterAuditLogs(maxResults = 50): Promise<PeopleLetterA
 }
 
 // ── Templates ──────────────────────────────────────────────────────────────
-// A single reusable template drives every generated letter. Stored under a
-// fixed id ("default") since People Ops asked for "reusable templates" that
-// HR configures once and reuses per candidate, not one template per letter.
+// Multiple reusable, versioned templates (PEOPLE-003) live in this same
+// collection. A "template" as HR thinks of it is a `templateGroupId`; saving
+// a new version writes a NEW doc sharing that group id with an incremented
+// `version` and `isLatest: true`, flipping the previous latest doc to false.
+//
+// Backward compatible with the PEOPLE-002 single fixed-id doc
+// ("peopleLetterTemplates/default", predating branding/versioning fields):
+// normalizeTemplate() fills in sane defaults for any missing field, so that
+// legacy doc keeps working, unmigrated, forever — it's just read as v1.0 of
+// the "default" group.
 
 const TEMPLATES = 'peopleLetterTemplates'
 const DEFAULT_TEMPLATE_ID = 'default'
 
-export async function getDefaultLetterTemplate(): Promise<PeopleLetterTemplate | null> {
-  const snap = await getDoc(doc(db, TEMPLATES, DEFAULT_TEMPLATE_ID))
-  return snap.exists() ? (snap.data() as PeopleLetterTemplate) : null
+function normalizeTemplate(raw: Record<string, unknown>): PeopleLetterTemplate {
+  const defaults = emptyLetterTemplate()
+  const template = {
+    ...defaults,
+    ...raw,
+    brandColors: { ...defaults.brandColors, ...((raw.brandColors as object) ?? {}) },
+  } as PeopleLetterTemplate
+  template.templateGroupId = (raw.templateGroupId as string) || (raw.id as string) || DEFAULT_TEMPLATE_ID
+  template.isDefault = raw.isDefault !== undefined ? Boolean(raw.isDefault) : raw.id === DEFAULT_TEMPLATE_ID
+  return template
 }
 
+function bumpVersion(version: string): string {
+  const [major, minor] = version.split('.').map(n => Number(n) || 0)
+  return `${major}.${minor + 1}`
+}
+
+/** Every latest, non-deleted template — one row per templateGroupId. */
+export async function getAllTemplates(): Promise<PeopleLetterTemplate[]> {
+  const snap = await getDocs(collection(db, TEMPLATES))
+  return snap.docs
+    .map(d => normalizeTemplate(d.data()))
+    .filter(t => t.isLatest && !t.deletedAt)
+    .sort((a, b) => a.templateName.localeCompare(b.templateName))
+}
+
+/** Latest-version templates that are archived and/or soft-deleted — for the "Archived & Deleted" panel. */
+export async function getArchivedOrDeletedTemplates(): Promise<PeopleLetterTemplate[]> {
+  const snap = await getDocs(collection(db, TEMPLATES))
+  return snap.docs
+    .map(d => normalizeTemplate(d.data()))
+    .filter(t => t.isLatest && (t.isArchived || t.deletedAt))
+    .sort((a, b) => a.templateName.localeCompare(b.templateName))
+}
+
+/** All versions (across time) for one templateGroupId, newest first. */
+export async function getTemplateVersionHistory(templateGroupId: string): Promise<PeopleLetterTemplate[]> {
+  const snap = await getDocs(collection(db, TEMPLATES))
+  return snap.docs
+    .map(d => normalizeTemplate(d.data()))
+    .filter(t => t.templateGroupId === templateGroupId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
+export async function getTemplate(id: string): Promise<PeopleLetterTemplate | null> {
+  const snap = await getDoc(doc(db, TEMPLATES, id))
+  return snap.exists() ? normalizeTemplate(snap.data()) : null
+}
+
+/** The template every offer/joining letter draft defaults to. */
+export async function getDefaultLetterTemplate(): Promise<PeopleLetterTemplate | null> {
+  const all = await getAllTemplates()
+  const active = all.filter(t => !t.isArchived)
+  return active.find(t => t.isDefault) ?? active[0] ?? all[0] ?? null
+}
+
+type TemplateInput = Omit<
+  PeopleLetterTemplate,
+  'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy'
+  | 'templateGroupId' | 'version' | 'isLatest'
+>
+
+export async function createTemplate(template: TemplateInput, createdBy: string): Promise<string> {
+  const ref = await addDoc(collection(db, TEMPLATES), withEnvelope(
+    { ...template, version: '1.0', isLatest: true }, createdBy, 'active',
+  ))
+  await updateDoc(ref, { id: ref.id, templateGroupId: ref.id })
+  await writeLetterAuditLog({ uid: createdBy, action: 'template_created', resource: `templates/${ref.id}`, details: `Template "${template.templateName}" created` })
+  return ref.id
+}
+
+export async function saveNewTemplateVersion(
+  templateGroupId: string, template: TemplateInput, updatedBy: string, versionNote = '',
+): Promise<string> {
+  const history = await getTemplateVersionHistory(templateGroupId)
+  const currentLatest = history.find(t => t.isLatest)
+  const nextVersion = bumpVersion(currentLatest?.version ?? '1.0')
+  if (currentLatest) {
+    await updateDoc(doc(db, TEMPLATES, currentLatest.id), { isLatest: false, updatedAt: new Date().toISOString() })
+  }
+  const ref = await addDoc(collection(db, TEMPLATES), withEnvelope(
+    { ...template, templateGroupId, version: nextVersion, isLatest: true, versionNote }, updatedBy, 'active',
+  ))
+  await updateDoc(ref, { id: ref.id })
+  await writeLetterAuditLog({ uid: updatedBy, action: 'template_version_created', resource: `templates/${ref.id}`, details: `Template "${template.templateName}" saved as version ${nextVersion}` })
+  return ref.id
+}
+
+/** Legacy single-template save path — kept for backward compatibility. New UI uses createTemplate / saveNewTemplateVersion. */
 export async function upsertDefaultLetterTemplate(
   template: Omit<PeopleLetterTemplate, 'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy'>,
   updatedBy: string
@@ -87,6 +180,59 @@ export async function upsertDefaultLetterTemplate(
     })
   }
   await writeLetterAuditLog({ uid: updatedBy, action: 'template_updated', resource: `templates/${DEFAULT_TEMPLATE_ID}`, details: 'Letter template configuration updated' })
+}
+
+export async function cloneTemplate(id: string, createdBy: string): Promise<string> {
+  const source = await getTemplate(id)
+  if (!source) throw new Error('Template not found')
+  const {
+    id: _id, partnerId: _p, organisationId: _o, createdAt: _c, updatedAt: _u, status: _s, createdBy: _cb,
+    templateGroupId: _tg, version: _v, isLatest: _il, ...rest
+  } = source
+  const newId = await createTemplate({
+    ...rest,
+    templateName: `${source.templateName} (Copy)`,
+    isDefault: false,
+    isArchived: false,
+    deletedAt: '',
+    versionNote: `Cloned from ${source.templateName} v${source.version}`,
+  }, createdBy)
+  await writeLetterAuditLog({ uid: createdBy, action: 'template_cloned', resource: `templates/${newId}`, details: `Cloned from templates/${id}` })
+  return newId
+}
+
+export async function setTemplateActive(id: string, isActive: boolean): Promise<void> {
+  await touch(TEMPLATES, id, { isActive })
+}
+
+export async function archiveTemplate(id: string, performedBy: string): Promise<void> {
+  await touch(TEMPLATES, id, { isArchived: true })
+  await writeLetterAuditLog({ uid: performedBy, action: 'template_archived', resource: `templates/${id}`, details: 'Template archived' })
+}
+
+export async function unarchiveTemplate(id: string, performedBy: string): Promise<void> {
+  await touch(TEMPLATES, id, { isArchived: false })
+  await writeLetterAuditLog({ uid: performedBy, action: 'template_restored', resource: `templates/${id}`, details: 'Template unarchived' })
+}
+
+export async function softDeleteTemplate(id: string, performedBy: string): Promise<void> {
+  await touch(TEMPLATES, id, { deletedAt: new Date().toISOString() })
+  await writeLetterAuditLog({ uid: performedBy, action: 'template_deleted', resource: `templates/${id}`, details: 'Template soft-deleted' })
+}
+
+export async function restoreTemplate(id: string, performedBy: string): Promise<void> {
+  await touch(TEMPLATES, id, { deletedAt: '' })
+  await writeLetterAuditLog({ uid: performedBy, action: 'template_restored', resource: `templates/${id}`, details: 'Template restored from soft delete' })
+}
+
+export async function setDefaultTemplate(templateGroupId: string, performedBy: string): Promise<void> {
+  const all = await getAllTemplates()
+  await Promise.all(all
+    .filter(t => t.isDefault !== (t.templateGroupId === templateGroupId))
+    .map(t => updateDoc(doc(db, TEMPLATES, t.id), {
+      isDefault: t.templateGroupId === templateGroupId, updatedAt: new Date().toISOString(),
+    })))
+  await writeLetterAuditLog({ uid: performedBy, action: 'template_set_default', resource: `templates/${templateGroupId}`, details: 'Set as default template' })
 }
 
 // ── Document ID counters ──────────────────────────────────────────────────────
@@ -120,6 +266,7 @@ export type NewLetterInput = Omit<
   | 'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy'
   | 'documentId' | 'approvedBy' | 'approvedAt' | 'generatedBy' | 'generatedAt'
   | 'pdfUrl' | 'pdfStoragePath' | 'rejectionReason'
+  | 'isDisabled' | 'isArchived' | 'deletedAt'
 >
 
 export async function createDraftLetter(input: NewLetterInput, createdBy: string): Promise<string> {
@@ -131,6 +278,7 @@ export async function createDraftLetter(input: NewLetterInput, createdBy: string
     generatedBy: '', generatedAt: '',
     pdfUrl: '', pdfStoragePath: '',
     rejectionReason: '',
+    isDisabled: false, isArchived: false, deletedAt: '',
   }
   const ref = await addDoc(collection(db, LETTERS), withEnvelope(payload, createdBy, 'Draft' satisfies LetterStatus))
   await updateDoc(ref, { id: ref.id })
@@ -232,6 +380,44 @@ export async function markOfferAccepted(id: string, performedBy: string): Promis
 
 export async function deleteLetter(id: string): Promise<void> {
   await deleteDoc(doc(db, LETTERS, id))
+}
+
+// ── Generated-document lifecycle (PEOPLE-003) ───────────────────────────────
+// Regenerate/disable/archive/soft-delete/restore sit alongside (not instead
+// of) the Draft→...→Accepted workflow above — they manage visibility and
+// housekeeping of already-generated documents, not the approval workflow.
+
+export async function regenerateLetterPdf(id: string, performedBy: string): Promise<void> {
+  await writeLetterAuditLog({ uid: performedBy, action: 'document_regenerated', resource: `letters/${id}`, details: 'PDF regenerated' })
+}
+
+export async function setLetterDisabled(id: string, isDisabled: boolean, performedBy: string): Promise<void> {
+  await touch(LETTERS, id, { isDisabled })
+  await writeLetterAuditLog({ uid: performedBy, action: 'document_disabled', resource: `letters/${id}`, details: isDisabled ? 'Document disabled' : 'Document enabled' })
+}
+
+export async function setLetterArchived(id: string, isArchived: boolean, performedBy: string): Promise<void> {
+  await touch(LETTERS, id, { isArchived })
+  await writeLetterAuditLog({ uid: performedBy, action: 'document_archived', resource: `letters/${id}`, details: isArchived ? 'Document archived' : 'Document unarchived' })
+}
+
+export async function softDeleteGeneratedLetter(id: string, performedBy: string): Promise<void> {
+  await touch(LETTERS, id, { deletedAt: new Date().toISOString() })
+  await writeLetterAuditLog({ uid: performedBy, action: 'document_soft_deleted', resource: `letters/${id}`, details: 'Document soft-deleted' })
+}
+
+export async function restoreGeneratedLetter(id: string, performedBy: string): Promise<void> {
+  await touch(LETTERS, id, { deletedAt: '' })
+  await writeLetterAuditLog({ uid: performedBy, action: 'document_restored', resource: `letters/${id}`, details: 'Document restored' })
+}
+
+/** Audit trail for a single template or letter, e.g. `letters/{id}` or `templates/{id}`. */
+export async function getAuditLogsForResource(resource: string): Promise<PeopleLetterAuditLog[]> {
+  const q = query(collection(db, LETTER_AUDIT), where('resource', '==', resource))
+  const snap = await getDocs(q)
+  return snap.docs
+    .map(d => d.data() as PeopleLetterAuditLog)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 // ── Approvals ──────────────────────────────────────────────────────────────
