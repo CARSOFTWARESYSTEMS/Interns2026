@@ -152,9 +152,15 @@ export async function getAllLetters(): Promise<PeopleGeneratedLetter[]> {
 }
 
 export async function getLettersByType(letterType: LetterType): Promise<PeopleGeneratedLetter[]> {
-  const q = query(collection(db, LETTERS), where('letterType', '==', letterType), orderBy('createdAt', 'desc'))
+  // Deliberately no `orderBy` alongside this `where` — combining an equality
+  // filter with an orderBy on a different field requires a Firestore
+  // composite index that doesn't exist (and shouldn't need to, for a
+  // collection this size). Sort client-side instead.
+  const q = query(collection(db, LETTERS), where('letterType', '==', letterType))
   const snap = await getDocs(q)
-  return snap.docs.map(d => d.data() as PeopleGeneratedLetter)
+  return snap.docs
+    .map(d => d.data() as PeopleGeneratedLetter)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export async function submitLetterForApproval(id: string, performedBy: string): Promise<void> {
@@ -231,7 +237,10 @@ export async function deleteLetter(id: string): Promise<void> {
 // ── Approvals ──────────────────────────────────────────────────────────────
 
 export async function getApprovalsForLetter(letterId: string): Promise<PeopleLetterApproval[]> {
-  const q = query(collection(db, 'peopleLetterApprovals'), where('letterId', '==', letterId), orderBy('createdAt', 'desc'))
+  // No composite index needed — see getLettersByType for why orderBy is dropped here too.
+  const q = query(collection(db, 'peopleLetterApprovals'), where('letterId', '==', letterId))
   const snap = await getDocs(q)
-  return snap.docs.map(d => d.data() as PeopleLetterApproval)
+  return snap.docs
+    .map(d => d.data() as PeopleLetterApproval)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }

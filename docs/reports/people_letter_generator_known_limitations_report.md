@@ -3,6 +3,10 @@
 **Story:** PEOPLE-002
 **Date:** 2026-07-07
 
+## Post-review fix
+
+During a live click-through against a real Firebase project, `/people/documents/offer-letter` got stuck on "Loading…" with a console error: `FirebaseError: The query requires an index`. `getLettersByType` and `getApprovalsForLetter` in `src/firebase/peopleLetters.ts` combined a `where(...)` equality filter with `orderBy('createdAt', 'desc')` on a different field — Firestore requires a composite index for that combination, and none exists in this project. Rather than sending HR to the Firebase Console to create one (extra deploy step, and the index build can take minutes), both queries were changed to drop the `orderBy` and sort the results client-side in JS after fetching. This needs no index at all and is safe at this collection's expected size (per-candidate letter counts, not a high-volume table). Re-verified with `tsc --noEmit` (0 errors) and the static verify script (51/51) after the fix.
+
 These are known, intentional simplifications or gaps — not defects — scoped out to keep this story deterministic, AI-free, and shippable on top of the existing PEOPLE-001 foundation.
 
 ## PDF storage
