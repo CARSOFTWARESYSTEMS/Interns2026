@@ -45,6 +45,11 @@ service cloud.firestore {
     function canManagePeopleOps() { return isPlatformAdmin() || isManager() || isHRManager(); }
     function isOwnPeopleRecord()  { return isSignedIn() && resource.data.get('uid', '') == request.auth.uid; }
 
+    // Offer/Joining Letter Generator (PEOPLE-002) — strictly Super Admin
+    // (Platform Admin) + HR Manager. Unlike the rest of People Operations,
+    // Engineering Manager does NOT get access to these collections.
+    function canManageLetters() { return isPlatformAdmin() || isHRManager(); }
+
     // ── Users ──────────────────────────────────────────────────────────────
     // Each user document is keyed by uid.
     match /users/{uid} {
@@ -272,6 +277,38 @@ service cloud.firestore {
     match /peopleAuditLogs/{docId} {
       allow create: if isSignedIn();
       allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin() || canManagePeopleOps());
+      allow update, delete: if false; // Logs are immutable.
+    }
+
+    // ── Offer / Joining Letter Generator (PEOPLE-002) ───────────────────────
+    // Access is limited to Platform Admin (Super Admin) and HR Manager only.
+    // PDF binaries are never stored here — these collections hold metadata
+    // (document IDs, status, template config, approval trail) only.
+
+    match /peopleLetterTemplates/{docId} {
+      allow read:  if canManageLetters();
+      allow write: if canManageLetters();
+    }
+
+    match /peopleGeneratedLetters/{docId} {
+      allow read:  if canManageLetters();
+      allow write: if canManageLetters();
+    }
+
+    match /peopleLetterApprovals/{docId} {
+      allow read:   if canManageLetters();
+      allow create: if canManageLetters();
+      allow update, delete: if false; // Approval history is immutable.
+    }
+
+    match /peopleLetterCounters/{docId} {
+      allow read:  if canManageLetters();
+      allow write: if canManageLetters();
+    }
+
+    match /peopleLetterAuditLogs/{docId} {
+      allow create: if canManageLetters();
+      allow read:   if canManageLetters();
       allow update, delete: if false; // Logs are immutable.
     }
 

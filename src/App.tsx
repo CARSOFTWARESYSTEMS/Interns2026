@@ -55,6 +55,11 @@ import PeopleReviews from './pages/people/Reviews'
 import PeopleLeave from './pages/people/Leave'
 import PeoplePolicies from './pages/people/Policies'
 import PeopleCulture from './pages/people/Culture'
+import PeopleDocumentsHome from './pages/people/documents/DocumentsHome'
+import PeopleDocumentsTemplates from './pages/people/documents/Templates'
+import PeopleDocumentsOfferLetter from './pages/people/documents/OfferLetter'
+import PeopleDocumentsJoiningLetter from './pages/people/documents/JoiningLetter'
+import PeopleDocumentsGenerated from './pages/people/documents/GeneratedLetters'
 
 // Admin pages
 import AdminUsers from './pages/admin/Users'
@@ -209,6 +214,50 @@ export default function App() {
               }
             />
             <Route path="people/culture"      element={<PeopleCulture />} />
+
+            {/* People Operations — Documents (Offer/Joining Letter Generator, PEOPLE-002).
+                Restricted to Platform Admin (Super Admin) and HR Manager only — no other
+                role, including Engineering Manager, may access these routes. */}
+            <Route
+              path="people/documents"
+              element={
+                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                  <PeopleDocumentsHome />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/documents/templates"
+              element={
+                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                  <PeopleDocumentsTemplates />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/documents/offer-letter"
+              element={
+                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                  <PeopleDocumentsOfferLetter />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/documents/joining-letter"
+              element={
+                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                  <PeopleDocumentsJoiningLetter />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="people/documents/generated"
+              element={
+                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                  <PeopleDocumentsGenerated />
+                </RoleGuard>
+              }
+            />
 
             {/* Admin — Platform Admin + Engineering Manager */}
             <Route

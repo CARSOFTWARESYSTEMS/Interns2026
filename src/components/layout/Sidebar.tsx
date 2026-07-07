@@ -6,7 +6,7 @@ import {
   ClipboardList, BarChart2, Mail, Settings, UserCog,
   User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
   PlusSquare, UserPlus, Contact, MessagesSquare, Handshake,
-  UserCheck, MessageCircle, Plane, BookOpen, Sparkles,
+  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { getUnreadCount } from '../../firebase/assignments'
@@ -44,7 +44,13 @@ const peopleItems = [
   { to: '/people/leave',        label: 'Leave',            icon: Plane },
   { to: '/people/policies',     label: 'Policies',         icon: BookOpen },
   { to: '/people/culture',      label: 'Culture',          icon: Sparkles },
+  { to: '/people/documents',    label: 'Documents',        icon: FileSignature },
 ]
+
+// "/people/documents" (offer/joining letter generator) is Platform Admin +
+// HR Manager only — hidden from the nav for every other role, even though
+// they otherwise see the full People Operations section.
+const DOCUMENTS_ROUTE = '/people/documents'
 
 const adminItems = [
   { to: '/admin/users',               label: 'Users',               icon: UserCog },
@@ -67,6 +73,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const isAdmin   = role === 'Platform Admin'
   const isManager = role === 'Engineering Manager'
   const isDev     = role === 'Developer'
+  const isHR      = role === 'HR Manager'
+  const canSeeDocuments = isAdmin || isHR
 
   useEffect(() => {
     if (!uid) return
@@ -164,7 +172,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 px-3 mb-1.5">People Operations</p>
             <nav className="space-y-0.5">
-              {(isDev ? peopleItems.filter(i => ['/people/profiles', '/people/reviews', '/people/leave'].includes(i.to)) : peopleItems).map(({ to, label, icon: Icon }) => (
+              {(isDev
+                ? peopleItems.filter(i => ['/people/profiles', '/people/reviews', '/people/leave'].includes(i.to))
+                : peopleItems.filter(i => i.to !== DOCUMENTS_ROUTE || canSeeDocuments)
+              ).map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
                   to={to}

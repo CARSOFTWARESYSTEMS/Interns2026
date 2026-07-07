@@ -8,5 +8,10 @@
     "rewrites": [
       { "source": "**", "destination": "/index.html" }
     ]
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    }
   }
 }
