@@ -53,11 +53,36 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
-/** Blends a brand color toward white — used for soft card fills instead of true alpha transparency. */
-function tintHex(hex: string, amount: number): [number, number, number] {
-  const [r, g, b] = hexToRgb(hex)
-  const mix = (c: number) => Math.round(c + (255 - c) * Math.min(Math.max(amount, 0), 1))
-  return [mix(r), mix(g), mix(b)]
+/**
+ * Blends from color `a` toward color `b` by fraction `t`. Card/chip fills use
+ * this to mix a light neutral (the template's lightGray) with a touch of
+ * brand color — never the raw brand color tinted toward white, which for a
+ * saturated brand primary (e.g. a neon green) still reads as a solid loud
+ * block even at a "light" tint.
+ */
+function blendHex(a: string, b: string, t: number): [number, number, number] {
+  const [ar, ag, ab] = hexToRgb(a)
+  const [br, bg, bb] = hexToRgb(b)
+  const clamped = Math.min(Math.max(t, 0), 1)
+  const mix = (x: number, y: number) => Math.round(x + (y - x) * clamped)
+  return [mix(ar, br), mix(ag, bg), mix(ab, bb)]
+}
+
+/** Mirrors card()'s own layout math — shared so a sectionHeading's space reservation can never drift from what the card it precedes actually draws. */
+function cardContentHeight(rowCount: number, hasTitle: boolean): number {
+  const rowHeight = 6
+  const padding = 5
+  const titleHeight = hasTitle ? 7.5 : 2
+  return padding * 2 + titleHeight + rowCount * rowHeight + 4
+}
+
+/** Mirrors chipGrid()'s own layout math — see cardContentHeight. */
+function chipGridContentHeight(itemCount: number): number {
+  const cols = 2
+  const gap = 4
+  const chipHeight = 9.5
+  const rows = Math.ceil(itemCount / cols)
+  return rows * (chipHeight + gap)
 }
 
 type FontWeight = 'normal' | 'semibold' | 'bold'
@@ -68,6 +93,7 @@ class LetterWriter {
   template: PeopleLetterTemplate
   theme: ThemePreset
   hasPremiumFont = false
+  bannerRendered = false
 
   constructor(template: PeopleLetterTemplate) {
     this.doc = new jsPDF({ unit: 'mm', format: 'a4' })
@@ -108,8 +134,17 @@ class LetterWriter {
     this.y += size / 2.4
   }
 
-  sectionHeading(text: string) {
-    this.ensureSpace(9)
+  /**
+   * `contentReserveMm` should be the height of whatever immediately follows
+   * this heading (a card/chip-grid/clause-card) — every call site here is
+   * followed by exactly one such block, so reserving only the heading's own
+   * height lets it print right at the bottom of a page with its content
+   * orphaned onto the next one. Pass the real content height (see
+   * `cardContentHeight` / `chipGridContentHeight`) so heading and content
+   * always page-break together.
+   */
+  sectionHeading(text: string, contentReserveMm = 15) {
+    this.ensureSpace(9 + contentReserveMm)
     this.setFont('bold')
     this.doc.setFontSize(12.5)
     const [r, g, b] = hexToRgb(this.template.brandColors[this.theme.headingColorKey])
@@ -155,7 +190,10 @@ class LetterWriter {
 
   private cardChrome(height: number) {
     const accent = hexToRgb(this.template.brandColors[this.theme.headingColorKey])
-    const fill = tintHex(this.template.brandColors[this.theme.headingColorKey], 1 - this.theme.cardFillOpacity)
+    // Neutral light-gray base with just a touch of brand accent mixed in — a
+    // saturated brand primary tinted toward white still reads as a solid
+    // loud block, so the base color itself must be the template's lightGray.
+    const fill = blendHex(this.template.brandColors.lightGray, this.template.brandColors[this.theme.headingColorKey], this.theme.cardFillOpacity)
     this.doc.setFillColor(fill[0], fill[1], fill[2])
     this.doc.roundedRect(MARGIN, this.y, CONTENT_WIDTH, height, this.theme.cornerRadius, this.theme.cornerRadius, 'F')
     this.doc.setFillColor(accent[0], accent[1], accent[2])
@@ -169,7 +207,7 @@ class LetterWriter {
     const padding = 5
     const titleHeight = title ? 7.5 : 2
     const height = padding * 2 + titleHeight + rows.length * rowHeight
-    this.ensureSpace(height + 4)
+    this.ensureSpace(cardContentHeight(rows.length, Boolean(title)))
     const accent = this.cardChrome(height)
 
     let cy = this.y + padding + 1
@@ -226,9 +264,9 @@ class LetterWriter {
     const chipWidth = (CONTENT_WIDTH - gap * (cols - 1)) / cols
     const chipHeight = 9.5
     const rows = Math.ceil(items.length / cols)
-    this.ensureSpace(rows * (chipHeight + gap))
+    this.ensureSpace(chipGridContentHeight(items.length))
     const accent = hexToRgb(this.template.brandColors.primary)
-    const fill = tintHex(this.template.brandColors.primary, 1 - Math.min(this.theme.cardFillOpacity, 0.35))
+    const fill = blendHex(this.template.brandColors.lightGray, this.template.brandColors.primary, this.theme.cardFillOpacity)
     items.forEach((item, i) => {
       const col = i % cols
       const row = Math.floor(i / cols)
@@ -262,6 +300,7 @@ class LetterWriter {
       const x = MARGIN + (CONTENT_WIDTH - w) / 2
       this.doc.addImage(dataUrl, imageFormatFromDataUrl(dataUrl), x, this.y, w, h)
       this.y += h + 5
+      this.bannerRendered = true
     } catch {
       // Known limitation: if the image can't be measured/embedded (e.g. unsupported
       // format), skip the banner rather than breaking PDF generation.
@@ -269,7 +308,12 @@ class LetterWriter {
   }
 
   masthead(letter: PeopleGeneratedLetter, titleText: string) {
-    this.heading(this.template.businessUnit || this.template.companyName, { size: 20 })
+    // Skip the big brand-name line when the hero banner already rendered —
+    // the banner image itself carries the brand identity, so repeating it as
+    // a large text heading directly underneath just reads as clutter.
+    if (!this.bannerRendered) {
+      this.heading(this.template.businessUnit || this.template.companyName, { size: 20 })
+    }
     if (this.template.headerText) this.subheading(this.template.headerText)
     this.spacer(1)
     this.heading(titleText, { size: 14, color: hexToRgb(this.template.brandColors[this.theme.headingColorKey]) })
@@ -287,7 +331,7 @@ class LetterWriter {
 
   async signatureBlock() {
     this.spacer(6)
-    this.sectionHeading('Authorized Signatory')
+    this.sectionHeading('Authorized Signatory', 20)
     const t = this.template
 
     if (t.signatureImageUrl) {
@@ -333,6 +377,12 @@ class LetterWriter {
   footer(letter: PeopleGeneratedLetter, qrDataUrl: string | null) {
     const t = this.template
     const pageCount = this.doc.getNumberOfPages()
+    // Centered, stacked lines rather than a left/right-aligned pair — a
+    // left-aligned company/contact line and a right-aligned document-ID line
+    // can run into each other with no gap when either string is long enough,
+    // which reads as a layout bug rather than "confidential letterhead."
+    const contactLine = [t.companyName, t.companyWebsite, t.companyEmail, t.companyPhone].filter(Boolean).join(' · ')
+    const idLine = `${letter.documentId} · v${letter.templateVersion || t.version} · CONFIDENTIAL`
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i)
       this.doc.setDrawColor(220)
@@ -340,15 +390,11 @@ class LetterWriter {
       this.setFont('normal')
       this.doc.setFontSize(7.5)
       this.doc.setTextColor(120)
-      const left = [t.companyName, t.companyWebsite, t.companyEmail, t.companyPhone].filter(Boolean).join(' · ')
-      this.doc.text(left, MARGIN, FOOTER_Y)
-      this.doc.text(
-        `${letter.documentId} · v${letter.templateVersion || t.version} · CONFIDENTIAL`,
-        PAGE_WIDTH - MARGIN, FOOTER_Y, { align: 'right' },
-      )
+      this.doc.text(contactLine, PAGE_WIDTH / 2, FOOTER_Y, { align: 'center' })
+      this.doc.text(idLine, PAGE_WIDTH / 2, FOOTER_Y + 4, { align: 'center' })
       this.doc.text(
         t.footerText || 'System-generated document — valid without a physical signature.',
-        PAGE_WIDTH / 2, FOOTER_Y + 4, { align: 'center' },
+        PAGE_WIDTH / 2, FOOTER_Y + 8, { align: 'center' },
       )
       if (i === pageCount && qrDataUrl && t.qrCodeEnabled) {
         this.doc.addImage(qrDataUrl, 'PNG', PAGE_WIDTH - MARGIN - 15, FOOTER_Y - 21, 15, 15)
@@ -390,7 +436,7 @@ export async function buildOfferLetterPdf(letter: PeopleGeneratedLetter, templat
     `focused on ${template.domain}${template.specialisation ? ` with specialisation in ${template.specialisation}` : ''}.`
   )
 
-  w.sectionHeading('Candidate Information')
+  w.sectionHeading('Candidate Information', cardContentHeight(9, false))
   w.card('', [
     ['Candidate Name', letter.candidateName],
     ['Designation', String(letter.designation)],
@@ -408,14 +454,14 @@ export async function buildOfferLetterPdf(letter: PeopleGeneratedLetter, templat
     w.paragraph(`A stipend of ${formatCurrency(letter.stipendAmount)} will be paid for the duration of this internship.`)
   }
 
-  w.sectionHeading('Internship Objectives')
+  w.sectionHeading('Internship Objectives', chipGridContentHeight(INTERNSHIP_OBJECTIVES.length))
   w.chipGrid(INTERNSHIP_OBJECTIVES)
   w.spacer(1)
-  w.sectionHeading('Engineering Values')
+  w.sectionHeading('Engineering Values', chipGridContentHeight(ENGINEERING_VALUES.length))
   w.chipGrid(ENGINEERING_VALUES)
 
   w.spacer(1)
-  w.sectionHeading('Key Terms')
+  w.sectionHeading('Key Terms', 30)
   w.clauseCard('Certificate Eligibility', template.certificateEligibilityText)
   w.clauseCard('Confidentiality & IP', template.confidentialityClause)
   w.clauseCard('Code of Conduct', template.codeOfConductClause)
@@ -443,7 +489,7 @@ export async function buildJoiningLetterPdf(letter: PeopleGeneratedLetter, templ
     `under the ${template.internshipType} within the ${template.department} department, effective from the date below.`
   )
 
-  w.sectionHeading('Joining Details')
+  w.sectionHeading('Joining Details', cardContentHeight(6, false))
   w.card('', [
     ['Designation', String(letter.designation)],
     ['Reporting Department', template.department],
@@ -458,14 +504,14 @@ export async function buildJoiningLetterPdf(letter: PeopleGeneratedLetter, templ
     w.paragraph(`A stipend of ${formatCurrency(letter.stipendAmount)} will be paid for the duration of this internship.`)
   }
 
-  w.sectionHeading('Internship Objectives')
+  w.sectionHeading('Internship Objectives', chipGridContentHeight(INTERNSHIP_OBJECTIVES.length))
   w.chipGrid(INTERNSHIP_OBJECTIVES)
   w.spacer(1)
-  w.sectionHeading('Engineering Values')
+  w.sectionHeading('Engineering Values', chipGridContentHeight(ENGINEERING_VALUES.length))
   w.chipGrid(ENGINEERING_VALUES)
 
   w.spacer(1)
-  w.sectionHeading('Key Terms')
+  w.sectionHeading('Key Terms', 30)
   w.clauseCard('Certificate Eligibility', template.certificateEligibilityText)
   w.clauseCard('Confidentiality & IP', template.confidentialityClause)
   w.clauseCard('Code of Conduct', template.codeOfConductClause)

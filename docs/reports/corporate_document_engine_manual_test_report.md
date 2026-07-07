@@ -12,6 +12,14 @@ This project is linked to a **live, production Firebase project** (`.env.local` 
 
 Given that constraint, verification here focuses on what can be checked safely: (a) the app boots cleanly against production config, and (b) the new premium PDF engine — the highest-risk, purely-client-side part of this change — actually runs correctly in a real browser, not just type-checks.
 
+## Post-review: real visual verification
+
+The first pass of this report only checked page count, file size, font registration, and absence of thrown errors — it never actually *looked* at a rendered page. The user then generated a real letter through the authenticated UI and shared the PDF, which showed the cards rendering as solid neon-green blocks with barely-legible headings — a real defect the structural checks above had completely missed.
+
+After fixing it (see the Known Limitations report's "Post-review fixes" section), verification was redone properly: a sample PDF was generated the same way as before, but this time saved to disk and rendered to PNG with `pdftoppm` (Poppler) and visually inspected page-by-page via Read, for three configurations — the Premium theme with watermark/QR forced on, the theme with two broken image URLs (confirming graceful degradation still holds), and, importantly, the **plain out-of-the-box defaults** (`SEED_LETTER_TEMPLATE` untouched) and the **Aerospace theme**, since those are what a real user actually sees. All four confirmed: pale, readable cards; correctly-contrasted headings; no orphaned section headings across a page break; a clean 3-line footer with no text collision; and no duplicated brand-name heading under the hero banner.
+
+**Lesson applied going forward:** for any future change to `letterPdf.ts`, render and view an actual page — page-count/byte-size checks are not a substitute for looking at the output.
+
 ## What was tested
 
 ### 1. App boots cleanly
