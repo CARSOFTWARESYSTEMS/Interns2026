@@ -6,7 +6,7 @@ import {
   ClipboardList, BarChart2, Mail, Settings, UserCog,
   User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
   PlusSquare, UserPlus, Contact, MessagesSquare, Handshake,
-  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature, Building2,
+  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature, Building2, FileCheck2,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useBranding } from '../../contexts/PartnerContext'
@@ -46,6 +46,7 @@ const peopleItems = [
   { to: '/people/policies',     label: 'Policies',         icon: BookOpen },
   { to: '/people/culture',      label: 'Culture',          icon: Sparkles },
   { to: '/people/documents',    label: 'Documents',        icon: FileSignature },
+  { to: '/people/offer-review', label: 'Offer Review',     icon: FileCheck2 },
 ]
 
 // "/people/documents" (offer/joining letter generator) is Platform Admin +
@@ -180,7 +181,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <nav className="space-y-0.5">
               {(isDev
                 ? peopleItems.filter(i => ['/people/profiles', '/people/reviews', '/people/leave'].includes(i.to))
-                : peopleItems.filter(i => i.to !== DOCUMENTS_ROUTE || canSeeDocuments)
+                : peopleItems.filter(i => (i.to !== DOCUMENTS_ROUTE && i.to !== '/people/offer-review') || canSeeDocuments)
               ).map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}

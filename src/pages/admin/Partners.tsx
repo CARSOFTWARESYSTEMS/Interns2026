@@ -6,6 +6,7 @@ import {
 import PageHeader from '../../components/ui/PageHeader'
 import SectionCard from '../../components/ui/SectionCard'
 import { useAuthContext } from '../../contexts/AuthContext'
+import PartnerLogoUploader from '../../components/ui/PartnerLogoUploader'
 import { usePartner } from '../../contexts/PartnerContext'
 import {
   listPartners, createPartner, updatePartner, getPartnerSettings, updatePartnerSettings,
@@ -204,6 +205,7 @@ export default function Partners() {
           key={selected.id}
           partner={selected}
           actorUid={uid}
+          actorEmail={userProfile?.email ?? ''}
           onSaved={(updated, changed) => {
             setPartners(ps => ps.map(p => p.id === updated.id ? updated : p))
             setNotice({ kind: 'ok', text: `Saved ${updated.displayName}.` })
@@ -267,9 +269,10 @@ function CreatePartner({ existingIds, onCancel, onCreate }: {
 
 // ── Editor ──────────────────────────────────────────────────────────────────
 
-function PartnerEditor({ partner, actorUid, onSaved, onError, onAudit }: {
+function PartnerEditor({ partner, actorUid, actorEmail, onSaved, onError, onAudit }: {
   partner: Partner
   actorUid: string
+  actorEmail: string
   onSaved: (p: Partner, changedSections: string[]) => void
   onError: (text: string) => void
   onAudit: (action: AuditAction, partnerId: string, targetType: string, targetId: string, details: string) => Promise<void>
@@ -339,8 +342,11 @@ function PartnerEditor({ partner, actorUid, onSaved, onError, onAudit }: {
             <Text value={draft.documentPrefix} onChange={v => set('documentPrefix', v.toUpperCase())} mono />
           </Field>
           <div className="sm:col-span-2"><Field label="Description"><Text value={draft.description} onChange={v => set('description', v)} /></Field></div>
-          <Field label="Logo URL (light backgrounds)" hint="https:// only"><Text value={draft.branding.logoUrl} onChange={v => setIn('branding', 'logoUrl', v)} mono /></Field>
-          <Field label="Logo URL (dark backgrounds)" hint="https:// only"><Text value={draft.branding.logoDarkUrl} onChange={v => setIn('branding', 'logoDarkUrl', v)} mono /></Field>
+          <div className="sm:col-span-2">
+            <span className="block text-xs font-semibold text-slate-600 mb-1">Logos</span>
+            <PartnerLogoUploader partner={partner} actor={{ uid: actorUid, email: actorEmail }}
+              onChange={(variant, url) => setIn('branding', variant, url)} />
+          </div>
           <Field label="Favicon URL" hint="https:// only"><Text value={draft.branding.faviconUrl} onChange={v => setIn('branding', 'faviconUrl', v)} mono /></Field>
         </div>
       )}

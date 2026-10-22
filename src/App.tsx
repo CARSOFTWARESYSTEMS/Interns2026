@@ -15,6 +15,7 @@ import CompleteProfile from './pages/CompleteProfile'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
 import Join from './pages/Join'
+import OfferReview from './pages/OfferReview'
 
 // Platform pages
 import Dashboard from './pages/Dashboard'
@@ -63,6 +64,7 @@ import PeopleDocumentsTemplates from './pages/people/documents/Templates'
 import PeopleDocumentsOfferLetter from './pages/people/documents/OfferLetter'
 import PeopleDocumentsJoiningLetter from './pages/people/documents/JoiningLetter'
 import PeopleDocumentsGenerated from './pages/people/documents/GeneratedLetters'
+import PeopleOfferDrafts from './pages/people/OfferDrafts'
 
 // Admin pages
 import AdminUsers from './pages/admin/Users'
@@ -113,6 +115,17 @@ export default function App() {
             element={
               <RequireAuth signedInOnly>
                 <Join />
+              </RequireAuth>
+            }
+          />
+
+          {/* ── Candidate offer review: signed in, membership NOT required.
+               Only offers addressed to the signed-in email are visible (rules). ── */}
+          <Route
+            path="/offer"
+            element={
+              <RequireAuth signedInOnly>
+                <OfferReview />
               </RequireAuth>
             }
           />
@@ -235,6 +248,14 @@ export default function App() {
             {/* People Operations — Documents (Offer/Joining Letter Generator, PEOPLE-002).
                 Restricted to Platform Admin (Super Admin) and HR Manager only — no other
                 role, including Engineering Manager, may access these routes. */}
+            <Route
+              path="people/offer-review"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
+                  <PeopleOfferDrafts />
+                </RoleGuard>
+              }
+            />
             <Route
               path="people/documents"
               element={

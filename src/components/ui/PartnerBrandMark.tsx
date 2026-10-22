@@ -3,7 +3,7 @@ import { Battery, Shield } from 'lucide-react'
 import { useBranding } from '../../contexts/PartnerContext'
 
 interface PartnerBrandMarkProps {
-  size?: 'sm' | 'lg'
+  size?: 'sm' | 'lg' | 'xl'
   /** Use the dark-background logo variant when the Partner provides one. */
   onDark?: boolean
 }
@@ -23,16 +23,20 @@ export default function PartnerBrandMark({ size = 'sm', onDark = true }: Partner
         src={src}
         alt={b.name}
         onError={() => setFailed(true)}
-        className={size === 'lg' ? 'h-10 w-auto max-w-[180px] object-contain' : 'h-6 w-auto max-w-[96px] object-contain'}
+        className={
+          size === 'xl' ? 'h-14 sm:h-16 w-auto max-w-[220px] object-contain'
+          : size === 'lg' ? 'h-10 w-auto max-w-[180px] object-contain'
+          : 'h-6 w-auto max-w-[96px] object-contain'}
       />
     )
   }
 
-  if (size === 'lg') {
+  if (size === 'lg' || size === 'xl') {
+    const big = size === 'xl'
     return (
       <div className="relative" aria-hidden="true">
-        <Battery size={36} className="text-brand-400" />
-        <Shield size={18} className="text-brand-300 absolute -bottom-1 -right-1" />
+        <Battery size={big ? 48 : 36} className="text-brand-400" />
+        <Shield size={big ? 24 : 18} className="text-brand-300 absolute -bottom-1 -right-1" />
       </div>
     )
   }

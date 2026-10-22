@@ -146,11 +146,26 @@ service cloud.firestore {
     match /partners/{partnerId} {
       allow get:   if true;
       allow list:  if isPlatformAdmin();
-      allow create, update: if isPlatformAdmin()
+      allow create: if isPlatformAdmin()
         && partnerId.matches('^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$')
         && request.resource.data.id == partnerId
         && request.resource.data.status in ['Active', 'Inactive'];
+      allow update: if (isPlatformAdmin()
+          && request.resource.data.id == partnerId
+          && request.resource.data.status in ['Active', 'Inactive'])
+        // A Partner Admin may change ONLY their own Partner's logos, and only
+        // to files in this project's Firebase Storage (or clear them).
+        || (roleIn(partnerId) == 'Admin'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['branding', 'updatedAt', 'updatedBy'])
+          && request.resource.data.branding.diff(resource.data.branding).affectedKeys().hasOnly(['logoUrl', 'logoDarkUrl'])
+          && isStorageLogoOrEmpty(request.resource.data.branding.get('logoUrl', ''), partnerId)
+          && isStorageLogoOrEmpty(request.resource.data.branding.get('logoDarkUrl', ''), partnerId));
       allow delete: if isPlatformAdmin();
+    }
+
+    // Logo must be in THIS Partner's branding folder in Firebase Storage.
+    function isStorageLogoOrEmpty(url, pid) {
+      return url == '' || url.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/partners%2F' + pid + '%2Fbranding%2F[^?/]+[?].*');
     }
 
     // Hostname → Partner. Doc id is the normalised hostname, so hostnames are
@@ -645,6 +660,66 @@ service cloud.firestore {
         resource.data.uid == request.auth.uid || canManagePeopleOpsIn(rp())
       );
       allow update, delete: if false;
+    }
+
+    // ── Offer Letter Draft Review ─────────────────────────────────────────
+    // Managers (Admin / HR Manager of the offer's Partner, or Platform Admin)
+    // upload and send drafts. The candidate — matched by VERIFIED email, no
+    // membership required — can read only offers sent to them for review and
+    // can only move In Review → Confirmed, stamped with the server time.
+
+    function canManageOffersIn(pid) { return isAdminIn(pid) || isHRManagerIn(pid); }
+
+    function isOfferRecipient() {
+      return isSignedIn()
+        && request.auth.token.get('email_verified', false) == true
+        && resource.data.viewerEmail == myEmail();
+    }
+
+    function offerVisibleToRecipient() {
+      return isOfferRecipient() && resource.data.status in ['In Review', 'Confirmed'];
+    }
+
+    // The stored file must live under this Partner's and this offer's folder.
+    function validOfferFile(d, pid, offerId) {
+      return d.file.path is string
+        && d.file.path.matches('^partners/' + pid + '/offerDrafts/' + offerId + '/[^/]+$');
+    }
+
+    match /offerDrafts/{offerId} {
+      allow read: if canManageOffersIn(rp()) || offerVisibleToRecipient();
+
+      allow create: if canManageOffersIn(qp())
+        && request.resource.data.id == offerId
+        && request.resource.data.status == 'Draft'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.viewerEmail is string
+        && request.resource.data.viewerEmail == request.resource.data.viewerEmail.lower()
+        && request.resource.data.confirmedAt == null
+        && request.resource.data.confirmedBy == ''
+        && validOfferFile(request.resource.data, qp(), offerId);
+
+      allow update: if samePartner() && request.resource.data.id == resource.data.id && (
+        // Manager: edit / replace / send for review — never confirm, never
+        // touch a confirmed offer or the confirmation fields.
+        (canManageOffersIn(rp())
+          && resource.data.status != 'Confirmed'
+          && request.resource.data.status in ['Draft', 'In Review']
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+               ['id', 'partnerId', 'createdBy', 'createdAt', 'confirmedAt', 'confirmedBy'])
+          && validOfferFile(request.resource.data, rp(), offerId))
+
+        // Recipient: confirm, once, with the server's time.
+        || (offerVisibleToRecipient()
+          && resource.data.status == 'In Review'
+          && request.resource.data.status == 'Confirmed'
+          && request.resource.data.confirmedBy == request.auth.uid
+          && request.resource.data.confirmedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+               ['status', 'confirmedAt', 'confirmedBy', 'updatedAt']))
+      );
+
+      allow delete: if canManageOffersIn(rp());
     }
 
     // ── Offer / Joining Letter Generator (PEOPLE-002) ─────────────────────
