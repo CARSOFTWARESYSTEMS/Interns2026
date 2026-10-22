@@ -2,7 +2,9 @@ import { useCallback } from 'react'
 import { writeAuditLog } from '../firebase/firestore'
 import type { AuditAction } from '../types/auth'
 import { useAuthContext } from '../contexts/AuthContext'
+import { getActivePartnerId } from '../tenant/session'
 
+/** Audit events carry the active Partner (observability) — never PII beyond the actor's email. */
 export function useAuditLog() {
   const { userProfile } = useAuthContext()
 
@@ -15,7 +17,8 @@ export function useAuditLog() {
         action,
         resource,
         details,
-        orgId: userProfile.orgId,
+        partnerId: getActivePartnerId() ?? '',
+        host: window.location.hostname,
       })
     },
     [userProfile]

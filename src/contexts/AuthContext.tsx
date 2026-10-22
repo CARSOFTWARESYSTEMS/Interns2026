@@ -13,6 +13,7 @@ import {
 import type { PartnerMembership } from '../types/partner'
 import { accessStateFor, effectiveRole, type AccessState, type Principal } from '../tenant/authorize'
 import { usePartner } from './PartnerContext'
+import { setActivePartnerId } from '../tenant/session'
 
 // Fields a user may never write on their own global profile (also enforced by rules).
 const PRIVILEGED_PROFILE_FIELDS = ['role', 'status', 'orgId', 'managerId', 'architectId', 'uid', 'email', 'createdAt'] as const
@@ -215,6 +216,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const accessState = principal && partnerId ? accessStateFor(principal, partnerId) : null
   const role = principal && partnerId ? effectiveRole(principal, partnerId) : null
+
+  // Publish the tenant session for data services. Done during render (not in
+  // an effect) because child effects run BEFORE parent effects: a page's first
+  // data load must already see the active Partner. Idempotent assignment.
+  setActivePartnerId(
+    !sessionLoading && (accessState === 'active' || accessState === 'platform-admin') ? partnerId : null,
+  )
 
   const isProfileComplete =
     userProfile?.profileCompleted === true ||

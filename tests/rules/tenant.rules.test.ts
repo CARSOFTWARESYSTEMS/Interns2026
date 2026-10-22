@@ -109,9 +109,14 @@ beforeEach(async () => {
     await setDoc(doc(f, 'invitations', TOKEN_EXPIRED), inv(TOKEN_EXPIRED, { expiresAtMs: Date.now() - DAY }))
     await setDoc(doc(f, 'invitations', TOKEN_ADMIN), inv(TOKEN_ADMIN, { role: 'Admin', invitedBy: USERS.pa.uid }))
 
-    // Legacy-partner (ev-engineer) engineering data
-    await setDoc(doc(f, 'assignments', 'a1'), { developerId: USERS.evDev.uid, title: 'EV work' })
-    await setDoc(doc(f, 'assignments', 'a2'), { developerId: USERS.gDev.uid, title: 'misfiled' })
+    // Partner-owned data (Phase C)
+    await setDoc(doc(f, 'assignments', 'a1'), { partnerId: 'ev-engineer', developerId: USERS.evDev.uid, title: 'EV work' })
+    await setDoc(doc(f, 'assignments', 'a2'), { partnerId: 'gamyaa', developerId: USERS.gDev.uid, title: 'GAMYAA work' })
+    await setDoc(doc(f, 'assignments', 'a3'), { developerId: USERS.evDev.uid, title: 'not backfilled' })   // no partnerId
+    await setDoc(doc(f, 'partners/uflight/engineering/stories/items/s1'), { id: 's1', partnerId: 'uflight', title: 'UFlight story' })
+    await setDoc(doc(f, 'partners/ev-engineer/engineering/stories/items/s2'), { id: 's2', partnerId: 'ev-engineer', title: 'EV story' })
+    await setDoc(doc(f, 'peopleCandidates', 'c1'), { partnerId: 'uflight', name: 'UFlight candidate', createdBy: USERS.uAdmin.uid })
+    await setDoc(doc(f, 'ev_data/stories/items/old'), { id: 'old', title: 'pre-Phase-C' })
   })
 })
 
@@ -217,9 +222,10 @@ describe('Horizontal tenant escalation', () => {
     await assertFails(getDocs(query(collection(db('multi'), 'partnerMemberships'), where('partnerId', '==', 'uflight'))))
   })
 
-  it('members of other Partners cannot read legacy (EV.ENGINEER) engineering data', async () => {
+  it('GAMYAA Admin requesting a UFlight/EV record by id gets nothing (§24 /project/123)', async () => {
     await assertFails(getDoc(doc(db('gAdmin'), 'assignments/a1')))
-    await assertFails(getDoc(doc(db('gDev'), 'assignments/a2')))       // developerId matches but not an EV member
+    await assertSucceeds(getDoc(doc(db('gAdmin'), 'assignments/a2')))
+    await assertSucceeds(getDoc(doc(db('gDev'), 'assignments/a2')))
     await assertSucceeds(getDoc(doc(db('evDev'), 'assignments/a1')))
     await assertFails(getDoc(doc(db('stranger'), 'assignments/a1')))
   })
@@ -351,5 +357,85 @@ describe('Self-service access requests', () => {
   it('can read own (even missing) membership but not other users\'', async () => {
     await assertSucceeds(getDoc(doc(db('stranger'), 'partnerMemberships', 'gamyaa_strange')))
     await assertFails(getDoc(doc(db('stranger'), 'partnerMemberships', 'gamyaa_gDev')))
+  })
+})
+
+describe('Phase C — Partner-owned data', () => {
+  it('records without a partnerId are unreadable (fail closed until backfilled)', async () => {
+    await assertFails(getDoc(doc(db('evDev'), 'assignments/a3')))
+    await assertSucceeds(getDoc(doc(db('pa'), 'assignments/a1')))
+  })
+
+  it('queries must be filtered to a Partner the caller belongs to', async () => {
+    await assertSucceeds(getDocs(query(collection(db('gAdmin'), 'assignments'), where('partnerId', '==', 'gamyaa'))))
+    await assertFails(getDocs(query(collection(db('gAdmin'), 'assignments'), where('partnerId', '==', 'ev-engineer'))))
+    await assertFails(getDocs(collection(db('gAdmin'), 'assignments')))
+  })
+
+  it('a forged partnerId on create is rejected', async () => {
+    await assertFails(setDoc(doc(db('gAdmin'), 'assignments/new1'), { partnerId: 'uflight', developerId: 'x' }))
+    await assertSucceeds(setDoc(doc(db('gAdmin'), 'assignments/new1'), { partnerId: 'gamyaa', developerId: 'x' }))
+  })
+
+  it('an update can never move a record to another Partner', async () => {
+    await assertFails(updateDoc(doc(db('gAdmin'), 'assignments/a2'), { partnerId: 'uflight' }))
+    await assertFails(updateDoc(doc(db('pa'), 'assignments/a2'), { partnerId: 'uflight' }))
+    await assertSucceeds(updateDoc(doc(db('gAdmin'), 'assignments/a2'), { title: 'renamed' }))
+  })
+
+  it('role is evaluated in the RECORD\'s Partner (Admin in GAMYAA, Developer in UFlight)', async () => {
+    await assertSucceeds(setDoc(doc(db('multi'), 'assignments/m1'), { partnerId: 'gamyaa', developerId: 'x' }))
+    await assertFails(setDoc(doc(db('multi'), 'assignments/m2'), { partnerId: 'uflight', developerId: 'x' }))
+  })
+
+  it('engineering data (stories, simulators, evidence, reports) is isolated per Partner', async () => {
+    await assertFails(getDoc(doc(db('gDev'), 'partners/uflight/engineering/stories/items/s1')))
+    await assertFails(getDocs(collection(db('gAdmin'), 'partners/uflight/engineering/stories/items')))
+    await assertSucceeds(getDoc(doc(db('multi'), 'partners/uflight/engineering/stories/items/s1')))
+    await assertSucceeds(getDocs(collection(db('evDev'), 'partners/ev-engineer/engineering/stories/items')))
+  })
+
+  it('engineering writes need a writing role in that Partner and a matching partnerId', async () => {
+    const story = (pid: string) => ({ id: 'n', partnerId: pid, title: 't' })
+    await assertSucceeds(setDoc(doc(db('gAdmin'), 'partners/gamyaa/engineering/stories/items/n'), story('gamyaa')))
+    await assertFails(setDoc(doc(db('gAdmin'), 'partners/gamyaa/engineering/stories/items/n'), story('uflight')))
+    await assertFails(setDoc(doc(db('gAdmin'), 'partners/uflight/engineering/stories/items/n'), story('uflight')))
+    await assertFails(setDoc(doc(db('gDev'), 'partners/gamyaa/engineering/stories/items/n'), story('gamyaa')))
+  })
+
+  it('Viewer is read-only', async () => {
+    await assertSucceeds(getDoc(doc(db('multi'), 'partners/ev-engineer/engineering/stories/items/s2')))
+    await assertFails(setDoc(doc(db('multi'), 'partners/ev-engineer/engineering/stories/items/s2'), { id: 's2', partnerId: 'ev-engineer', title: 'x' }))
+  })
+
+  it('People Operations records are isolated per Partner', async () => {
+    await assertFails(getDoc(doc(db('gAdmin'), 'peopleCandidates/c1')))
+    await assertSucceeds(getDoc(doc(db('uAdmin'), 'peopleCandidates/c1')))
+    await assertFails(getDocs(query(collection(db('gAdmin'), 'peopleCandidates'), where('partnerId', '==', 'uflight'))))
+  })
+
+  it('users of one Partner cannot be retrieved by another Partner\'s Admin', async () => {
+    await assertFails(getDocs(query(collection(db('uAdmin'), 'partnerMemberships'), where('partnerId', '==', 'gamyaa'))))
+    await assertFails(getDoc(doc(db('uAdmin'), 'users', USERS.gDev.uid)))
+  })
+
+  it('deterministic ids: own missing check-in is readable, another Partner\'s is not', async () => {
+    await assertSucceeds(getDoc(doc(db('evDev'), 'dailyEngineeringCheckins', 'ev-engineer_evDev_2026-10-22')))
+    await assertFails(getDoc(doc(db('gDev'), 'dailyEngineeringCheckins', 'ev-engineer_gDev_2026-10-22')))
+    await assertFails(setDoc(doc(db('gDev'), 'dailyEngineeringCheckins', 'ev-engineer_gDev_2026-10-22'),
+      { partnerId: 'gamyaa', developerId: USERS.gDev.uid }))   // id prefix must match partnerId
+    await assertSucceeds(setDoc(doc(db('gDev'), 'dailyEngineeringCheckins', 'gamyaa_gDev_2026-10-22'),
+      { partnerId: 'gamyaa', developerId: USERS.gDev.uid }))
+  })
+
+  it('letter counters are per Partner', async () => {
+    await assertSucceeds(getDoc(doc(db('gAdmin'), 'peopleLetterCounters', 'gamyaa_offer-2026')))
+    await assertFails(getDoc(doc(db('gAdmin'), 'peopleLetterCounters', 'uflight_offer-2026')))
+    await assertFails(setDoc(doc(db('gAdmin'), 'peopleLetterCounters', 'uflight_offer-2026'), { partnerId: 'gamyaa', count: 1 }))
+  })
+
+  it('the pre-Phase-C ev_data location is closed to everyone but Platform Admin', async () => {
+    await assertFails(getDoc(doc(db('evDev'), 'ev_data/stories/items/old')))
+    await assertSucceeds(getDoc(doc(db('pa'), 'ev_data/stories/items/old')))
   })
 })

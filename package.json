@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project demo-tenant-rules \"vitest run --config vitest.rules.config.ts\"",
-    "tenant:bootstrap": "node scripts/tenant-bootstrap.mjs"
+    "tenant:bootstrap": "node scripts/tenant-bootstrap.mjs",
+    "tenant:backfill": "node scripts/tenant-backfill.mjs"
   },
   "dependencies": {
     "firebase": "^12.15.0",

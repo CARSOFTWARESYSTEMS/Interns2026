@@ -1,9 +1,7 @@
 {
   "_comment": "Explicit, reviewable migration choices for scripts/tenant-bootstrap.mjs. Nothing here is guessed from labels.",
-
   "legacyUserPartnerId": "ev-engineer",
-  "_legacyUserPartnerId": "Every existing users/{uid} gets ONE membership in this Partner (decision: existing users → EV.ENGINEER).",
-
+  "_legacyUserPartnerId": "Every existing users/{uid} gets ONE membership in this Partner (decision: existing users \u2192 EV.ENGINEER).",
   "statusMap": {
     "Active": "Active",
     "Pending": "Active",
@@ -13,13 +11,23 @@
     "Deleted": "Blocked",
     "": "Active"
   },
-  "_statusMap": "Legacy users.status was never enforced (Pending users had full access), so Pending → Active preserves today's effective access. Change to \"Pending\" to force re-approval.",
-
+  "_statusMap": "Legacy users.status was never enforced (Pending users had full access), so Pending \u2192 Active preserves today's effective access. Change to \"Pending\" to force re-approval.",
   "confirmedPlatformAdminEmails": [],
   "_confirmedPlatformAdminEmails": "users.role was self-editable, so a legacy 'Platform Admin' role is NOT trusted. Only emails listed here (plus the hard-coded super admins) receive platformAdmins/{uid}. Unlisted legacy Platform Admins get the role below and are flagged in the report.",
-
   "unconfirmedLegacyPlatformAdminRole": "Viewer",
-
-  "flagElevatedLegacyRoles": ["Engineering Manager", "HR Manager", "Architect", "QA Engineer"],
-  "_flagElevatedLegacyRoles": "These legacy roles are migrated as-is but listed in the report for manual confirmation, for the same reason."
+  "flagElevatedLegacyRoles": [
+    "Engineering Manager",
+    "HR Manager",
+    "Architect",
+    "QA Engineer"
+  ],
+  "_flagElevatedLegacyRoles": "These legacy roles are migrated as-is but listed in the report for manual confirmation, for the same reason.",
+  "backfill": {
+    "defaultPartnerId": "ev-engineer",
+    "_defaultPartnerId": "Records with NO partnerId (all pre-Phase-C engineering data) are assigned here (decision: existing data \u2192 EV.ENGINEER).",
+    "remapPartnerIds": {
+      "itelematics": "ev-engineer"
+    },
+    "_remapPartnerIds": "People Operations records were stamped 'itelematics' by a hard-coded default, not a deliberate choice. Per the decision that existing data belongs to EV.ENGINEER they are moved; the original value is kept in legacyPartnerId and restored by --rollback. Set to {} to leave them with iTelematics."
+  }
 }

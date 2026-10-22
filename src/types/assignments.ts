@@ -1,3 +1,4 @@
+import { getActivePartnerId } from '../tenant/session'
 // ── M05 Assignment Management System ─────────────────────────────────────────
 // Firestore-backed types. These coexist with the legacy JSON-based Assignment
 // type in src/types.ts which powers the local/gdrive data modes.
@@ -67,6 +68,8 @@ export type NotificationType =
 // ── Core M05Assignment document (stored in `assignments` collection) ──────────
 
 export interface M05Assignment {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string                        // Firestore document ID
   assignmentId: string              // same as id
   developerId: string               // Firebase Auth UID
@@ -103,6 +106,8 @@ export interface M05Assignment {
 // ── AssignmentHistory document (stored in `assignmentHistory` collection) ─────
 
 export interface AssignmentHistory {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string
   assignmentId: string
   action: AssignmentHistoryAction
@@ -120,6 +125,8 @@ export interface AssignmentHistory {
 // Document ID format: `{developerId}_{YYYY-MM-DD}`
 
 export interface DailyCheckin {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string
   developerId: string
   developerName: string
@@ -140,6 +147,8 @@ export interface DailyCheckin {
 // ── WeeklyEngineeringReport (`weeklyEngineeringReports` collection) ───────────
 
 export interface WeeklyEngineeringReport {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string
   developerId: string
   developerName: string
@@ -161,6 +170,8 @@ export interface WeeklyEngineeringReport {
 // ── DeveloperCapacity (`developerCapacity` collection) ───────────────────────
 
 export interface DeveloperCapacity {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   developerId: string
   developerName: string
   weeklyCapacityHours: number       // default 40
@@ -174,6 +185,8 @@ export interface DeveloperCapacity {
 // ── M05Notification (`notifications` collection) ─────────────────────────────
 
 export interface M05Notification {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string
   recipientId: string               // Firebase Auth UID
   recipientEmail: string
@@ -189,6 +202,8 @@ export interface M05Notification {
 // ── AssignmentComment (`assignmentComments` collection) ──────────────────────
 
 export interface AssignmentComment {
+  /** Owning Partner — stamped by the service layer from the active tenant session. */
+  partnerId?: string
   id: string
   assignmentId: string
   authorId: string
@@ -254,6 +269,7 @@ export function todayKey(): string {
   return new Date().toISOString().slice(0, 10)   // YYYY-MM-DD
 }
 
+/** Per Partner: a check-in done in one Partner must not satisfy another's gate. */
 export function checkinLocalKey(uid: string): string {
-  return `checkin_${uid}_${todayKey()}`
+  return `checkin_${getActivePartnerId() ?? 'none'}_${uid}_${todayKey()}`
 }

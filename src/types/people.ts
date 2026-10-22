@@ -15,7 +15,12 @@ export interface PeopleDocBase {
   status: string       // per-collection status enum, stored loosely here
 }
 
+/**
+ * @deprecated Dev demo data only. Real records are stamped with the ACTIVE
+ * Partner by the service layer (src/tenant/session.ts) — never with a default.
+ */
 export const DEFAULT_PARTNER_ID = 'itelematics'
+/** @deprecated see DEFAULT_PARTNER_ID */
 export const DEFAULT_ORGANISATION_ID = 'ev-engineer'
 
 // ── Person / Employment ──────────────────────────────────────────────────────

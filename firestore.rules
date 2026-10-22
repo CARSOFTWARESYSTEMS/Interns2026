@@ -13,14 +13,11 @@ rules_version = '2';
 //  Memberships live at partnerMemberships/{partnerId}_{uid} so rules can
 //  fetch them with a single get().
 //
-//  Phase A–B status:
-//    • IAM/tenant collections (partners, partnerDomains, partnerSettings,
-//      partnerMemberships, platformAdmins, invitations, users, audit) are
-//      fully Partner-aware.
-//    • Pre-existing engineering / people collections are, for now, scoped to
-//      the LEGACY Partner ('ev-engineer'): roles come from the caller's
-//      ev-engineer membership. Members of any other Partner are denied (fail
-//      closed) until Phase C adds partnerId to those records.
+//  Every Partner-owned record carries an immutable `partnerId`. Reads,
+//  creates, updates and deletes are authorised against the caller's role IN
+//  THAT RECORD'S Partner. `partnerId` can never be changed by an update, and
+//  a create must name a Partner the caller is authorised in — so sending
+//  another Partner's id in a payload achieves nothing.
 // ════════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -110,31 +107,34 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/partnerSettings/$(pid)).data.authPolicy.allowAccessRequests == true;
     }
 
-    // ── Legacy Partner (pre-multi-tenant collections) ─────────────────────
-    // Interim until Phase C: the engineering/people collections below carry
-    // no reliable partnerId yet, so they are owned by the legacy Partner.
+    // ── Per-Partner role helpers (pid = the record's partnerId) ──────────
 
-    function legacyPartnerId() {
-      return 'ev-engineer';
+    function isAdminIn(pid)      { return isPlatformAdmin() || roleIn(pid) == 'Admin'; }
+    function isManagerIn(pid)    { return roleIn(pid) == 'Engineering Manager'; }
+    function isArchitectIn(pid)  { return roleIn(pid) == 'Architect'; }
+    function isHRManagerIn(pid)  { return roleIn(pid) == 'HR Manager'; }
+
+    function canManageUsersIn(pid)     { return isAdminIn(pid) || isManagerIn(pid); }
+    function canReadAllIn(pid)         { return isAdminIn(pid) || isManagerIn(pid) || isArchitectIn(pid); }
+    function canManagePeopleOpsIn(pid) { return isAdminIn(pid) || isManagerIn(pid) || isHRManagerIn(pid); }
+    function canManageLettersIn(pid)   { return isAdminIn(pid) || isHRManagerIn(pid); }
+    function canWriteEngineeringIn(pid){ return isAdminIn(pid) || isManagerIn(pid) || isArchitectIn(pid); }
+
+    // Record's Partner (existing doc) / requested Partner (incoming doc).
+    function rp() { return resource.data.partnerId; }
+    function qp() { return request.resource.data.partnerId; }
+
+    // Updates can never move a record to another Partner.
+    function samePartner() { return request.resource.data.partnerId == resource.data.partnerId; }
+
+    // Deterministic ids start with the owning partnerId ({pid}_…). Partner ids
+    // never contain '_', so the prefix is unambiguous. Used to authorise a
+    // `get` of a doc that may not exist yet (rules can't read resource.data then).
+    function idPartner(docId) { return docId.split('_')[0]; }
+
+    function isOwnPeopleRecord() {
+      return canAccessPartner(rp()) && resource.data.get('uid', '') == request.auth.uid;
     }
-
-    function callerRole() {
-      return isPlatformAdmin() ? 'Platform Admin' : roleIn(legacyPartnerId());
-    }
-
-    function isLegacyMember()  { return canAccessPartner(legacyPartnerId()); }
-    function isOrgAdmin()      { return isPlatformAdmin() || callerRole() == 'Admin'; }
-    function isManager()       { return callerRole() == 'Engineering Manager'; }
-    function isArchitect()     { return callerRole() == 'Architect'; }
-    function isQA()            { return callerRole() == 'QA Engineer'; }
-    function isDeveloper()     { return callerRole() == 'Developer'; }
-    function isHRManager()     { return callerRole() == 'HR Manager'; }
-
-    function canManageUsers()     { return isOrgAdmin() || isManager(); }
-    function canReadAll()         { return isOrgAdmin() || isManager() || isArchitect(); }
-    function canManagePeopleOps() { return isOrgAdmin() || isManager() || isHRManager(); }
-    function canManageLetters()   { return isOrgAdmin() || isHRManager(); }
-    function isOwnPeopleRecord()  { return isLegacyMember() && resource.data.get('uid', '') == request.auth.uid; }
 
     // ══════════════════════════════════════════════════════════════════════
     //  Tenant registry
@@ -440,199 +440,247 @@ service cloud.firestore {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  Engineering data — LEGACY PARTNER SCOPE (interim, see header)
+    //  Engineering data — Partner-owned
     // ══════════════════════════════════════════════════════════════════════
 
-    // Firebase adapter: ev_data/{collection}/items/{docId}
+    // Firebase adapter: partners/{pid}/engineering/{collection}/items/{docId}
+    match /partners/{pid}/engineering/{col}/items/{docId} {
+      allow read:   if canAccessPartner(pid);
+      allow create, update: if canWriteEngineeringIn(pid) && request.resource.data.partnerId == pid;
+      allow delete: if canWriteEngineeringIn(pid);
+    }
+
+    // Pre-Phase-C location — read-only for migration, then delete.
     match /ev_data/{col}/items/{docId} {
-      allow read:  if isLegacyMember();
-      allow write: if isOrgAdmin() || isManager() || isArchitect();
+      allow read:  if isPlatformAdmin();
+      allow write: if false;
     }
 
     // ── M05 Assignments ───────────────────────────────────────────────────
     match /assignments/{docId} {
-      allow read: if isLegacyMember() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if canManageUsers();
-      allow update: if canManageUsers() ||
-        (isLegacyMember() && resource.data.developerId == request.auth.uid);
-      allow delete: if isOrgAdmin();
+      allow create: if canManageUsersIn(qp());
+      allow update: if samePartner() && (
+        canManageUsersIn(rp())
+        || (canAccessPartner(rp()) && resource.data.developerId == request.auth.uid)
+      );
+      allow delete: if isAdminIn(rp());
     }
 
     match /assignmentHistory/{docId} {
-      allow create: if isLegacyMember() && request.resource.data.performedBy == request.auth.uid;
-      allow read: if isLegacyMember() && (
-        resource.data.performedBy == request.auth.uid || canReadAll()
+      allow create: if canAccessPartner(qp()) && request.resource.data.performedBy == request.auth.uid;
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.performedBy == request.auth.uid || canReadAllIn(rp())
       );
       allow update, delete: if false;
     }
 
-    // Doc ID format: {developerId}_{YYYY-MM-DD}
+    // Doc id: {partnerId}_{developerId}_{YYYY-MM-DD}
     match /dailyEngineeringCheckins/{docId} {
-      allow read: if isLegacyMember() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow get: if docId.split('_').size() == 3
+        && canAccessPartner(idPartner(docId))
+        && (docId.split('_')[1] == request.auth.uid || canReadAllIn(idPartner(docId)));
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if isLegacyMember() && (
-        request.resource.data.developerId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp()) && idPartner(docId) == qp() && (
+        request.resource.data.developerId == request.auth.uid || canManageUsersIn(qp())
       );
-      allow update: if isLegacyMember() && (
-        resource.data.developerId == request.auth.uid || canManageUsers()
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isOrgAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
     match /weeklyEngineeringReports/{docId} {
-      allow read: if isLegacyMember() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if isLegacyMember() && (
-        request.resource.data.developerId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp()) && (
+        request.resource.data.developerId == request.auth.uid || canManageUsersIn(qp())
       );
-      allow update: if isLegacyMember() && (
-        resource.data.developerId == request.auth.uid || canManageUsers()
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isOrgAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
-    match /developerCapacity/{devId} {
-      allow read:  if isLegacyMember();
-      allow write: if canManageUsers();
+    // Doc id: {partnerId}_{developerId}
+    match /developerCapacity/{docId} {
+      allow get:    if canAccessPartner(idPartner(docId));
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManageUsersIn(qp()) && idPartner(docId) == qp();
+      allow update: if samePartner() && canManageUsersIn(rp());
+      allow delete: if canManageUsersIn(rp());
     }
 
-    // Members notify each other (e.g. developer → manager on accept/decline).
+    // Members notify each other inside their Partner (e.g. developer → manager).
     match /notifications/{docId} {
-      allow read: if isLegacyMember() && (
-        resource.data.recipientId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.recipientId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if isLegacyMember();
-      allow update: if isLegacyMember() && (
-        resource.data.recipientId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp());
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.recipientId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isOrgAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
     match /assignmentComments/{docId} {
-      allow read:   if isLegacyMember();
-      allow create: if isLegacyMember() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isLegacyMember() && (
-        resource.data.authorId == request.auth.uid || canManageUsers()
+      allow read:   if canAccessPartner(rp());
+      allow create: if canAccessPartner(qp()) && request.resource.data.authorId == request.auth.uid;
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.authorId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isLegacyMember() && (
-        resource.data.authorId == request.auth.uid || isOrgAdmin()
+      allow delete: if canAccessPartner(rp()) && (
+        resource.data.authorId == request.auth.uid || isAdminIn(rp())
       );
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  People Operations — LEGACY PARTNER SCOPE (interim, see header)
+    //  People Operations — Partner-owned
     // ══════════════════════════════════════════════════════════════════════
 
     match /peopleProfiles/{docId} {
-      allow read:   if isOwnPeopleRecord() || canManagePeopleOps() || canReadAll();
-      allow create: if canManagePeopleOps();
-      allow update: if canManagePeopleOps() || isOwnPeopleRecord();
-      allow delete: if isOrgAdmin();
+      allow read:   if isOwnPeopleRecord() || canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && (canManagePeopleOpsIn(rp()) || isOwnPeopleRecord());
+      allow delete: if isAdminIn(rp());
     }
 
     match /peopleJobOpenings/{docId} {
-      allow read:   if isLegacyMember();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleCandidates/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleApplications/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleInterviews/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll() ||
-        (isLegacyMember() && resource.data.interviewerId == request.auth.uid);
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.interviewerId == request.auth.uid);
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOffers/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOnboarding/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll() || isOwnPeopleRecord();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) || isOwnPeopleRecord();
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOneOnOneReviews/{docId} {
-      allow read: if canManagePeopleOps() || canReadAll() ||
-        (isLegacyMember() && resource.data.managerId == request.auth.uid);
-      allow create: if canManagePeopleOps();
-      allow update: if canManagePeopleOps() ||
-        (isLegacyMember() && resource.data.managerId == request.auth.uid);
-      allow delete: if isOrgAdmin();
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.managerId == request.auth.uid);
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && (
+        canManagePeopleOpsIn(rp())
+        || (canAccessPartner(rp()) && resource.data.managerId == request.auth.uid)
+      );
+      allow delete: if isAdminIn(rp());
     }
 
     match /peopleLeaveRequests/{docId} {
-      allow read: if canManagePeopleOps() || canReadAll() ||
-        (isLegacyMember() && resource.data.createdBy == request.auth.uid);
-      allow create: if isLegacyMember() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if canManagePeopleOps() ||
-        (isLegacyMember() && resource.data.createdBy == request.auth.uid);
-      allow delete: if isOrgAdmin();
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid);
+      allow create: if canAccessPartner(qp()) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if samePartner() && (
+        canManagePeopleOpsIn(rp())
+        || (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid)
+      );
+      allow delete: if isAdminIn(rp());
     }
 
     match /peoplePolicies/{docId} {
-      allow read:  if isLegacyMember();
-      allow write: if canManagePeopleOps();
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peoplePolicyAcknowledgements/{docId} {
-      allow read: if canManagePeopleOps() ||
-        (isLegacyMember() && resource.data.createdBy == request.auth.uid);
-      allow create: if isLegacyMember() && request.resource.data.createdBy == request.auth.uid;
+      allow read: if canManagePeopleOpsIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid);
+      allow create: if canAccessPartner(qp()) && request.resource.data.createdBy == request.auth.uid;
       allow update, delete: if false;
     }
 
     match /peopleCultureSignals/{docId} {
-      allow read: if canManagePeopleOps() || canReadAll() ||
-        (isLegacyMember()
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp())
           && resource.data.get('visibleToPerson', false) == true
           && resource.data.createdBy == request.auth.uid);
-      allow write: if canManagePeopleOps();
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleAuditLogs/{docId} {
-      allow create: if isLegacyMember() && request.resource.data.uid == request.auth.uid;
-      allow read:   if isLegacyMember() && (
-        resource.data.uid == request.auth.uid || canManagePeopleOps()
+      allow create: if canAccessPartner(qp()) && request.resource.data.uid == request.auth.uid;
+      allow read:   if canAccessPartner(rp()) && (
+        resource.data.uid == request.auth.uid || canManagePeopleOpsIn(rp())
       );
       allow update, delete: if false;
     }
 
     // ── Offer / Joining Letter Generator (PEOPLE-002) ─────────────────────
     match /peopleLetterTemplates/{docId} {
-      allow read, write: if canManageLetters();
+      allow get:    if canManageLettersIn(idPartner(docId));   // scoped default-template id
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if canManageLettersIn(rp());
     }
 
     match /peopleGeneratedLetters/{docId} {
-      allow read, write: if canManageLetters();
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if canManageLettersIn(rp());
     }
 
     match /peopleLetterApprovals/{docId} {
-      allow read:   if canManageLetters();
-      allow create: if canManageLetters();
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
       allow update, delete: if false;
     }
 
+    // Doc id: {partnerId}_{letterType}-{year} — each Partner numbers its own letters.
     match /peopleLetterCounters/{docId} {
-      allow read, write: if canManageLetters();
+      allow get:    if canManageLettersIn(idPartner(docId));   // transaction reads a counter that may not exist
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp()) && idPartner(docId) == qp();
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if false;
     }
 
     match /peopleLetterAuditLogs/{docId} {
-      allow create: if canManageLetters();
-      allow read:   if canManageLetters();
+      allow create: if canManageLettersIn(qp());
+      allow read:   if canManageLettersIn(rp());
       allow update, delete: if false;
     }
   }

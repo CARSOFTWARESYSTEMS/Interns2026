@@ -1,3 +1,4 @@
+import { SHOW_DEMO_DATA } from './demo'
 // ── Offer / Joining Letter Generator — Deterministic Sample Data ────────────
 // Used as a display fallback when Firestore has no letter template / letters
 // yet. Pages read this only when a live query returns empty — real data
@@ -23,7 +24,7 @@ export const SEED_LETTER_TEMPLATE: PeopleLetterTemplate = {
   specialisation: 'Battery Intelligence & Aerospace Cybersecurity',
 }
 
-export const SEED_GENERATED_LETTERS: PeopleGeneratedLetter[] = [
+export const SEED_GENERATED_LETTERS: PeopleGeneratedLetter[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base,
     id: 'letter-seed-offer-1',

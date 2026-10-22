@@ -1,3 +1,4 @@
+import { SHOW_DEMO_DATA } from './demo'
 // ── People Operations — Deterministic Sample Data ───────────────────────────
 // JSON-first seed data used as a display fallback when Firestore has no
 // People Operations documents yet (fresh project / offline demo). Not written
@@ -19,7 +20,7 @@ const base = {
   createdBy: 'seed',
 }
 
-export const SEED_PEOPLE_PROFILES: PeopleProfile[] = [
+export const SEED_PEOPLE_PROFILES: PeopleProfile[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'profile-seed-1', uid: '', displayName: 'Ananya Rao', email: 'ananya.rao@example.com',
     photoURL: '', employmentType: 'intern', personStatus: 'active', department: 'Engineering',
@@ -43,7 +44,7 @@ export const SEED_PEOPLE_PROFILES: PeopleProfile[] = [
   },
 ]
 
-export const SEED_JOB_OPENINGS: PeopleJobOpening[] = [
+export const SEED_JOB_OPENINGS: PeopleJobOpening[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'opening-seed-1', title: 'EV Engineering Intern', department: 'Engineering',
     employmentType: 'intern', openings: 3, description: 'Work on EV powertrain simulators.',
@@ -58,7 +59,7 @@ export const SEED_JOB_OPENINGS: PeopleJobOpening[] = [
   },
 ]
 
-export const SEED_CANDIDATES: PeopleCandidate[] = [
+export const SEED_CANDIDATES: PeopleCandidate[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'candidate-seed-1', name: 'Kiran Kumar', email: 'kiran.kumar@example.com', mobile: '',
     appliedForOpeningId: 'opening-seed-1', employmentType: 'intern', resumeLink: '',
@@ -78,7 +79,7 @@ export const SEED_CANDIDATES: PeopleCandidate[] = [
   },
 ]
 
-export const SEED_INTERVIEWS: PeopleInterview[] = [
+export const SEED_INTERVIEWS: PeopleInterview[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'interview-seed-1', candidateId: 'candidate-seed-1', interviewType: 'Technical',
     scheduledAt: '2026-07-10T10:00:00.000Z', interviewerId: 'mgr-seed-1', outcome: 'Pending',
@@ -86,7 +87,7 @@ export const SEED_INTERVIEWS: PeopleInterview[] = [
   },
 ]
 
-export const SEED_OFFERS: PeopleOffer[] = [
+export const SEED_OFFERS: PeopleOffer[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'offer-seed-1', candidateId: 'candidate-seed-3', employmentType: 'contractor',
     role: 'Battery Cybersecurity Contractor', department: 'Security', proposedStartDate: '2026-08-01',
@@ -94,7 +95,7 @@ export const SEED_OFFERS: PeopleOffer[] = [
   },
 ]
 
-export const SEED_ONBOARDING: PeopleOnboarding[] = [
+export const SEED_ONBOARDING: PeopleOnboarding[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'onboarding-seed-1', candidateId: '', personId: 'profile-seed-1', employmentType: 'intern',
     startDate: '2026-01-12', tasks: defaultOnboardingTasks().map((t, i) => i < 5 ? { ...t, status: 'Completed', completedAt: base.createdAt } : t),
@@ -102,7 +103,7 @@ export const SEED_ONBOARDING: PeopleOnboarding[] = [
   },
 ]
 
-export const SEED_REVIEWS: PeopleOneOnOneReview[] = [
+export const SEED_REVIEWS: PeopleOneOnOneReview[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'review-seed-1', personId: 'profile-seed-1', managerId: 'mgr-seed-1', month: '2026-06',
     whatWentWell: 'Delivered Story-104 simulator ahead of schedule.', whatDidNotGoWell: 'Documentation lagged.',
@@ -114,7 +115,7 @@ export const SEED_REVIEWS: PeopleOneOnOneReview[] = [
   },
 ]
 
-export const SEED_LEAVE_REQUESTS: PeopleLeaveRequest[] = [
+export const SEED_LEAVE_REQUESTS: PeopleLeaveRequest[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'leave-seed-1', personId: 'profile-seed-1', leaveType: 'Casual Leave',
     startDate: '2026-07-15', endDate: '2026-07-16', days: 2, reason: 'Personal', leaveStatus: 'Requested',
@@ -122,7 +123,7 @@ export const SEED_LEAVE_REQUESTS: PeopleLeaveRequest[] = [
   },
 ]
 
-export const SEED_POLICIES: PeoplePolicy[] = [
+export const SEED_POLICIES: PeoplePolicy[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'policy-seed-1', policyType: 'NDA', version: 1, effectiveDate: '2026-01-01',
     owner: 'Platform Admin', contentSummary: 'Confidentiality obligations for all interns, employees and contractors.',
@@ -140,7 +141,7 @@ export const SEED_POLICIES: PeoplePolicy[] = [
   },
 ]
 
-export const SEED_CULTURE_SIGNALS: PeopleCultureSignal[] = [
+export const SEED_CULTURE_SIGNALS: PeopleCultureSignal[] = !SHOW_DEMO_DATA ? [] : [
   {
     ...base, id: 'culture-seed-1', personId: 'profile-seed-1', signalType: 'Recognition',
     cultureValue: 'Evidence Over Opinion', note: 'Backed the SoC estimation change with a full test report.',

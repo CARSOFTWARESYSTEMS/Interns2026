@@ -4,6 +4,7 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
+import { requirePartnerId, inActivePartner, scopedId } from '../tenant/session'
 import type {
   PeopleProfile, PeopleJobOpening, PeopleCandidate, PeopleApplication,
   PeopleInterview, PeopleOffer, PeopleOnboarding, PeopleOneOnOneReview,
@@ -11,7 +12,6 @@ import type {
   PeopleCultureSignal, PeopleAuditLog, PeopleAuditAction,
   CandidateStage, LeaveRequestStatus, OfferStatus,
 } from '../types/people'
-import { DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID } from '../types/people'
 
 // ── Envelope helper ───────────────────────────────────────────────────────────
 
@@ -23,8 +23,9 @@ function withEnvelope<T extends Record<string, unknown>>(
   const now = new Date().toISOString()
   return {
     ...data,
-    partnerId: DEFAULT_PARTNER_ID,
-    organisationId: DEFAULT_ORGANISATION_ID,
+    // Owning Partner from the active tenant session (never a hard-coded default).
+    partnerId: requirePartnerId(),
+    organisationId: requirePartnerId(), // legacy mirror of partnerId
     createdAt: now,
     updatedAt: now,
     createdBy,
@@ -33,8 +34,9 @@ function withEnvelope<T extends Record<string, unknown>>(
 }
 
 async function touch(collectionName: string, id: string, data: Record<string, unknown>) {
+  const { partnerId: _p, organisationId: _o, ...rest } = data
   await updateDoc(doc(db, collectionName, id), {
-    ...data,
+    ...rest,
     updatedAt: new Date().toISOString(),
   })
 }
@@ -54,11 +56,11 @@ export async function createPeopleProfile(
 
 export async function getPeopleProfile(id: string): Promise<PeopleProfile | null> {
   const snap = await getDoc(doc(db, PROFILES, id))
-  return snap.exists() ? (snap.data() as PeopleProfile) : null
+  return snap.exists() ? inActivePartner(snap.data() as PeopleProfile) : null
 }
 
 export async function getAllPeopleProfiles(): Promise<PeopleProfile[]> {
-  const snap = await getDocs(query(collection(db, PROFILES), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, PROFILES), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleProfile)
 }
 
@@ -80,7 +82,7 @@ export async function createJobOpening(
 }
 
 export async function getAllJobOpenings(): Promise<PeopleJobOpening[]> {
-  const snap = await getDocs(query(collection(db, OPENINGS), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, OPENINGS), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleJobOpening)
 }
 
@@ -103,13 +105,13 @@ export async function createCandidate(
 }
 
 export async function getAllCandidates(): Promise<PeopleCandidate[]> {
-  const snap = await getDocs(query(collection(db, CANDIDATES), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, CANDIDATES), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleCandidate)
 }
 
 export async function getCandidate(id: string): Promise<PeopleCandidate | null> {
   const snap = await getDoc(doc(db, CANDIDATES, id))
-  return snap.exists() ? (snap.data() as PeopleCandidate) : null
+  return snap.exists() ? inActivePartner(snap.data() as PeopleCandidate) : null
 }
 
 export async function updateCandidateStage(
@@ -137,7 +139,7 @@ export async function createApplication(
 }
 
 export async function getApplicationsForCandidate(candidateId: string): Promise<PeopleApplication[]> {
-  const q = query(collection(db, APPLICATIONS), where('candidateId', '==', candidateId))
+  const q = query(collection(db, APPLICATIONS), where('partnerId', '==', requirePartnerId()), where('candidateId', '==', candidateId))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeopleApplication)
 }
@@ -157,12 +159,12 @@ export async function createInterview(
 }
 
 export async function getAllInterviews(): Promise<PeopleInterview[]> {
-  const snap = await getDocs(query(collection(db, INTERVIEWS), orderBy('scheduledAt', 'desc')))
+  const snap = await getDocs(query(collection(db, INTERVIEWS), where('partnerId', '==', requirePartnerId()), orderBy('scheduledAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleInterview)
 }
 
 export async function getInterviewsForCandidate(candidateId: string): Promise<PeopleInterview[]> {
-  const q = query(collection(db, INTERVIEWS), where('candidateId', '==', candidateId))
+  const q = query(collection(db, INTERVIEWS), where('partnerId', '==', requirePartnerId()), where('candidateId', '==', candidateId))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeopleInterview)
 }
@@ -186,7 +188,7 @@ export async function createOffer(
 }
 
 export async function getAllOffers(): Promise<PeopleOffer[]> {
-  const snap = await getDocs(query(collection(db, OFFERS), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, OFFERS), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleOffer)
 }
 
@@ -211,7 +213,7 @@ export async function createOnboarding(
 }
 
 export async function getAllOnboarding(): Promise<PeopleOnboarding[]> {
-  const snap = await getDocs(query(collection(db, ONBOARDING), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, ONBOARDING), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleOnboarding)
 }
 
@@ -238,13 +240,13 @@ export async function createOneOnOneReview(
 }
 
 export async function getReviewsForPerson(personId: string): Promise<PeopleOneOnOneReview[]> {
-  const q = query(collection(db, REVIEWS), where('personId', '==', personId), orderBy('month', 'desc'))
+  const q = query(collection(db, REVIEWS), where('partnerId', '==', requirePartnerId()), where('personId', '==', personId), orderBy('month', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeopleOneOnOneReview)
 }
 
 export async function getAllReviews(): Promise<PeopleOneOnOneReview[]> {
-  const snap = await getDocs(query(collection(db, REVIEWS), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, REVIEWS), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleOneOnOneReview)
 }
 
@@ -263,12 +265,12 @@ export async function createLeaveRequest(
 }
 
 export async function getAllLeaveRequests(): Promise<PeopleLeaveRequest[]> {
-  const snap = await getDocs(query(collection(db, LEAVE), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, LEAVE), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleLeaveRequest)
 }
 
 export async function getLeaveRequestsForPerson(personId: string): Promise<PeopleLeaveRequest[]> {
-  const q = query(collection(db, LEAVE), where('personId', '==', personId), orderBy('createdAt', 'desc'))
+  const q = query(collection(db, LEAVE), where('partnerId', '==', requirePartnerId()), where('personId', '==', personId), orderBy('createdAt', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeopleLeaveRequest)
 }
@@ -294,7 +296,7 @@ export async function createPolicy(
 }
 
 export async function getAllPolicies(): Promise<PeoplePolicy[]> {
-  const snap = await getDocs(query(collection(db, POLICIES), orderBy('effectiveDate', 'desc')))
+  const snap = await getDocs(query(collection(db, POLICIES), where('partnerId', '==', requirePartnerId()), orderBy('effectiveDate', 'desc')))
   return snap.docs.map(d => d.data() as PeoplePolicy)
 }
 
@@ -319,13 +321,13 @@ export async function acknowledgePolicy(
 }
 
 export async function getAcknowledgementsForPolicy(policyId: string): Promise<PeoplePolicyAcknowledgement[]> {
-  const q = query(collection(db, POLICY_ACKS), where('policyId', '==', policyId))
+  const q = query(collection(db, POLICY_ACKS), where('partnerId', '==', requirePartnerId()), where('policyId', '==', policyId))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeoplePolicyAcknowledgement)
 }
 
 export async function getAllPolicyAcknowledgements(): Promise<PeoplePolicyAcknowledgement[]> {
-  const snap = await getDocs(collection(db, POLICY_ACKS))
+  const snap = await getDocs(query(collection(db, POLICY_ACKS), where('partnerId', '==', requirePartnerId())))
   return snap.docs.map(d => d.data() as PeoplePolicyAcknowledgement)
 }
 
@@ -344,12 +346,12 @@ export async function createCultureSignal(
 }
 
 export async function getAllCultureSignals(): Promise<PeopleCultureSignal[]> {
-  const snap = await getDocs(query(collection(db, CULTURE), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, CULTURE), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleCultureSignal)
 }
 
 export async function getCultureSignalsForPerson(personId: string): Promise<PeopleCultureSignal[]> {
-  const q = query(collection(db, CULTURE), where('personId', '==', personId), orderBy('createdAt', 'desc'))
+  const q = query(collection(db, CULTURE), where('partnerId', '==', requirePartnerId()), where('personId', '==', personId), orderBy('createdAt', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as PeopleCultureSignal)
 }
@@ -365,7 +367,7 @@ export async function writePeopleAuditLog(
 }
 
 export async function getPeopleAuditLogs(maxResults = 50): Promise<PeopleAuditLog[]> {
-  const q = query(collection(db, AUDIT), orderBy('createdAt', 'desc'))
+  const q = query(collection(db, AUDIT), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc'))
   const snap = await getDocs(q)
   return snap.docs.slice(0, maxResults).map(d => ({ id: d.id, ...d.data() }) as PeopleAuditLog)
 }
