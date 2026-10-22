@@ -6,7 +6,7 @@ import { usePartner, useBranding } from '../contexts/PartnerContext'
 import PartnerBrandMark from '../components/ui/PartnerBrandMark'
 import OfferDocumentCard from '../components/offers/OfferDocumentCard'
 import OfferStatusBadge from '../components/offers/OfferStatusBadge'
-import { listMyOffers, confirmOffer, openOfferPdf, downloadOfferPdf } from '../firebase/offers'
+import { listMyOffers, confirmOffer, openOfferPdf, downloadOfferPdf, offerFileErrorMessage } from '../firebase/offers'
 import { writeTenantAudit } from '../firebase/partners'
 import { OFFER_CONFIRMATION_TEXT, type OfferDraft } from '../types/offers'
 
@@ -50,7 +50,7 @@ export default function OfferReview() {
     <div className="min-h-screen bg-slate-50">
       {/* Partner identity band */}
       <header className="bg-slate-900 text-white">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8 pt-6 pb-24 sm:pb-28">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 pt-6 pb-24 sm:pb-28">
           <div className="flex items-center justify-end gap-2 text-sm">
             {isMember && (
               <Link to="/" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-slate-300 hover:text-white hover:bg-white/10">
@@ -117,7 +117,7 @@ function OfferPanel({ offer, name, email, partnerName, onConfirmed }: {
 
   async function run(kind: 'view' | 'download', fn: () => Promise<void>) {
     setBusy(kind); setError('')
-    try { await fn() } catch { setError('The document couldn’t be opened. Refresh the page and try again.') }
+    try { await fn() } catch (e) { setError(offerFileErrorMessage(e)) }
     finally { setBusy('') }
   }
 
