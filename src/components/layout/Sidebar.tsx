@@ -11,6 +11,8 @@ import {
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useBranding } from '../../contexts/PartnerContext'
 import { getUnreadCount } from '../../firebase/assignments'
+import { useMyOffers } from '../../hooks/useMyOffers'
+import { canAccessRoute } from '../../types/auth'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 
@@ -82,6 +84,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const isDev     = role === 'Developer'
   const isHR      = role === 'HR Manager'
   const canSeeDocuments = isAdmin || isHR
+  const myOffers = useMyOffers()
+  const pendingOffers = myOffers.filter(o => o.status === 'In Review').length
 
   useEffect(() => {
     if (!uid) return
@@ -181,7 +185,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <nav className="space-y-0.5">
               {(isDev
                 ? peopleItems.filter(i => ['/people/profiles', '/people/reviews', '/people/leave'].includes(i.to))
-                : peopleItems.filter(i => (i.to !== DOCUMENTS_ROUTE && i.to !== '/people/offer-review') || canSeeDocuments)
+                : peopleItems.filter(i =>
+                    ((i.to !== DOCUMENTS_ROUTE && i.to !== '/people/offer-review') || canSeeDocuments)
+                    // Don't lead a role to a page it would get "Access Denied" on.
+                    && (!role || canAccessRoute(role, i.to)))
               ).map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
@@ -194,6 +201,21 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   <span>{label}</span>
                 </NavLink>
               ))}
+              {myOffers.length > 0 && (
+                <NavLink
+                  to="/offer"
+                  className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                  onClick={onClose}
+                >
+                  <FileCheck2 size={14} />
+                  <span className="flex-1">My Offer Letter</span>
+                  {pendingOffers > 0 && (
+                    <span className="ml-auto bg-brand-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {pendingOffers}
+                    </span>
+                  )}
+                </NavLink>
+              )}
             </nav>
           </div>
 

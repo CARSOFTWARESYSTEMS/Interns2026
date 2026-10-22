@@ -126,6 +126,7 @@ export default function OfferDrafts() {
                     <td className="px-3 py-4 text-slate-600 tabular-nums whitespace-nowrap">{formatDateTime(o.file.uploadedAt)}</td>
                     <td className="px-3 py-4">
                       <OfferStatusBadge status={o.status} size="sm" />
+                      {o.status === 'Draft' && <p className="mt-1 text-xs text-amber-700">Not visible to candidate yet</p>}
                       {o.status === 'Confirmed' && <p className="mt-1 text-xs text-emerald-700 tabular-nums">{formatDateTime(confirmedAtIso(o))}</p>}
                     </td>
                     <td className="px-3 py-4 text-slate-600 tabular-nums whitespace-nowrap">{formatDateTime(o.updatedAt)}</td>
@@ -155,6 +156,7 @@ export default function OfferDrafts() {
                       <dt className="text-slate-500">Confirmed</dt><dd className="text-emerald-700 tabular-nums">{formatDateTime(confirmedAtIso(o))}</dd>
                     </>}
                   </dl>
+                  {o.status === 'Draft' && <p className="text-xs text-amber-700">Not visible to the candidate until you send it for review.</p>}
                   <OfferActions offer={o} onChange={upsert} onError={setError} onNotice={setNotice} audit={audit} />
                 </li>
               ))}
