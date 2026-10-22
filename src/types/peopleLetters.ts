@@ -6,6 +6,8 @@
 
 import type { PeopleDocBase } from './people'
 import { DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID } from './people'
+import { brandingFor } from '../tenant/branding'
+import { getActivePartnerProfile } from '../tenant/session'
 
 export { DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID }
 export type { PeopleDocBase }
@@ -176,30 +178,37 @@ export interface PeopleLetterTemplate extends PeopleDocBase {
   deletedAt: string        // '' when not soft-deleted
 }
 
+/**
+ * Defaults for a NEW template, taken from the active Partner's configuration
+ * (company identity, contact). Person-specific fields (HR signatory) start
+ * blank — another organisation's staff details are never pre-filled.
+ * Existing templates are stored records and keep their own values.
+ */
 export function emptyLetterTemplate(): Omit<PeopleLetterTemplate,
   'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy'> {
+  const b = brandingFor(getActivePartnerProfile())
   return {
     templateName: 'Default Internship Template',
     isActive: true,
-    companyName: 'iTelematics Software Private Limited',
-    businessUnit: 'EV.ENGINEER',
-    department: 'Energy Battery Intelligence',
-    domain: 'Aerospace',
+    companyName: b.legalName,
+    businessUnit: b.shortName,
+    department: '',
+    domain: '',
     specialisation: '',
-    companyAddress: 'Bangalore, Karnataka, India',
-    companyEmail: 'info@itelematics.com',
-    companyWebsite: 'https://itelematics.com',
+    companyAddress: b.location,
+    companyEmail: b.contact.email,
+    companyWebsite: b.contact.websiteUrl,
     companyPhone: '',
     letterheadImageUrl: '',
     companyLogoUrl: '',
     internshipType: 'Remote Research Internship',
     durationText: '3 to 6 months',
     weeklyHours: '20-25 hours/week',
-    headerText: 'iTelematics Software Private Limited — EV.ENGINEER',
+    headerText: [b.legalName, b.shortName].filter((v, i, a) => v && a.indexOf(v) === i).join(' — '),
     footerText: 'This is a system-generated letter and is valid without a physical signature.',
-    hrManagerName: 'Tanuja Revansidh Jadhav',
+    hrManagerName: '',
     hrManagerDesignation: 'HR Manager',
-    hrManagerEmail: 'tanujajadhav725@gmail.com',
+    hrManagerEmail: '',
     signatureImageUrl: '',
     stipendSectionEnabledByDefault: false,
     certificateEligibilityText:
@@ -246,7 +255,7 @@ export interface PeopleGeneratedLetter extends PeopleDocBase {
   candidateEmail: string
   designation: InternDesignation | string
 
-  documentId: string             // e.g. ITEL-EV-INT-OFFER-2026-001
+  documentId: string             // {Partner documentPrefix}-{TYPE}-{YEAR}-{NNN}, e.g. ITEL-EV-INT-OFFER-2026-001
 
   internshipStartDate: string
   internshipEndDate: string

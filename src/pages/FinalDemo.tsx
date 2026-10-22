@@ -6,8 +6,10 @@ import StatusBadge from '../components/ui/StatusBadge'
 import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import ProgressBar from '../components/ui/ProgressBar'
+import { useBranding } from '../contexts/PartnerContext'
 
 export default function FinalDemo() {
+  const b = useBranding()
   const stories    = useStories()
   const developers = useDevelopers()
   const devNames: Record<string, string> = Object.fromEntries(developers.map(d => [d.id, d.name]))
@@ -71,7 +73,7 @@ export default function FinalDemo() {
         <div className="card p-4 text-center">
           <Star size={24} className="text-purple-500 mx-auto mb-2" />
           <p className="text-base font-bold text-slate-900">Certificate</p>
-          <p className="text-sm text-slate-600 font-medium">UFlight™ | EV.ENGINEER™ Certified</p>
+          <p className="text-sm text-slate-600 font-medium break-words">{b.name} Certified</p>
           <p className="text-xs text-slate-400 mt-1">Issued on architect approval</p>
         </div>
       </div>

@@ -272,9 +272,9 @@ export default function Profile() {
           </SectionCard>
           <SectionCard title="Platform Info" icon={<Shield size={14} />}>
             <InfoRow label="UID" value={userProfile.uid} />
-            <InfoRow label="Role" value={userProfile.role} />
-            <InfoRow label="Organization" value="UFlight™ | EV.ENGINEER™ — Aerospace Intelligence & Cybersecurity Platform" />
-            <InfoRow label="Status" value={userProfile.status} />
+            <InfoRow label="Role" value={role ?? '—'} />
+            <InfoRow label="Organization" value={partner?.displayName ?? '—'} />
+            <InfoRow label="Status" value={accessStatus} />
             <InfoRow label="Member Since" value={new Date(userProfile.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })} />
             <InfoRow label="Last Login" value={userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleString('en-IN') : ''} />
           </SectionCard>

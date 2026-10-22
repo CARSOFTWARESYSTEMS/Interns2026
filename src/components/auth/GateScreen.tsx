@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Battery, Shield } from 'lucide-react'
+import PartnerBrandMark from '../ui/PartnerBrandMark'
 
 interface GateScreenProps {
   /** Partner display name, or null when the Partner is unknown (never guess one). */
@@ -18,17 +18,14 @@ export default function GateScreen({ partnerName, icon, title, children, actions
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-10">
       <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-        backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgb(var(--brand-500)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--brand-500)) 1px, transparent 1px)',
         backgroundSize: '48px 48px',
       }} />
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="relative">
-              <Battery size={36} className="text-brand-400" />
-              <Shield size={18} className="text-brand-300 absolute -bottom-1 -right-1" />
-            </div>
+            <PartnerBrandMark size="lg" />
           </div>
           {partnerName && (
             <h1 className="text-2xl font-bold text-white tracking-wide break-words">{partnerName}</h1>

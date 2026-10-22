@@ -15,8 +15,15 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && firebaseConfig.projectId
 )
 
+// Unconfigured (local dev without .env): initialise with inert placeholders so
+// getAuth() doesn't throw at import time. The UI shows "Firebase is not
+// configured" and the Partner resolver uses the bundled seed on localhost only.
+const effectiveConfig = isFirebaseConfigured
+  ? firebaseConfig
+  : { ...firebaseConfig, apiKey: 'not-configured', projectId: 'not-configured' }
+
 // Avoid duplicate app initialization during HMR
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const app = getApps().length === 0 ? initializeApp(effectiveConfig) : getApps()[0]
 
 export const auth = getAuth(app)
 export const db   = getFirestore(app)

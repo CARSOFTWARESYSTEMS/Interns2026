@@ -11,8 +11,12 @@
       "description": "Aerospace engineering intelligence",
       "defaultDomain": "login.gamyaa.in",
       "branding": {
-        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
-        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+        "logoUrl": "",
+        "logoDarkUrl": "",
+        "faviconUrl": "",
+        "primaryColor": "#2563eb",
+        "secondaryColor": "#0f172a",
+        "accentColor": "#60a5fa"
       },
       "login": {
         "title": "GAMYAA™ AeroSystems",
@@ -34,7 +38,8 @@
         "supportUrl": ""
       },
       "city": "Bangalore",
-      "country": "India"
+      "country": "India",
+      "documentPrefix": "GAMYAA-INT"
     },
     {
       "id": "uflight",
@@ -46,8 +51,12 @@
       "description": "Aerospace intelligence & cybersecurity",
       "defaultDomain": "login.uflight.in",
       "branding": {
-        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
-        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+        "logoUrl": "",
+        "logoDarkUrl": "",
+        "faviconUrl": "",
+        "primaryColor": "#2563eb",
+        "secondaryColor": "#0f172a",
+        "accentColor": "#60a5fa"
       },
       "login": {
         "title": "UFlight™",
@@ -69,7 +78,8 @@
         "supportUrl": ""
       },
       "city": "Bangalore",
-      "country": "India"
+      "country": "India",
+      "documentPrefix": "UFLIGHT-INT"
     },
     {
       "id": "itelematics",
@@ -81,8 +91,12 @@
       "description": "Connected systems & telematics",
       "defaultDomain": "login.itelematics.com",
       "branding": {
-        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
-        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+        "logoUrl": "",
+        "logoDarkUrl": "",
+        "faviconUrl": "",
+        "primaryColor": "#2563eb",
+        "secondaryColor": "#0f172a",
+        "accentColor": "#60a5fa"
       },
       "login": {
         "title": "iTelematics®",
@@ -104,7 +118,8 @@
         "supportUrl": ""
       },
       "city": "Bangalore",
-      "country": "India"
+      "country": "India",
+      "documentPrefix": "ITEL-INT"
     },
     {
       "id": "ev-engineer",
@@ -116,8 +131,12 @@
       "description": "Battery intelligence & cybersecurity",
       "defaultDomain": "login.autonomous.ev.engineer",
       "branding": {
-        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
-        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+        "logoUrl": "",
+        "logoDarkUrl": "",
+        "faviconUrl": "",
+        "primaryColor": "#2563eb",
+        "secondaryColor": "#0f172a",
+        "accentColor": "#60a5fa"
       },
       "login": {
         "title": "EV.ENGINEER™",
@@ -139,27 +158,66 @@
         "supportUrl": ""
       },
       "city": "Bangalore",
-      "country": "India"
+      "country": "India",
+      "documentPrefix": "ITEL-EV-INT"
     }
   ],
   "domains": [
-    { "hostname": "login.gamyaa.in",              "partnerId": "gamyaa",      "isPrimary": true, "status": "Active" },
-    { "hostname": "login.uflight.in",             "partnerId": "uflight",     "isPrimary": true, "status": "Active" },
-    { "hostname": "login.itelematics.com",        "partnerId": "itelematics", "isPrimary": true, "status": "Active" },
-    { "hostname": "login.autonomous.ev.engineer", "partnerId": "ev-engineer", "isPrimary": true, "status": "Active" }
+    {
+      "hostname": "login.gamyaa.in",
+      "partnerId": "gamyaa",
+      "isPrimary": true,
+      "status": "Active"
+    },
+    {
+      "hostname": "login.uflight.in",
+      "partnerId": "uflight",
+      "isPrimary": true,
+      "status": "Active"
+    },
+    {
+      "hostname": "login.itelematics.com",
+      "partnerId": "itelematics",
+      "isPrimary": true,
+      "status": "Active"
+    },
+    {
+      "hostname": "login.autonomous.ev.engineer",
+      "partnerId": "ev-engineer",
+      "isPrimary": true,
+      "status": "Active"
+    }
   ],
   "defaultSettings": {
     "modules": {
-      "engineering":      { "enabled": true },
-      "peopleOperations": { "enabled": true },
-      "quality":          { "enabled": false },
-      "cybersecurity":    { "enabled": false },
-      "fai":              { "enabled": false },
-      "digitalTwin":      { "enabled": false },
-      "internships":      { "enabled": true },
-      "reports":          { "enabled": true }
+      "engineering": {
+        "enabled": true
+      },
+      "peopleOperations": {
+        "enabled": true
+      },
+      "quality": {
+        "enabled": false
+      },
+      "cybersecurity": {
+        "enabled": false
+      },
+      "fai": {
+        "enabled": false
+      },
+      "digitalTwin": {
+        "enabled": false
+      },
+      "internships": {
+        "enabled": true
+      },
+      "reports": {
+        "enabled": true
+      }
     },
-    "authPolicy": { "allowAccessRequests": true },
+    "authPolicy": {
+      "allowAccessRequests": true
+    },
     "operational": {}
   }
 }

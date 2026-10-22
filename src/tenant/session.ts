@@ -1,3 +1,5 @@
+import type { Partner } from '../types/partner'
+
 // ── Active tenant session ──────────────────────────────────────────────────
 //
 // Holds the partnerId the signed-in user is CURRENTLY authorised in (set by
@@ -21,6 +23,12 @@ export class TenantContextError extends Error {
 }
 
 let activePartnerId: string | null = null
+/** Public profile (branding) of the hostname's Partner, for non-React modules (exports, letters). */
+let activePartnerProfile: Partner | null = null
+
+export function setActivePartnerProfile(p: Partner | null): void { activePartnerProfile = p }
+export function getActivePartnerProfile(): Partner | null { return activePartnerProfile }
+
 const listeners = new Set<(pid: string | null) => void>()
 
 export function setActivePartnerId(pid: string | null): void {

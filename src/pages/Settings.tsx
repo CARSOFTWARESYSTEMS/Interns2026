@@ -9,6 +9,7 @@ import SectionCard from '../components/ui/SectionCard'
 import { useData } from '../data/DataProvider'
 import { DATA_MODE } from '../data/types'
 import type { CollectionName } from '../data/types'
+import { useBranding } from '../contexts/PartnerContext'
 
 // ── Sub-components ────────────────────────────────────────────────────────
 
@@ -224,6 +225,7 @@ function DataModePanel() {
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export default function Settings() {
+  const b = useBranding()
   return (
     <div className="space-y-6">
       <PageHeader
@@ -239,34 +241,40 @@ export default function Settings() {
       <SectionCard title="Company Information">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
-            { label: 'Company',   value: 'iTelematics Software Private Limited' },
-            { label: 'Location',  value: 'Bangalore, India' },
+            { label: 'Company',   value: b.legalName || b.name },
+            { label: 'Location',  value: b.location || '—' },
           ].map(({ label, value }) => (
             <div key={label} className="border-b border-slate-50 pb-2">
               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{value}</p>
+              <p className="text-sm font-semibold text-slate-800 mt-0.5 break-words">{value}</p>
             </div>
           ))}
           <div className="border-b border-slate-50 pb-2">
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Email</p>
-            <a href="mailto:info@iTelematics.com" className="text-sm font-semibold text-brand-600 hover:underline mt-0.5 block">
-              info@iTelematics.com
-            </a>
+            {b.contact.email ? (
+              <a href={`mailto:${b.contact.email}`} className="text-sm font-semibold text-brand-600 hover:underline mt-0.5 block break-all">
+                {b.contact.email}
+              </a>
+            ) : <p className="text-sm text-slate-400 mt-0.5">—</p>}
           </div>
           <div className="border-b border-slate-50 pb-2">
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Phone / WhatsApp</p>
             <div className="flex items-center gap-3 mt-0.5">
-              <a href="tel:+919108206147" className="text-sm font-semibold text-slate-800 hover:text-brand-600 transition-colors">
-                +91 91082 06147
-              </a>
-              <a
-                href="https://wa.me/919108206147"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors"
-              >
-                WhatsApp
-              </a>
+              {b.contact.phoneHref ? (
+                <a href={b.contact.phoneHref} className="text-sm font-semibold text-slate-800 hover:text-brand-600 transition-colors">
+                  {b.contact.phone}
+                </a>
+              ) : <span className="text-sm text-slate-400">—</span>}
+              {b.contact.whatsappUrl && (
+                <a
+                  href={b.contact.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors"
+                >
+                  WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -276,7 +284,7 @@ export default function Settings() {
       <SectionCard title="Platform Information">
         <div className="grid grid-cols-2 gap-4">
           {[
-            { label: 'Platform',     value: 'UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform' },
+            { label: 'Platform',     value: [b.title, b.subtitle].filter(Boolean).join(' — ') },
             { label: 'Version',      value: 'v1.0 — Milestone 04' },
             { label: 'Data Mode',    value: MODE_LABELS[DATA_MODE] },
             { label: 'Architecture', value: 'React 18 + TypeScript 5 + Vite 5' },

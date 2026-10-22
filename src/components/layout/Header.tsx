@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Battery, Shield, Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react'
+import { Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { usePartner } from '../../contexts/PartnerContext'
+import { usePartner, useBranding } from '../../contexts/PartnerContext'
+import PartnerBrandMark from '../ui/PartnerBrandMark'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 import ProfileCompletion from '../ui/ProfileCompletion'
@@ -15,6 +16,7 @@ interface HeaderProps {
 export default function Header({ onMenuToggle }: HeaderProps) {
   const { userProfile, signOut, isAuthenticated, role } = useAuthContext()
   const { partner } = usePartner()
+  const b = useBranding()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -48,14 +50,13 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </button>
 
       {/* Brand */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-1.5">
-          <Battery size={18} className="text-brand-400" />
-          <Shield size={14} className="text-brand-300 -ml-1" />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-white font-bold text-sm tracking-wide">UFlight™ | EV.ENGINEER™</span>
-          <span className="text-slate-400 text-[10px] tracking-widest uppercase">Aerospace Intelligence &amp; Cybersecurity</span>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <PartnerBrandMark />
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-white font-bold text-sm tracking-wide truncate">{b.title}</span>
+          {b.subtitle && (
+            <span className="text-slate-400 text-[10px] tracking-widest uppercase truncate hidden sm:block">{b.subtitle}</span>
+          )}
         </div>
       </div>
 

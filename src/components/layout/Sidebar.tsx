@@ -9,6 +9,7 @@ import {
   UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { useBranding } from '../../contexts/PartnerContext'
 import { getUnreadCount } from '../../firebase/assignments'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
@@ -67,6 +68,8 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { userProfile, signOut, role, uid } = useAuthContext()
+  const b = useBranding()
+  const footerLine = [b.footer, b.location.split(',')[0]].filter(Boolean).join(' · ')
   const navigate = useNavigate()
   const [unread, setUnread] = useState(0)
 
@@ -274,15 +277,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                     {role && <PermissionBadge role={role} size="xs" />}
                   </div>
                 </div>
-                <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide">iTelematics Software Pvt. Ltd. · Bangalore</p>
+                {footerLine && <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide truncate">{footerLine}</p>}
               </div>
             ) : (
               <div className="text-[10px] text-slate-500 leading-relaxed">
-                <p className="font-semibold text-slate-400 mb-0.5">UFlight™ | EV.ENGINEER™</p>
-                <p>Aerospace Intelligence &amp; Cybersecurity Platform</p>
-                <p className="mt-1 text-slate-600 font-semibold">iTelematics Software Pvt. Ltd.</p>
-                <p>Bangalore, India</p>
-                <p>v1.0 · M03 · Intern Program 2026</p>
+                <p className="font-semibold text-slate-400 mb-0.5 break-words">{b.title}</p>
+                {b.subtitle && <p>{b.subtitle}</p>}
+                {b.footer && <p className="mt-1 text-slate-600 font-semibold">{b.footer}</p>}
+                {b.location && <p>{b.location}</p>}
+                {b.versionLabel && <p>{b.versionLabel}</p>}
               </div>
             )}
           </div>

@@ -4,6 +4,9 @@ import { resolveLookupHost, isLocalDevHost, normalizeHostname } from '../tenant/
 import { getPartnerDomain, getPartner } from '../firebase/partners'
 import { isFirebaseConfigured } from '../firebase/config'
 import seed from '../tenant/partners.seed.json'
+import { applyPartnerTheme } from '../tenant/theme'
+import { brandingFor, type Branding } from '../tenant/branding'
+import { setActivePartnerProfile } from '../tenant/session'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -106,6 +109,13 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [])
 
+  // PartnerTheme: colours, title, favicon. Public profile for non-React modules.
+  useEffect(() => {
+    const p = state.status === 'ready' ? state.partner : null
+    applyPartnerTheme(p)
+    setActivePartnerProfile(p)
+  }, [state.status, state.partner])
+
   return (
     <PartnerContext.Provider value={{ ...state, partnerId: state.partner?.id ?? null }}>
       {children}
@@ -117,6 +127,12 @@ export function usePartner(): PartnerContextValue {
   const ctx = useContext(PartnerContext)
   if (!ctx) throw new Error('usePartner must be used inside PartnerProvider')
   return ctx
+}
+
+/** Configuration-driven branding for the hostname's Partner (neutral when unresolved). */
+export function useBranding(): Branding {
+  const { partner } = usePartner()
+  return brandingFor(partner)
 }
 
 /** Clear a localhost dev override (no-op elsewhere). */

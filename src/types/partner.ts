@@ -91,6 +91,8 @@ export interface Partner {
   login: PartnerLoginCopy
   platform: PartnerPlatformCopy
   contact: PartnerContact
+  /** Prefix for generated document numbers, e.g. offer letters ("ITEL-EV-INT" → ITEL-EV-INT-OFFER-2026-001). */
+  documentPrefix: string
   city: string
   country: string
   createdAt: string

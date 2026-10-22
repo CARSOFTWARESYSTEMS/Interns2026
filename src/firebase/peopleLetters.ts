@@ -4,7 +4,8 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
-import { requirePartnerId, inActivePartner, scopedId } from '../tenant/session'
+import { requirePartnerId, inActivePartner, scopedId, getActivePartnerProfile } from '../tenant/session'
+import { brandingFor } from '../tenant/branding'
 import type {
   PeopleLetterTemplate, PeopleGeneratedLetter, PeopleLetterApproval,
   PeopleLetterCounter, PeopleLetterAuditLog, PeopleLetterAuditAction,
@@ -260,7 +261,9 @@ async function nextDocumentId(letterType: LetterType): Promise<string> {
   })
 
   const padded = String(nextCount).padStart(3, '0')
-  return `ITEL-EV-INT-${letterDocPrefix(letterType)}-${year}-${padded}`
+  // Prefix comes from the Partner's configuration (EV.ENGINEER keeps ITEL-EV-INT).
+  const prefix = brandingFor(getActivePartnerProfile()).documentPrefix
+  return `${prefix}-${letterDocPrefix(letterType)}-${year}-${padded}`
 }
 
 // ── Generated letters ────────────────────────────────────────────────────────
