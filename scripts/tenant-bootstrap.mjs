@@ -22,6 +22,9 @@
 //  Options:
 //    --config <path>   default scripts/tenant-migration.config.json
 //    --seed <path>     default src/tenant/partners.seed.json
+//    --domain <host>=<partnerId>   extra hostname to map (repeatable), e.g. your
+//                                  current hosting address:
+//                                  --domain my-project.web.app=ev-engineer
 // ════════════════════════════════════════════════════════════════════════════
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
@@ -43,6 +46,18 @@ const APPLY    = flag('--apply')
 const ROLLBACK = opt('--rollback', null)
 const CONFIG   = JSON.parse(readFileSync(resolve(opt('--config', 'scripts/tenant-migration.config.json')), 'utf8'))
 const SEED     = JSON.parse(readFileSync(resolve(opt('--seed', 'src/tenant/partners.seed.json')), 'utf8'))
+
+// Extra --domain host=partnerId mappings (e.g. the current *.web.app address).
+for (let i = 0; i < args.length; i++) {
+  if (args[i] !== '--domain') continue
+  const [host, pid] = String(args[i + 1] ?? '').split('=')
+  const h = (host ?? '').trim().toLowerCase().replace(/\.$/, '')
+  if (!/^[a-z0-9.-]+$/.test(h) || !h.includes('.') || !SEED.partners.some(p => p.id === pid)) {
+    console.error(`Invalid --domain "${args[i + 1]}". Use host=partnerId with one of: ${SEED.partners.map(p => p.id).join(', ')}`)
+    process.exit(1)
+  }
+  SEED.domains.push({ hostname: h, partnerId: pid, isPrimary: false, status: 'Active' })
+}
 
 // Mirrors SUPER_ADMIN_EMAILS in src/types/auth.ts and isSuperAdminEmail() in firestore.rules.
 const SUPER_ADMIN_EMAILS = new Set(['carsoftwaresystems@gmail.com', 'sudarshana.karkala@gmail.com'])
