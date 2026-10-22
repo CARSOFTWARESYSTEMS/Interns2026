@@ -73,7 +73,10 @@ service firebase.storage {
     match /partners/{pid}/offerDrafts/{offerId}/{fileName} {
       allow read: if canManageOffersIn(pid) || isOfferRecipient(pid, offerId);
 
+      // `resource == null`: the object must not exist yet. An overwrite can be
+      // evaluated as a create, so immutability is enforced here explicitly.
       allow create: if canManageOffersIn(pid)
+        && resource == null
         && request.resource.size <= 10 * 1024 * 1024
         && request.resource.contentType == 'application/pdf'
         && fileName.matches('^[0-9]+-[^/]+[.]pdf$');
@@ -91,6 +94,7 @@ service firebase.storage {
     match /partners/{pid}/branding/{fileName} {
       allow read: if true;
       allow create: if isAdminOf(pid)
+        && resource == null
         && request.resource.size <= 2 * 1024 * 1024
         && request.resource.contentType.matches('image/(png|svg[+]xml|webp|jpeg)');
       allow update: if false;
