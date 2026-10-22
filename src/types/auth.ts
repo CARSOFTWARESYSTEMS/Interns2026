@@ -4,7 +4,7 @@
 // Additional Platform Admins are granted via platformAdmins/{uid}.
 export const SUPER_ADMIN_EMAILS: ReadonlySet<string> = new Set([
   'carsoftwaresystems@gmail.com',
-  'sudarshana.karkala@gmail.com',
+  'sudhan.infotech@gmail.com',
 ])
 
 // ── Roles & Permissions ───────────────────────────────────────────────────

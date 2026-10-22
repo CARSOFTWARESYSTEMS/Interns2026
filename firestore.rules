@@ -43,7 +43,7 @@ service cloud.firestore {
         && request.auth.token.get('email_verified', false) == true
         && myEmail() in [
           'carsoftwaresystems@gmail.com',
-          'sudarshana.karkala@gmail.com'
+          'sudhan.infotech@gmail.com'
         ];
     }
 
