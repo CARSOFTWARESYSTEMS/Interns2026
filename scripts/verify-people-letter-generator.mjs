@@ -57,14 +57,16 @@ for (const [path, component] of routeChecks) {
   check(`Route "/${path}" wired to <${component} />`, () =>
     app.includes(`path="${path}"`) && app.includes(`<${component} />`))
 }
-check('All Documents routes are wrapped in RoleGuard allow=[Platform Admin, HR Manager]', () => {
-  const docsRouteBlock = app.slice(app.indexOf('path="people/documents"'), app.indexOf('{/* Admin — Platform Admin + Engineering Manager */}'))
-  const guardMatches = docsRouteBlock.match(/allow=\{\['Platform Admin', 'HR Manager'\]\}/g) ?? []
+// Multi-tenant: 'Admin' (full control of ONE Partner) joins Platform Admin + HR Manager.
+const ADMIN_SECTION = '{/* Admin — Platform Admin (all Partners) + Admin (own Partner only; data scoped by rules) */}'
+check('All Documents routes are wrapped in RoleGuard allow=[Platform Admin, Admin, HR Manager]', () => {
+  const docsRouteBlock = app.slice(app.indexOf('path="people/documents"'), app.indexOf(ADMIN_SECTION))
+  const guardMatches = docsRouteBlock.match(/allow=\{\['Platform Admin', 'Admin', 'HR Manager'\]\}/g) ?? []
   return guardMatches.length === 5
 })
 check('Documents routes do NOT grant Engineering Manager access', () => {
   const start = app.indexOf('path="people/documents"')
-  const end = app.indexOf('{/* Admin — Platform Admin + Engineering Manager */}')
+  const end = app.indexOf(ADMIN_SECTION)
   const docsRouteBlock = app.slice(start, end)
   return !docsRouteBlock.includes("'Engineering Manager'")
 })
@@ -90,9 +92,11 @@ check('All letter-generator collections represented in types', () => [
   'PeopleLetterTemplate', 'PeopleGeneratedLetter', 'PeopleLetterApproval',
   'PeopleLetterCounter', 'PeopleLetterAuditLog',
 ].every(t => types.includes(`interface ${t}`)))
-check('Document ID pattern helper exists (ITEL-EV-INT-<TYPE>-<YEAR>-<SEQ>)', () => {
+check('Document ID pattern helper exists (<Partner prefix>-<TYPE>-<YEAR>-<SEQ>; EV.ENGINEER = ITEL-EV-INT)', () => {
   const service = read('src/firebase/peopleLetters.ts')
-  return service.includes('ITEL-EV-INT-') && types.includes('letterDocPrefix')
+  const seedCfg = read('src/tenant/partners.seed.json')
+  return service.includes('documentPrefix') && service.includes('${prefix}-${letterDocPrefix(letterType)}-${year}-${padded}')
+    && types.includes('letterDocPrefix') && seedCfg.includes('"documentPrefix": "ITEL-EV-INT"')
 })
 check('17 intern designations modelled', () => {
   const match = types.match(/INTERN_DESIGNATIONS = \[([\s\S]*?)\] as const/)
@@ -133,7 +137,8 @@ check('firestore.rules covers all 5 letter-generator collections, restricted to 
     'peopleLetterCounters', 'peopleLetterAuditLogs',
   ]
   const hasBlocks = collections.every(c => rules.includes(`match /${c}/`))
-  const hasGuardFn = rules.includes('function canManageLetters()') && rules.includes('isPlatformAdmin() || isHRManager()')
+  // Partner-scoped: letters are authorised by the role in the RECORD's Partner.
+  const hasGuardFn = rules.includes('function canManageLettersIn(pid)') && rules.includes('isAdminIn(pid) || isHRManagerIn(pid)')
   return hasBlocks && hasGuardFn
 })
 check('PDF generation is blocked before Approved status (service-layer guard)', () =>
@@ -184,7 +189,7 @@ check('HR Manager role exists in the platform role system', () => {
 })
 check('RoleGuard component exists and is used for Documents routes', () => {
   const guard = read('src/components/auth/RoleGuard.tsx')
-  return guard.includes('allow') && app.includes('RoleGuard allow={[\'Platform Admin\', \'HR Manager\']}')
+  return guard.includes('allow') && app.includes('RoleGuard allow={[\'Platform Admin\', \'Admin\', \'HR Manager\']}')
 })
 
 // ── Seed data ────────────────────────────────────────────────────────────────

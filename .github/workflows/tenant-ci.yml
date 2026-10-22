@@ -1,0 +1,55 @@
+name: Tenant isolation CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feature/**']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (hostname, RBAC, tenant session, branding)
+        run: npm test
+
+      - name: Static verification scripts
+        run: |
+          node scripts/verify-people-operations-foundation.mjs
+          node scripts/verify-people-letter-generator.mjs
+          node scripts/verify-corporate-document-engine.mjs
+
+      - name: Firestore rules — tenant isolation suite (emulator)
+        run: npm run test:rules
+
+      - name: Firestore rules — letter generator (emulator)
+        run: npx firebase emulators:exec --only firestore --project demo-letter-rules "node scripts/test-people-letter-rules.mjs"
+
+      - name: Production build (firebase mode)
+        run: npm run build
+        env:
+          VITE_DATA_MODE: firebase
+
+      - name: Seed data must not ship in the production bundle
+        run: |
+          for s in "Battery Aadhaar ID Schema" "arjun.sharma@intern.eveng.in" "Ananya Rao"; do
+            if grep -rqF "$s" dist; then echo "::error::Seed data found in bundle: $s"; exit 1; fi
+          done

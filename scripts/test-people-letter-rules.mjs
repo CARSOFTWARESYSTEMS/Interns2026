@@ -33,7 +33,11 @@ async function check(label, fn) {
   }
 }
 
-const ROLES = ['Platform Admin', 'Engineering Manager', 'HR Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer']
+const ROLES = ['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer']
+// Multi-tenant: roles come from partnerMemberships in the record's Partner
+// (Platform Admin from platformAdmins/{uid}); every record carries partnerId.
+const PID = 'test-partner'
+const LETTER_ROLES = ['Platform Admin', 'Admin', 'HR Manager']
 
 const NEW_COLLECTIONS = [
   'peopleLetterTemplates', 'peopleGeneratedLetters', 'peopleLetterApprovals',
@@ -46,11 +50,20 @@ async function main() {
     firestore: { rules: RULES, host: '127.0.0.1', port: 8080 },
   })
 
-  // Seed a `users/{uid}` doc per role so callerRole() resolves correctly.
+  // Seed the Partner, one ACTIVE membership per role (Platform Admin via
+  // platformAdmins), and a probe record per collection owned by that Partner.
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
+    await setDoc(doc(db, 'partners', PID), { id: PID, status: 'Active', displayName: 'Test Partner' })
     for (const role of ROLES) {
-      await setDoc(doc(db, 'users', uidFor(role)), { role })
+      if (role === 'Platform Admin') {
+        await setDoc(doc(db, 'platformAdmins', uidFor(role)), { uid: uidFor(role) })
+      } else {
+        await setDoc(doc(db, 'partnerMemberships', `${PID}_${uidFor(role)}`), { id: `${PID}_${uidFor(role)}`, partnerId: PID, uid: uidFor(role), role, status: 'Active' })
+      }
+    }
+    for (const col of NEW_COLLECTIONS) {
+      await setDoc(doc(db, col, 'probe-doc'), { id: 'probe-doc', partnerId: PID })
     }
   })
 
@@ -59,7 +72,7 @@ async function main() {
   console.log('Access control — every role × every new collection (read)')
   for (const role of ROLES) {
     const asRole = testEnv.authenticatedContext(uidFor(role), { email: `${role.replace(/\s/g, '.').toLowerCase()}@example.com` }).firestore()
-    const allowed = role === 'Platform Admin' || role === 'HR Manager'
+    const allowed = LETTER_ROLES.includes(role)
     for (const col of NEW_COLLECTIONS) {
       const ref = doc(asRole, col, 'probe-doc')
       await check(`${role} → read ${col}: expect ${allowed ? 'ALLOW' : 'DENY'}`, async () => {
@@ -72,11 +85,12 @@ async function main() {
   console.log('\nAccess control — every role × every new collection (write)')
   for (const role of ROLES) {
     const asRole = testEnv.authenticatedContext(uidFor(role), { email: `${role.replace(/\s/g, '.').toLowerCase()}@example.com` }).firestore()
-    const allowed = role === 'Platform Admin' || role === 'HR Manager'
+    const allowed = LETTER_ROLES.includes(role)
     for (const col of NEW_COLLECTIONS) {
-      const ref = doc(asRole, col, `probe-write-${role.replace(/\s/g, '')}`)
+      // Partner-prefixed id: counters require the id prefix to match partnerId.
+      const ref = doc(asRole, col, `${PID}_probe-write-${role.replace(/\s/g, '')}`)
       await check(`${role} → write ${col}: expect ${allowed ? 'ALLOW' : 'DENY'}`, async () => {
-        const payload = { id: 'probe', partnerId: 'itelematics', organisationId: 'ev-engineer', createdAt: '', updatedAt: '', createdBy: uidFor(role), status: 'Draft' }
+        const payload = { id: 'probe', partnerId: PID, organisationId: PID, createdAt: '', updatedAt: '', createdBy: uidFor(role), status: 'Draft' }
         if (allowed) await assertSucceeds(setDoc(ref, payload))
         else await assertFails(setDoc(ref, payload))
       })
@@ -94,8 +108,8 @@ async function main() {
   console.log('\nImmutability — approvals & audit logs cannot be updated or deleted')
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
-    await setDoc(doc(db, 'peopleLetterApprovals', 'approval-1'), { id: 'approval-1', letterId: 'letter-1', decision: 'Approved' })
-    await setDoc(doc(db, 'peopleLetterAuditLogs', 'log-1'), { id: 'log-1', action: 'letter_drafted' })
+    await setDoc(doc(db, 'peopleLetterApprovals', 'approval-1'), { id: 'approval-1', partnerId: PID, letterId: 'letter-1', decision: 'Approved' })
+    await setDoc(doc(db, 'peopleLetterAuditLogs', 'log-1'), { id: 'log-1', partnerId: PID, action: 'letter_drafted' })
   })
   const hr = testEnv.authenticatedContext(uidFor('HR Manager'), { email: 'hr.manager@example.com' }).firestore()
   await check('HR Manager cannot update an existing approval record (immutable)', async () => {
@@ -107,14 +121,22 @@ async function main() {
     await assertFails(updateDoc(doc(hr, 'peopleLetterAuditLogs', 'log-1'), { action: 'tampered' }))
   })
 
+  console.log('\nCross-Partner — letters of another Partner are invisible even to its HR role elsewhere')
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'peopleGeneratedLetters', 'other-letter'), { id: 'other-letter', partnerId: 'other-partner' })
+  })
+  await check('HR Manager of test-partner CANNOT read another Partner\'s letter', async () => {
+    await assertFails(getDoc(doc(hr, 'peopleGeneratedLetters', 'other-letter')))
+  })
+
   console.log('\nRegression — existing PEOPLE-001 collections still enforce their original rules')
   const engManager = testEnv.authenticatedContext(uidFor('Engineering Manager'), { email: 'engineering.manager@example.com' }).firestore()
   await check('Engineering Manager CAN still write peopleOffers (unchanged by this story)', async () => {
-    await assertSucceeds(setDoc(doc(engManager, 'peopleOffers', 'offer-probe'), { id: 'offer-probe', offerStatus: 'Draft' }))
+    await assertSucceeds(setDoc(doc(engManager, 'peopleOffers', 'offer-probe'), { id: 'offer-probe', partnerId: PID, offerStatus: 'Draft' }))
   })
   const dev = testEnv.authenticatedContext(uidFor('Developer'), { email: 'developer@example.com' }).firestore()
   await check('Developer still CANNOT write peopleOffers (unchanged by this story)', async () => {
-    await assertFails(setDoc(doc(dev, 'peopleOffers', 'offer-probe-2'), { id: 'offer-probe-2', offerStatus: 'Draft' }))
+    await assertFails(setDoc(doc(dev, 'peopleOffers', 'offer-probe-2'), { id: 'offer-probe-2', partnerId: PID, offerStatus: 'Draft' }))
   })
 
   await testEnv.cleanup()
