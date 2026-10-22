@@ -5,9 +5,13 @@
       "https://login.uflight.in",
       "https://login.itelematics.com",
       "https://login.autonomous.ev.engineer",
+      "https://ev2027.firebaseapp.com",
+      "https://ev2027.web.app",
       "http://localhost:5173"
     ],
-    "method": ["GET"],
+    "method": [
+      "GET"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

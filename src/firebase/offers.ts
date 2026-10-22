@@ -143,6 +143,19 @@ export async function fetchOfferPdf(offer: OfferDraft): Promise<Blob> {
  * Opens the PDF in a new tab. The tab is opened synchronously (before the
  * download) so popup blockers allow it; the object URL is revoked later.
  */
+/**
+ * Human-readable reason a PDF couldn't be fetched. The raw error is logged so
+ * the browser console shows the Storage code (e.g. a CORS / network failure
+ * surfaces as storage/unknown or storage/retry-limit-exceeded).
+ */
+export function offerFileErrorMessage(e: unknown): string {
+  console.error('[offer pdf]', e)
+  const code = (e as { code?: string })?.code ?? ''
+  if (code === 'storage/unauthorized') return 'You don’t have access to this document. Make sure you’re signed in with the email the offer was sent to.'
+  if (code === 'storage/object-not-found') return 'This document is no longer available. Please contact the sender.'
+  return 'The document couldn’t be downloaded. Check your connection and try again; if it keeps failing, contact the sender.'
+}
+
 export async function openOfferPdf(offer: OfferDraft): Promise<void> {
   const win = window.open('', '_blank')
   try {
