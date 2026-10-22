@@ -27,7 +27,7 @@ service firebase.storage {
     function isSuperAdminEmail() {
       return isSignedIn()
         && request.auth.token.get('email_verified', false) == true
-        && myEmail() in ['carsoftwaresystems@gmail.com', 'sudarshana.karkala@gmail.com'];
+        && myEmail() in ['carsoftwaresystems@gmail.com', 'sudhan.infotech@gmail.com'];
     }
 
     function isPlatformAdmin() {

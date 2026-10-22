@@ -60,7 +60,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 // Mirrors SUPER_ADMIN_EMAILS in src/types/auth.ts and isSuperAdminEmail() in firestore.rules.
-const SUPER_ADMIN_EMAILS = new Set(['carsoftwaresystems@gmail.com', 'sudarshana.karkala@gmail.com'])
+const SUPER_ADMIN_EMAILS = new Set(['carsoftwaresystems@gmail.com', 'sudhan.infotech@gmail.com'])
 const PARTNER_ROLES = ['Admin', 'Engineering Manager', 'HR Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer']
 const STATUSES = ['Pending', 'Active', 'Suspended', 'Blocked']
 
