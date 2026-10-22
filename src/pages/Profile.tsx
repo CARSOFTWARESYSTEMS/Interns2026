@@ -11,6 +11,7 @@ import ProfileCompletion from '../components/ui/ProfileCompletion'
 import PermissionBadge from '../components/ui/PermissionBadge'
 import UserAvatar from '../components/ui/UserAvatar'
 import { useAuthContext } from '../contexts/AuthContext'
+import { usePartner } from '../contexts/PartnerContext'
 import {
   getUserSkills, setUserSkills, getAuditLogs, getLoginHistory,
   getUserResume, setUserResume,
@@ -36,7 +37,9 @@ const DEGREES = ['B.E.', 'B.Tech', 'M.E.', 'M.Tech', 'MCA', 'MBA', 'Ph.D.', 'Dip
 const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => String(2024 + i))
 const EXPERIENCE_OPTS = ['Fresher', '< 1 year', '1 year', '2 years', '3+ years']
 export default function Profile() {
-  const { userProfile, updateProfile } = useAuthContext()
+  const { userProfile, updateProfile, role, membership, isPlatformAdmin } = useAuthContext()
+  const { partner } = usePartner()
+  const accessStatus = isPlatformAdmin ? 'Active' : (membership?.status ?? 'Pending')
   const [tab, setTab] = useState('personal')
   const [editing, setEditing] = useState(false)
   const [saving, setSaving]   = useState(false)
@@ -202,12 +205,12 @@ export default function Profile() {
                 {userProfile.college && <p className="text-xs text-slate-400 mt-0.5">{userProfile.college}</p>}
               </div>
               <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-                <PermissionBadge role={userProfile.role} />
+                {role && <PermissionBadge role={role} />}
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                  userProfile.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
-                  userProfile.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  accessStatus === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
+                  accessStatus === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                   'bg-red-50 text-red-700 border-red-200'
-                }`}>{userProfile.status}</span>
+                }`}>{accessStatus}</span>
               </div>
             </div>
             <div className="mt-3 max-w-xs">
@@ -269,9 +272,9 @@ export default function Profile() {
           </SectionCard>
           <SectionCard title="Platform Info" icon={<Shield size={14} />}>
             <InfoRow label="UID" value={userProfile.uid} />
-            <InfoRow label="Role" value={userProfile.role} />
-            <InfoRow label="Organization" value="UFlight™ | EV.ENGINEER™ — Aerospace Intelligence & Cybersecurity Platform" />
-            <InfoRow label="Status" value={userProfile.status} />
+            <InfoRow label="Role" value={role ?? '—'} />
+            <InfoRow label="Organization" value={partner?.displayName ?? '—'} />
+            <InfoRow label="Status" value={accessStatus} />
             <InfoRow label="Member Since" value={new Date(userProfile.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })} />
             <InfoRow label="Last Login" value={userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleString('en-IN') : ''} />
           </SectionCard>
@@ -484,12 +487,12 @@ export default function Profile() {
       {tab === 'security' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <SectionCard title="Access & Role" icon={<Shield size={14} />}>
-            <InfoRow label="Role" value={userProfile.role} />
-            <InfoRow label="Status" value={userProfile.status} />
-            <InfoRow label="Organization" value="UFlight™ | EV.ENGINEER™" />
+            <InfoRow label="Role" value={role ?? '—'} />
+            <InfoRow label="Status" value={accessStatus} />
+            <InfoRow label="Organization" value={partner?.displayName ?? '—'} />
             <InfoRow label="Auth Method" value="Google OAuth 2.0" />
-            <InfoRow label="Manager" value={userProfile.managerId || 'Not assigned'} />
-            <InfoRow label="Architect" value={userProfile.architectId || 'Not assigned'} />
+            <InfoRow label="Manager" value={membership?.managerId || 'Not assigned'} />
+            <InfoRow label="Architect" value={membership?.architectId || 'Not assigned'} />
           </SectionCard>
 
           <SectionCard title="Recent Sessions" icon={<Clock size={14} />}>

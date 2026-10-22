@@ -4,6 +4,8 @@ import { CheckCircle, AlertTriangle, Loader2, CalendarCheck } from 'lucide-react
 import { useAuthContext } from '../contexts/AuthContext'
 import { submitDailyCheckin } from '../firebase/assignments'
 import { checkinLocalKey, todayKey, type RiskLevel } from '../types/assignments'
+import { useBranding } from '../contexts/PartnerContext'
+import PartnerBrandMark from '../components/ui/PartnerBrandMark'
 
 const RISK_OPTIONS: { value: RiskLevel; label: string; desc: string; dot: string; activeRing: string }[] = [
   { value: 'Green',  label: 'On Track', desc: 'No blockers, progressing well',         dot: 'bg-green-500',  activeRing: 'ring-2 ring-green-400 border-green-400 bg-green-50' },
@@ -14,6 +16,7 @@ const RISK_OPTIONS: { value: RiskLevel; label: string; desc: string; dot: string
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors resize-none'
 
 export default function DailyCheckin() {
+  const b = useBranding()
   const { userProfile, uid } = useAuthContext()
   const navigate = useNavigate()
   const today = todayKey()
@@ -83,12 +86,12 @@ export default function DailyCheckin() {
     <div className="min-h-screen bg-slate-50">
       {/* Top bar — matches app navbar style */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-slate-900 border-b border-slate-700 flex items-center px-5 gap-3 z-50">
-        <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-black text-[10px] tracking-tight">EV</span>
-        </div>
-        <span className="text-white font-bold text-sm">UFlight™ | EV.ENGINEER™</span>
-        <span className="text-slate-600 text-sm ml-1">·</span>
-        <span className="text-slate-400 text-sm">Aerospace Intelligence &amp; Cybersecurity Platform · Intern Program 2026</span>
+        <PartnerBrandMark />
+        <span className="text-white font-bold text-sm truncate">{b.title}</span>
+        {b.subtitle && <>
+          <span className="text-slate-600 text-sm ml-1 hidden sm:inline">·</span>
+          <span className="text-slate-400 text-sm truncate hidden sm:inline">{b.subtitle}</span>
+        </>}
       </header>
 
       {/* Page content — same padding as dashboard Layout */}

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuthContext } from './contexts/AuthContext'
+import { PartnerProvider } from './contexts/PartnerContext'
+import TenantGate from './components/auth/TenantGate'
 import { DataProvider } from './data/DataProvider'
 import RequireAuth from './components/auth/RequireAuth'
 import RequireCheckin from './components/auth/RequireCheckin'
@@ -12,6 +14,7 @@ import Login from './pages/Login'
 import CompleteProfile from './pages/CompleteProfile'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
+import Join from './pages/Join'
 
 // Platform pages
 import Dashboard from './pages/Dashboard'
@@ -67,6 +70,7 @@ import AdminInvitations from './pages/admin/Invitations'
 import DeveloperSettings from './pages/admin/DeveloperSettings'
 import AssignmentCreate from './pages/admin/AssignmentCreate'
 import Capacity from './pages/admin/Capacity'
+import Partners from './pages/admin/Partners'
 import DailyCheckin from './pages/DailyCheckin'
 import Notifications from './pages/Notifications'
 
@@ -80,7 +84,7 @@ function RoleDashboard() {
   if (role === 'QA Engineer')         return <QADashboard />
   if (role === 'Architect')           return <ArchitectDashboard />
   if (role === 'Engineering Manager') return <ManagerDashboard />
-  return <Dashboard />                // Platform Admin, Viewer, fallback
+  return <Dashboard />                // Platform Admin, Admin, Viewer, fallback
 }
 
 /**
@@ -94,11 +98,24 @@ function MyDashboardRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Hostname → Partner resolves first; unknown/inactive hosts never reach auth or data. */}
+      <PartnerProvider>
+      <TenantGate>
       <AuthProvider>
         <DataProvider>
         <Routes>
           {/* ── Public routes ──────────────────────────────────────── */}
           <Route path="/login" element={<Login />} />
+
+          {/* ── Invitation redemption: signed in, membership not yet required ── */}
+          <Route
+            path="/join"
+            element={
+              <RequireAuth signedInOnly>
+                <Join />
+              </RequireAuth>
+            }
+          />
 
           {/* ── Auth-only, no layout ───────────────────────────────── */}
           <Route
@@ -165,7 +182,7 @@ export default function App() {
             <Route
               path="people/recruitment"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeopleRecruitment />
                 </RoleGuard>
               }
@@ -173,7 +190,7 @@ export default function App() {
             <Route
               path="people/candidates"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeopleCandidates />
                 </RoleGuard>
               }
@@ -181,7 +198,7 @@ export default function App() {
             <Route
               path="people/interviews"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeopleInterviews />
                 </RoleGuard>
               }
@@ -189,7 +206,7 @@ export default function App() {
             <Route
               path="people/offers"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeopleOffers />
                 </RoleGuard>
               }
@@ -197,7 +214,7 @@ export default function App() {
             <Route
               path="people/onboarding"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeopleOnboarding />
                 </RoleGuard>
               }
@@ -208,7 +225,7 @@ export default function App() {
             <Route
               path="people/policies"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager', 'HR Manager']}>
                   <PeoplePolicies />
                 </RoleGuard>
               }
@@ -221,7 +238,7 @@ export default function App() {
             <Route
               path="people/documents"
               element={
-                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
                   <PeopleDocumentsHome />
                 </RoleGuard>
               }
@@ -229,7 +246,7 @@ export default function App() {
             <Route
               path="people/documents/templates"
               element={
-                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
                   <PeopleDocumentsTemplates />
                 </RoleGuard>
               }
@@ -237,7 +254,7 @@ export default function App() {
             <Route
               path="people/documents/offer-letter"
               element={
-                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
                   <PeopleDocumentsOfferLetter />
                 </RoleGuard>
               }
@@ -245,7 +262,7 @@ export default function App() {
             <Route
               path="people/documents/joining-letter"
               element={
-                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
                   <PeopleDocumentsJoiningLetter />
                 </RoleGuard>
               }
@@ -253,17 +270,17 @@ export default function App() {
             <Route
               path="people/documents/generated"
               element={
-                <RoleGuard allow={['Platform Admin', 'HR Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'HR Manager']}>
                   <PeopleDocumentsGenerated />
                 </RoleGuard>
               }
             />
 
-            {/* Admin — Platform Admin + Engineering Manager */}
+            {/* Admin — Platform Admin (all Partners) + Admin (own Partner only; data scoped by rules) */}
             <Route
               path="admin/users"
               element={
-                <RoleGuard allow={['Platform Admin']}>
+                <RoleGuard allow={['Platform Admin', 'Admin']}>
                   <AdminUsers />
                 </RoleGuard>
               }
@@ -271,7 +288,7 @@ export default function App() {
             <Route
               path="admin/invitations"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager']}>
                   <AdminInvitations />
                 </RoleGuard>
               }
@@ -279,7 +296,7 @@ export default function App() {
             <Route
               path="admin/developer-settings"
               element={
-                <RoleGuard allow={['Platform Admin']}>
+                <RoleGuard allow={['Platform Admin', 'Admin']}>
                   <DeveloperSettings />
                 </RoleGuard>
               }
@@ -287,7 +304,7 @@ export default function App() {
             <Route
               path="admin/assignments/new"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager']}>
                   <AssignmentCreate />
                 </RoleGuard>
               }
@@ -295,8 +312,18 @@ export default function App() {
             <Route
               path="admin/capacity"
               element={
-                <RoleGuard allow={['Platform Admin', 'Engineering Manager']}>
+                <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager']}>
                   <Capacity />
+                </RoleGuard>
+              }
+            />
+
+            {/* Partner registry — Platform Admin only (rules enforce the same) */}
+            <Route
+              path="admin/partners"
+              element={
+                <RoleGuard allow={['Platform Admin']}>
+                  <Partners />
                 </RoleGuard>
               }
             />
@@ -314,6 +341,8 @@ export default function App() {
         </Routes>
         </DataProvider>
       </AuthProvider>
+      </TenantGate>
+      </PartnerProvider>
     </BrowserRouter>
   )
 }

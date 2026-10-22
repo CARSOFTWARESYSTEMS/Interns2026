@@ -1,8 +1,29 @@
 rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Multi-tenant Partner security rules
+//
+//  These rules are the ONLY server-side enforcement point (static SPA, no
+//  backend). Nothing the client sends — partnerId, role, labels, hostname —
+//  is trusted. Every tenant decision is:
+//
+//      caller's ACTIVE membership in the record's partnerId (+ role)
+//      OR caller is a Platform Admin
+//
+//  Memberships live at partnerMemberships/{partnerId}_{uid} so rules can
+//  fetch them with a single get().
+//
+//  Every Partner-owned record carries an immutable `partnerId`. Reads,
+//  creates, updates and deletes are authorised against the caller's role IN
+//  THAT RECORD'S Partner. `partnerId` can never be changed by an update, and
+//  a create must name a Partner the caller is authorised in — so sending
+//  another Partner's id in a payload achieves nothing.
+// ════════════════════════════════════════════════════════════════════════════
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helper functions ───────────────────────────────────────────────────
+    // ── Identity ──────────────────────────────────────────────────────────
 
     function isSignedIn() {
       return request.auth != null;
@@ -12,316 +33,655 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    // Super admins are always Platform Admin regardless of stored role.
+    function myEmail() {
+      return request.auth.token.get('email', '').lower();
+    }
+
+    // Bootstrap Platform Admins (mirrors SUPER_ADMIN_EMAILS in src/types/auth.ts).
     function isSuperAdminEmail() {
-      return isSignedIn() && request.auth.token.email in [
-        'carsoftwaresystems@gmail.com',
-        'sudarshana.karkala@gmail.com'
-      ];
+      return isSignedIn()
+        && request.auth.token.get('email_verified', false) == true
+        && myEmail() in [
+          'carsoftwaresystems@gmail.com',
+          'sudarshana.karkala@gmail.com'
+        ];
     }
 
-    // Reads the caller's role from their user document (costs 1 extra read).
-    // Returns empty string if the document doesn't exist yet (first login).
-    function callerRole() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '')
-        : '';
+    // PLATFORM_ADMIN is global: super-admin email OR platformAdmins/{uid}.
+    // Never derived from users/{uid}.role (which users could once edit).
+    function isPlatformAdmin() {
+      return isSuperAdminEmail()
+        || (isSignedIn() && exists(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)));
     }
 
-    function isPlatformAdmin() { return isSuperAdminEmail() || callerRole() == 'Platform Admin'; }
-    function isManager()       { return callerRole() == 'Engineering Manager'; }
-    function isArchitect()     { return callerRole() == 'Architect'; }
-    function isQA()            { return callerRole() == 'QA Engineer'; }
-    function isDeveloper()     { return callerRole() == 'Developer'; }
-    function isHRManager()     { return callerRole() == 'HR Manager'; }
+    // ── Partner membership ────────────────────────────────────────────────
 
-    function canManageUsers() { return isPlatformAdmin() || isManager(); }
-    function canReadAll()     { return isPlatformAdmin() || isManager() || isArchitect(); }
+    function partnerRoles() {
+      return ['Admin', 'Engineering Manager', 'HR Manager', 'Architect', 'QA Engineer', 'Developer', 'Viewer'];
+    }
 
-    // People Operations — Platform Admin (full), Engineering Manager (team),
-    // HR Manager (people ops) can manage recruitment/onboarding/policies.
-    // Everyone signed in can read/write their own profile-linked records
-    // (self profile, self leave, self reviews) via the isOwnPeopleRecord check.
-    function canManagePeopleOps() { return isPlatformAdmin() || isManager() || isHRManager(); }
-    function isOwnPeopleRecord()  { return isSignedIn() && resource.data.get('uid', '') == request.auth.uid; }
+    function membershipStatuses() {
+      return ['Pending', 'Active', 'Suspended', 'Blocked'];
+    }
 
-    // Offer/Joining Letter Generator (PEOPLE-002) — strictly Super Admin
-    // (Platform Admin) + HR Manager. Unlike the rest of People Operations,
-    // Engineering Manager does NOT get access to these collections.
-    function canManageLetters() { return isPlatformAdmin() || isHRManager(); }
+    function membershipPath(pid, uid) {
+      return /databases/$(database)/documents/partnerMemberships/$(pid + '_' + uid);
+    }
 
-    // ── Users ──────────────────────────────────────────────────────────────
-    // Each user document is keyed by uid.
-    match /users/{uid} {
-      // Any authenticated user can read their own profile.
-      // Admin / Manager can read all profiles (needed for user management pages).
-      allow read: if isOwner(uid) || canReadAll();
+    function hasMembershipDoc(pid) {
+      return isSignedIn() && pid is string && pid != ''
+        && exists(membershipPath(pid, request.auth.uid));
+    }
 
-      // Create own profile on first login — no role check needed (doc doesn't exist yet).
-      allow create: if isOwner(uid);
+    function isActiveMember(pid) {
+      return hasMembershipDoc(pid)
+        && get(membershipPath(pid, request.auth.uid)).data.status == 'Active';
+    }
 
-      // Update own profile, or admin can update any profile (role assignment).
-      allow update: if isOwner(uid) || isPlatformAdmin();
+    // Caller's role inside one Partner ('' when not an ACTIVE member).
+    function roleIn(pid) {
+      return isActiveMember(pid) ? get(membershipPath(pid, request.auth.uid)).data.role : '';
+    }
 
-      // Only Platform Admin can delete.
+    function canAccessPartner(pid) {
+      return isPlatformAdmin() || isActiveMember(pid);
+    }
+
+    // Platform Admin anywhere, or Admin of THIS Partner.
+    function isAdminOf(pid) {
+      return isPlatformAdmin() || roleIn(pid) == 'Admin';
+    }
+
+    function partnerPath(pid) {
+      return /databases/$(database)/documents/partners/$(pid);
+    }
+
+    function partnerIsActive(pid) {
+      return pid is string && pid != '' && exists(partnerPath(pid))
+        && get(partnerPath(pid)).data.status == 'Active';
+    }
+
+    function partnerAllowsAccessRequests(pid) {
+      return partnerIsActive(pid)
+        && exists(/databases/$(database)/documents/partnerSettings/$(pid))
+        && get(/databases/$(database)/documents/partnerSettings/$(pid)).data.authPolicy.allowAccessRequests == true;
+    }
+
+    // ── Per-Partner role helpers (pid = the record's partnerId) ──────────
+
+    function isAdminIn(pid)      { return isPlatformAdmin() || roleIn(pid) == 'Admin'; }
+    function isManagerIn(pid)    { return roleIn(pid) == 'Engineering Manager'; }
+    function isArchitectIn(pid)  { return roleIn(pid) == 'Architect'; }
+    function isHRManagerIn(pid)  { return roleIn(pid) == 'HR Manager'; }
+
+    function canManageUsersIn(pid)     { return isAdminIn(pid) || isManagerIn(pid); }
+    function canReadAllIn(pid)         { return isAdminIn(pid) || isManagerIn(pid) || isArchitectIn(pid); }
+    function canManagePeopleOpsIn(pid) { return isAdminIn(pid) || isManagerIn(pid) || isHRManagerIn(pid); }
+    function canManageLettersIn(pid)   { return isAdminIn(pid) || isHRManagerIn(pid); }
+    function canWriteEngineeringIn(pid){ return isAdminIn(pid) || isManagerIn(pid) || isArchitectIn(pid); }
+
+    // Record's Partner (existing doc) / requested Partner (incoming doc).
+    function rp() { return resource.data.partnerId; }
+    function qp() { return request.resource.data.partnerId; }
+
+    // Updates can never move a record to another Partner.
+    function samePartner() { return request.resource.data.partnerId == resource.data.partnerId; }
+
+    // Deterministic ids start with the owning partnerId ({pid}_…). Partner ids
+    // never contain '_', so the prefix is unambiguous. Used to authorise a
+    // `get` of a doc that may not exist yet (rules can't read resource.data then).
+    function idPartner(docId) { return docId.split('_')[0]; }
+
+    function isOwnPeopleRecord() {
+      return canAccessPartner(rp()) && resource.data.get('uid', '') == request.auth.uid;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Tenant registry
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Public branding — must be readable before sign-in to render the login
+    // page for the hostname. Holds NO secrets. Listing (enumeration) is
+    // Platform Admin only.
+    match /partners/{partnerId} {
+      allow get:   if true;
+      allow list:  if isPlatformAdmin();
+      allow create, update: if isPlatformAdmin()
+        && partnerId.matches('^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$')
+        && request.resource.data.id == partnerId
+        && request.resource.data.status in ['Active', 'Inactive'];
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Skills ─────────────────────────────────────────────────────────────
-    match /userSkills/{uid} {
-      allow read:  if isOwner(uid) || canReadAll();
-      allow write: if isOwner(uid) || isPlatformAdmin() || isManager();
+    // Hostname → Partner. Doc id is the normalised hostname, so hostnames are
+    // unique by construction. Only Platform Admin may change mappings.
+    match /partnerDomains/{hostname} {
+      allow get:   if true;
+      allow list:  if isPlatformAdmin();
+      allow create, update: if isPlatformAdmin()
+        && hostname.matches('^[a-z0-9.-]+$')
+        && request.resource.data.hostname == hostname
+        && partnerIsActive(request.resource.data.partnerId)
+        && request.resource.data.status in ['Active', 'Inactive'];
+      allow delete: if isPlatformAdmin();
     }
 
-    // ── Resumes ────────────────────────────────────────────────────────────
+    // Modules, auth policy, operational config.
+    match /partnerSettings/{partnerId} {
+      allow get:   if canAccessPartner(partnerId);
+      allow list:  if isPlatformAdmin();
+      allow write: if isPlatformAdmin();
+    }
+
+    // Global Platform Admin grants. Partner Admins can never write here, so
+    // they cannot promote themselves (or anyone) to Platform Admin.
+    match /platformAdmins/{uid} {
+      allow get:   if isOwner(uid) || isPlatformAdmin();
+      allow list:  if isPlatformAdmin();
+      allow write: if isPlatformAdmin();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Memberships
+    // ══════════════════════════════════════════════════════════════════════
+
+    function validMembership(d, mid) {
+      return d.partnerId is string && d.uid is string
+        && mid == d.partnerId + '_' + d.uid
+        && d.role in partnerRoles()
+        && d.status in membershipStatuses();
+    }
+
+    function invitePath(token) {
+      return /databases/$(database)/documents/invitations/$(token);
+    }
+
+    // Partner-specific employment fields are set by administrators only. On
+    // self-service paths (access request, invitation) they must stay blank.
+    function adminFieldsBlank(d) {
+      return d.get('employeeId', '') == ''
+        && d.get('designation', '') == ''
+        && d.get('team', '') == ''
+        && d.get('managerId', '') == ''
+        && d.get('architectId', '') == '';
+    }
+
+    // Membership created/upgraded from an invitation in the SAME batch that
+    // marks the invitation Accepted. Every security field is copied from the
+    // invitation, so a GAMYAA invite can only ever yield a GAMYAA membership.
+    function redeemsInvitation(d) {
+      return d.inviteId is string && d.inviteId.size() >= 32
+        && d.uid == request.auth.uid
+        && d.status == 'Active'
+        && d.email == myEmail()
+        && inviteMatches(d, d.inviteId,
+             get(invitePath(d.inviteId)).data,
+             getAfter(invitePath(d.inviteId)).data);
+    }
+
+    function inviteMatches(d, token, inv, after) {
+      return inv.status == 'Pending'
+        && inv.email == myEmail()
+        && inv.partnerId == d.partnerId
+        && inv.role == d.role
+        && request.time.toMillis() < inv.expiresAtMs
+        && after.status == 'Accepted'
+        && after.acceptedBy == request.auth.uid
+        && partnerIsActive(d.partnerId);
+    }
+
+    // A Partner Admin may manage members of their own Partner, but never
+    // their own membership, never an Admin, and never grant Admin.
+    function partnerAdminMayEdit(before, after) {
+      return roleIn(before.partnerId) == 'Admin'
+        && before.uid != request.auth.uid
+        && before.role != 'Admin'
+        && after.role != 'Admin'
+        && after.diff(before).affectedKeys().hasOnly([
+          'role', 'status', 'employeeId', 'designation', 'team',
+          'managerId', 'architectId', 'approvedBy', 'updatedAt', 'updatedBy'
+        ]);
+    }
+
+    match /partnerMemberships/{mid} {
+      // Own membership by deterministic id (works even if it doesn't exist),
+      // or Admin of that Partner.
+      allow get: if isSignedIn() && (
+        (mid.split('_').size() == 2 && mid.split('_')[1] == request.auth.uid)
+        || isAdminOf(resource.data.partnerId)
+      );
+
+      // Partner Admins list only their Partner (query must filter partnerId).
+      // There is deliberately no "list my memberships" path: nothing in the
+      // UI needs to enumerate a user's other Partners.
+      allow list: if isSignedIn() && isAdminOf(resource.data.partnerId);
+
+      allow create: if isSignedIn()
+        && validMembership(request.resource.data, mid)
+        && (
+          // Platform Admin: add any user to any Partner, any role.
+          isPlatformAdmin()
+
+          // Self-service access request: Pending Viewer only.
+          || (request.resource.data.uid == request.auth.uid
+              && request.resource.data.status == 'Pending'
+              && request.resource.data.role == 'Viewer'
+              && request.resource.data.inviteId == ''
+              && request.resource.data.get('invitedBy', '') == ''
+              && request.resource.data.get('approvedBy', '') == ''
+              && request.resource.data.email == myEmail()
+              && adminFieldsBlank(request.resource.data)
+              && partnerAllowsAccessRequests(request.resource.data.partnerId))
+
+          // Invitation redemption.
+          || (redeemsInvitation(request.resource.data)
+              && adminFieldsBlank(request.resource.data))
+        );
+
+      allow update: if isSignedIn()
+        && request.resource.data.partnerId == resource.data.partnerId
+        && request.resource.data.uid == resource.data.uid
+        && validMembership(request.resource.data, mid)
+        && (
+          isPlatformAdmin()
+          || partnerAdminMayEdit(resource.data, request.resource.data)
+          // A Pending request may be upgraded by redeeming an invitation.
+          // Suspended/Blocked members cannot use an invitation to reinstate themselves.
+          || (resource.data.status == 'Pending'
+              && resource.data.uid == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'role', 'status', 'inviteId', 'invitedBy', 'approvedBy', 'updatedAt', 'updatedBy'
+              ])
+              && redeemsInvitation(request.resource.data))
+        );
+
+      allow delete: if isSignedIn() && (
+        isPlatformAdmin()
+        || (roleIn(resource.data.partnerId) == 'Admin'
+            && resource.data.uid != request.auth.uid
+            && resource.data.role != 'Admin')
+      );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Invitations (Partner-scoped; doc id == 256-bit token)
+    // ══════════════════════════════════════════════════════════════════════
+
+    function inviterRoles() {
+      return ['Admin', 'Engineering Manager'];
+    }
+
+    function canManageInvitesIn(pid) {
+      return isPlatformAdmin() || roleIn(pid) in inviterRoles();
+    }
+
+    match /invitations/{token} {
+      // Invitee reads by token only if it was issued to their email.
+      allow get: if isSignedIn() && (
+        resource.data.get('email', '') == myEmail()
+        || canManageInvitesIn(resource.data.get('partnerId', ''))
+      );
+      allow list: if isSignedIn() && canManageInvitesIn(resource.data.partnerId);
+
+      allow create: if isSignedIn()
+        && token.size() >= 32
+        && partnerIsActive(request.resource.data.partnerId)
+        && request.resource.data.id == token
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email == request.resource.data.email.lower()
+        && request.resource.data.expiresAtMs is int
+        && request.resource.data.expiresAtMs > request.time.toMillis()
+        && request.resource.data.expiresAtMs <= request.time.toMillis() + 2592000000  // ≤ 30 days
+        && request.resource.data.role in partnerRoles()
+        && (
+          isPlatformAdmin()
+          // Admin / Engineering Manager of THIS Partner; Admin role is Platform-Admin-only.
+          || (roleIn(request.resource.data.partnerId) in inviterRoles()
+              && request.resource.data.role != 'Admin')
+        );
+
+      allow update: if isSignedIn() && (
+        // Cancel: inviter roles in that Partner; Admin invitations only by Platform Admin.
+        (resource.data.status == 'Pending'
+          && request.resource.data.status == 'Cancelled'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && canCancelInvite(resource.data))
+
+        // Accept: the invitee, in the same batch that writes their membership.
+        || (resource.data.status == 'Pending'
+          && resource.data.email == myEmail()
+          && request.time.toMillis() < resource.data.expiresAtMs
+          && request.resource.data.status == 'Accepted'
+          && request.resource.data.acceptedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedBy', 'acceptedAt'])
+          && getAfter(membershipPath(resource.data.partnerId, request.auth.uid)).data.inviteId == token)
+      );
+
+      allow delete: if isSignedIn() && isAdminOf(resource.data.partnerId);
+    }
+
+    function canCancelInvite(inv) {
+      return isPlatformAdmin()
+        || (roleIn(inv.partnerId) in inviterRoles() && inv.role != 'Admin');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  Global identity (one per auth identity — never per Partner)
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Fields that are Partner-scoped or identity-critical. A user can never
+    // set them on their own profile — this closes the old self-promotion hole
+    // where any user could write role: 'Platform Admin'.
+    function lockedUserFields() {
+      return ['role', 'status', 'orgId', 'managerId', 'architectId', 'uid', 'email', 'createdAt'];
+    }
+
+    match /users/{uid} {
+      // Partner Admins use partnerMemberships (denormalised) instead of
+      // reading global profiles, so other Partners' affiliations never leak.
+      allow get:  if isOwner(uid) || isPlatformAdmin();
+      allow list: if isPlatformAdmin();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.get('email', '') == myEmail()
+        && !request.resource.data.keys().hasAny(['role', 'status', 'orgId', 'managerId', 'architectId']);
+
+      allow update: if isPlatformAdmin()
+        || (isOwner(uid)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(lockedUserFields()));
+
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /userSkills/{uid} {
+      allow read:  if isOwner(uid) || isPlatformAdmin();
+      allow write: if isOwner(uid) || isPlatformAdmin();
+    }
+
     match /userResumes/{uid} {
-      allow read:  if isOwner(uid) || canReadAll();
+      allow read:  if isOwner(uid) || isPlatformAdmin();
       allow write: if isOwner(uid);
     }
 
-    // ── Audit Logs ─────────────────────────────────────────────────────────
-    // Any signed-in user can write logs (system writes on their behalf).
-    // Users can only read their own logs; admins can read all.
+    // ── Audit Logs ────────────────────────────────────────────────────────
+    // Entries are always written as oneself. A partnerId is only accepted
+    // where the caller has a membership doc (any status) or is Platform Admin,
+    // so nobody can inject entries into another Partner's audit trail.
     match /auditLogs/{docId} {
-      allow create: if isSignedIn();
-      allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin());
-      allow update, delete: if false; // Logs are immutable.
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && (request.resource.data.get('partnerId', '') == ''
+            || isPlatformAdmin()
+            || hasMembershipDoc(request.resource.data.get('partnerId', '')));
+      allow read: if isSignedIn() && (
+        resource.data.uid == request.auth.uid
+        || isPlatformAdmin()
+        || roleIn(resource.data.get('partnerId', '')) == 'Admin'
+      );
+      allow update, delete: if false;
     }
 
-    // ── Login History ──────────────────────────────────────────────────────
     match /loginHistory/{docId} {
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
       allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin());
       allow update, delete: if false;
     }
 
-    // ── Invitations ────────────────────────────────────────────────────────
-    match /invitations/{docId} {
-      allow read:   if isSignedIn();
-      allow create: if canManageUsers();
-      allow update: if canManageUsers();
-      allow delete: if isPlatformAdmin();
-    }
-
-    // ── Organizations ──────────────────────────────────────────────────────
+    // ── Legacy organisation model (superseded by partners/*) ──────────────
     match /organizations/{docId} {
-      allow read:  if isSignedIn();
-      allow write: if isPlatformAdmin();
+      allow read, write: if isPlatformAdmin();
     }
 
     match /organizationMembers/{docId} {
-      allow read:  if isSignedIn();
-      allow write: if isPlatformAdmin();
+      allow read, write: if isPlatformAdmin();
     }
 
-    // ── Engineering Data (Firebase adapter: VITE_DATA_MODE=firebase) ───────
-    // Collection path: ev_data/{collection}/items/{docId}
+    // ══════════════════════════════════════════════════════════════════════
+    //  Engineering data — Partner-owned
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Firebase adapter: partners/{pid}/engineering/{collection}/items/{docId}
+    match /partners/{pid}/engineering/{col}/items/{docId} {
+      allow read:   if canAccessPartner(pid);
+      allow create, update: if canWriteEngineeringIn(pid) && request.resource.data.partnerId == pid;
+      allow delete: if canWriteEngineeringIn(pid);
+    }
+
+    // Pre-Phase-C location — read-only for migration, then delete.
     match /ev_data/{col}/items/{docId} {
-      allow read:  if isSignedIn();
-      allow write: if isPlatformAdmin() || isManager() || isArchitect();
+      allow read:  if isPlatformAdmin();
+      allow write: if false;
     }
 
-    // ── M05 Assignments ────────────────────────────────────────────────────
-    // Developers read/update only their own; managers/admins/architects read all.
+    // ── M05 Assignments ───────────────────────────────────────────────────
     match /assignments/{docId} {
-      allow read: if isSignedIn() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if canManageUsers();
-      allow update: if canManageUsers() ||
-        (isSignedIn() && resource.data.developerId == request.auth.uid);
-      allow delete: if isPlatformAdmin();
+      allow create: if canManageUsersIn(qp());
+      allow update: if samePartner() && (
+        canManageUsersIn(rp())
+        || (canAccessPartner(rp()) && resource.data.developerId == request.auth.uid)
+      );
+      allow delete: if isAdminIn(rp());
     }
 
-    // ── Assignment History (immutable audit trail) ─────────────────────────
     match /assignmentHistory/{docId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn() && (
-        resource.data.performedBy == request.auth.uid || canReadAll()
+      allow create: if canAccessPartner(qp()) && request.resource.data.performedBy == request.auth.uid;
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.performedBy == request.auth.uid || canReadAllIn(rp())
       );
       allow update, delete: if false;
     }
 
-    // ── Daily Engineering Check-ins ────────────────────────────────────────
-    // Doc ID format: {developerId}_{YYYY-MM-DD}
+    // Doc id: {partnerId}_{developerId}_{YYYY-MM-DD}
     match /dailyEngineeringCheckins/{docId} {
-      allow read: if isSignedIn() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow get: if docId.split('_').size() == 3
+        && canAccessPartner(idPartner(docId))
+        && (docId.split('_')[1] == request.auth.uid || canReadAllIn(idPartner(docId)));
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      // Developer writes their own; use request.resource for create (resource doesn't exist yet).
-      allow create: if isSignedIn() && (
-        request.resource.data.developerId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp()) && idPartner(docId) == qp() && (
+        request.resource.data.developerId == request.auth.uid || canManageUsersIn(qp())
       );
-      allow update: if isSignedIn() && (
-        resource.data.developerId == request.auth.uid || canManageUsers()
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isPlatformAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
-    // ── Weekly Engineering Reports ─────────────────────────────────────────
     match /weeklyEngineeringReports/{docId} {
-      allow read: if isSignedIn() && (
-        resource.data.developerId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        resource.data.developerId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp()) && (
+        request.resource.data.developerId == request.auth.uid || canManageUsersIn(qp())
       );
-      allow delete: if isPlatformAdmin();
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.developerId == request.auth.uid || canManageUsersIn(rp())
+      );
+      allow delete: if isAdminIn(rp());
     }
 
-    // ── Developer Capacity ─────────────────────────────────────────────────
-    // Non-sensitive — any authenticated user can read (managers need to see all).
-    match /developerCapacity/{devId} {
-      allow read:  if isSignedIn();
-      allow write: if canManageUsers();
+    // Doc id: {partnerId}_{developerId}
+    match /developerCapacity/{docId} {
+      allow get:    if canAccessPartner(idPartner(docId));
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManageUsersIn(qp()) && idPartner(docId) == qp();
+      allow update: if samePartner() && canManageUsersIn(rp());
+      allow delete: if canManageUsersIn(rp());
     }
 
-    // ── Notifications ──────────────────────────────────────────────────────
-    // Recipients read/update their own; any signed-in user can create
-    // (developers create notifications for managers on accept/decline).
+    // Members notify each other inside their Partner (e.g. developer → manager).
     match /notifications/{docId} {
-      allow read: if isSignedIn() && (
-        resource.data.recipientId == request.auth.uid || canReadAll()
+      allow read: if canAccessPartner(rp()) && (
+        resource.data.recipientId == request.auth.uid || canReadAllIn(rp())
       );
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        resource.data.recipientId == request.auth.uid || canManageUsers()
+      allow create: if canAccessPartner(qp());
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.recipientId == request.auth.uid || canManageUsersIn(rp())
       );
-      allow delete: if isPlatformAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
-    // ── People Operations ──────────────────────────────────────────────────
-    // Foundation collections for interns/employees/contractors: recruitment,
-    // onboarding, lifecycle profiles, 1:1 reviews, leave, policies, culture.
+    match /assignmentComments/{docId} {
+      allow read:   if canAccessPartner(rp());
+      allow create: if canAccessPartner(qp()) && request.resource.data.authorId == request.auth.uid;
+      allow update: if samePartner() && canAccessPartner(rp()) && (
+        resource.data.authorId == request.auth.uid || canManageUsersIn(rp())
+      );
+      allow delete: if canAccessPartner(rp()) && (
+        resource.data.authorId == request.auth.uid || isAdminIn(rp())
+      );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  People Operations — Partner-owned
+    // ══════════════════════════════════════════════════════════════════════
 
     match /peopleProfiles/{docId} {
-      allow read:   if isSignedIn() && (isOwnPeopleRecord() || canManagePeopleOps() || canReadAll());
-      allow create: if canManagePeopleOps();
-      allow update: if canManagePeopleOps() || isOwnPeopleRecord();
-      allow delete: if isPlatformAdmin();
+      allow read:   if isOwnPeopleRecord() || canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && (canManagePeopleOpsIn(rp()) || isOwnPeopleRecord());
+      allow delete: if isAdminIn(rp());
     }
 
     match /peopleJobOpenings/{docId} {
-      allow read:   if isSignedIn();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleCandidates/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleApplications/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleInterviews/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll() ||
-        (isSignedIn() && resource.data.interviewerId == request.auth.uid);
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.interviewerId == request.auth.uid);
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOffers/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOnboarding/{docId} {
-      allow read:   if canManagePeopleOps() || canReadAll() || isOwnPeopleRecord();
-      allow write:  if canManagePeopleOps();
+      allow read:   if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) || isOwnPeopleRecord();
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleOneOnOneReviews/{docId} {
-      allow read: if isSignedIn() && (
-        canManagePeopleOps() || canReadAll() ||
-        resource.data.managerId == request.auth.uid
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.managerId == request.auth.uid);
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && (
+        canManagePeopleOpsIn(rp())
+        || (canAccessPartner(rp()) && resource.data.managerId == request.auth.uid)
       );
-      allow create: if canManagePeopleOps() || isManager();
-      allow update: if canManagePeopleOps() || resource.data.managerId == request.auth.uid;
-      allow delete: if isPlatformAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
     match /peopleLeaveRequests/{docId} {
-      allow read: if isSignedIn() && (
-        canManagePeopleOps() || canReadAll() ||
-        resource.data.createdBy == request.auth.uid
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid);
+      allow create: if canAccessPartner(qp()) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if samePartner() && (
+        canManagePeopleOpsIn(rp())
+        || (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid)
       );
-      allow create: if isSignedIn();
-      allow update: if canManagePeopleOps() || resource.data.createdBy == request.auth.uid;
-      allow delete: if isPlatformAdmin();
+      allow delete: if isAdminIn(rp());
     }
 
     match /peoplePolicies/{docId} {
-      allow read:  if isSignedIn();
-      allow write: if canManagePeopleOps();
+      allow read:   if canAccessPartner(rp());
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peoplePolicyAcknowledgements/{docId} {
-      allow read: if isSignedIn() && (
-        canManagePeopleOps() || resource.data.createdBy == request.auth.uid
-      );
-      allow create: if isSignedIn();
-      allow update, delete: if false; // Acknowledgements are immutable.
+      allow read: if canManagePeopleOpsIn(rp()) ||
+        (canAccessPartner(rp()) && resource.data.createdBy == request.auth.uid);
+      allow create: if canAccessPartner(qp()) && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false;
     }
 
     match /peopleCultureSignals/{docId} {
-      allow read: if isSignedIn() && (
-        canManagePeopleOps() || canReadAll() ||
-        (resource.data.get('visibleToPerson', false) == true && resource.data.createdBy == request.auth.uid)
-      );
-      allow write: if canManagePeopleOps();
+      allow read: if canManagePeopleOpsIn(rp()) || canReadAllIn(rp()) ||
+        (canAccessPartner(rp())
+          && resource.data.get('visibleToPerson', false) == true
+          && resource.data.createdBy == request.auth.uid);
+      allow create: if canManagePeopleOpsIn(qp());
+      allow update: if samePartner() && canManagePeopleOpsIn(rp());
+      allow delete: if canManagePeopleOpsIn(rp());
     }
 
     match /peopleAuditLogs/{docId} {
-      allow create: if isSignedIn();
-      allow read:   if isSignedIn() && (resource.data.uid == request.auth.uid || isPlatformAdmin() || canManagePeopleOps());
-      allow update, delete: if false; // Logs are immutable.
+      allow create: if canAccessPartner(qp()) && request.resource.data.uid == request.auth.uid;
+      allow read:   if canAccessPartner(rp()) && (
+        resource.data.uid == request.auth.uid || canManagePeopleOpsIn(rp())
+      );
+      allow update, delete: if false;
     }
 
-    // ── Offer / Joining Letter Generator (PEOPLE-002) ───────────────────────
-    // Access is limited to Platform Admin (Super Admin) and HR Manager only.
-    // PDF binaries are never stored here — these collections hold metadata
-    // (document IDs, status, template config, approval trail) only.
-
+    // ── Offer / Joining Letter Generator (PEOPLE-002) ─────────────────────
     match /peopleLetterTemplates/{docId} {
-      allow read:  if canManageLetters();
-      allow write: if canManageLetters();
+      allow get:    if canManageLettersIn(idPartner(docId));   // scoped default-template id
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if canManageLettersIn(rp());
     }
 
     match /peopleGeneratedLetters/{docId} {
-      allow read:  if canManageLetters();
-      allow write: if canManageLetters();
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if canManageLettersIn(rp());
     }
 
     match /peopleLetterApprovals/{docId} {
-      allow read:   if canManageLetters();
-      allow create: if canManageLetters();
-      allow update, delete: if false; // Approval history is immutable.
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp());
+      allow update, delete: if false;
     }
 
+    // Doc id: {partnerId}_{letterType}-{year} — each Partner numbers its own letters.
     match /peopleLetterCounters/{docId} {
-      allow read:  if canManageLetters();
-      allow write: if canManageLetters();
+      allow get:    if canManageLettersIn(idPartner(docId));   // transaction reads a counter that may not exist
+      allow read:   if canManageLettersIn(rp());
+      allow create: if canManageLettersIn(qp()) && idPartner(docId) == qp();
+      allow update: if samePartner() && canManageLettersIn(rp());
+      allow delete: if false;
     }
 
     match /peopleLetterAuditLogs/{docId} {
-      allow create: if canManageLetters();
-      allow read:   if canManageLetters();
-      allow update, delete: if false; // Logs are immutable.
-    }
-
-    // ── Assignment Comments ────────────────────────────────────────────────
-    match /assignmentComments/{docId} {
-      allow read:   if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        resource.data.authorId == request.auth.uid || canManageUsers()
-      );
-      allow delete: if isSignedIn() && (
-        resource.data.authorId == request.auth.uid || isPlatformAdmin()
-      );
+      allow create: if canManageLettersIn(qp());
+      allow read:   if canManageLettersIn(rp());
+      allow update, delete: if false;
     }
   }
 }

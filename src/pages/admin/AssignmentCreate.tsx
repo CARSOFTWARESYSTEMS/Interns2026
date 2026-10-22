@@ -35,7 +35,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 export default function AssignmentCreate() {
-  const { userProfile, uid } = useAuthContext()
+  const { userProfile, uid, role } = useAuthContext()
   const navigate   = useNavigate()
   const developers = useDevelopers()
   const stories    = useStories()
@@ -96,7 +96,7 @@ export default function AssignmentCreate() {
         performedBy: uid,
         performedByName: userProfile.displayName,
         performedByEmail: userProfile.email ?? '',
-        performedByRole: userProfile.role ?? '',
+        performedByRole: role ?? '',
         note: `Assignment created by ${userProfile.displayName}`,
         previousStatus: '',
         newStatus: 'Assigned',

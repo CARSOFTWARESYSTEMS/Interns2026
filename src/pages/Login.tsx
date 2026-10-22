@@ -1,27 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Battery, Shield, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import GoogleLoginButton from '../components/auth/GoogleLoginButton'
 import { useAuthContext } from '../contexts/AuthContext'
 import { isFirebaseConfigured } from '../firebase/config'
+import { useBranding } from '../contexts/PartnerContext'
+import PartnerBrandMark from '../components/ui/PartnerBrandMark'
 
 export default function Login() {
-  const { isAuthenticated, isProfileComplete, loading } = useAuthContext()
+  const { isAuthenticated, loading } = useAuthContext()
   const navigate = useNavigate()
   const location = useLocation()
   const [error, setError] = useState('')
+  const b = useBranding()
 
-  const from = (location.state as { from?: Location })?.from?.pathname ?? '/'
+  // Keep the query string so /join?token=… survives the sign-in round trip.
+  const fromLoc = (location.state as { from?: { pathname: string; search?: string } })?.from
+  const from = fromLoc ? `${fromLoc.pathname}${fromLoc.search ?? ''}` : '/'
 
+  // After sign-in, RequireAuth decides: access gate → profile wizard → app.
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      if (!isProfileComplete) {
-        navigate('/complete-profile', { replace: true })
-      } else {
-        navigate(from, { replace: true })
-      }
+      navigate(from, { replace: true })
     }
-  }, [isAuthenticated, isProfileComplete, loading, navigate, from])
+  }, [isAuthenticated, loading, navigate, from])
 
   if (loading) {
     return (
@@ -35,7 +37,7 @@ export default function Login() {
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
       {/* Background grid */}
       <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-        backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgb(var(--brand-500)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--brand-500)) 1px, transparent 1px)',
         backgroundSize: '48px 48px',
       }} />
 
@@ -44,14 +46,11 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="relative">
-              <Battery size={36} className="text-brand-400" />
-              <Shield size={18} className="text-brand-300 absolute -bottom-1 -right-1" />
-            </div>
+            <PartnerBrandMark size="lg" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">UFlight™ | EV.ENGINEER™</h1>
-          <p className="text-slate-400 text-sm mt-1">Aerospace Intelligence &amp; Cybersecurity Platform</p>
-          <p className="text-slate-600 text-xs mt-0.5 tracking-widest uppercase">Engineering Command Center</p>
+          <h1 className="text-2xl font-bold text-white tracking-wide break-words">{b.login.title}</h1>
+          {b.login.subtitle && <p className="text-slate-400 text-sm mt-1 break-words">{b.login.subtitle}</p>}
+          <p className="text-slate-600 text-xs mt-0.5 tracking-widest uppercase">{b.tagline}</p>
         </div>
 
         {/* Login card */}
@@ -86,41 +85,46 @@ export default function Login() {
 
           <div className="mt-6 pt-5 border-t border-slate-800">
             <p className="text-[10px] text-slate-600 text-center leading-relaxed mb-3">
-              Access is restricted to authorized UFlight™ | EV.ENGINEER™ team members.
+              {b.login.restrictedNotice}
             </p>
             <div className="flex flex-col items-center gap-1.5">
-              <a
-                href="mailto:info@iTelematics.com"
-                className="text-[10px] text-brand-400 hover:text-brand-300 transition-colors"
-              >
-                info@iTelematics.com
-              </a>
-              <div className="flex items-center gap-3">
+              {b.contact.email && (
                 <a
-                  href="tel:+919108206147"
-                  className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                  href={`mailto:${b.contact.email}`}
+                  className="text-[10px] text-brand-400 hover:text-brand-300 transition-colors break-all"
                 >
-                  +91 91082 06147
+                  {b.contact.email}
                 </a>
-                <span className="text-slate-700">·</span>
-                <a
-                  href="https://wa.me/919108206147"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-green-500 hover:text-green-400 transition-colors"
-                >
-                  WhatsApp
-                </a>
-              </div>
+              )}
+              {(b.contact.phoneHref || b.contact.whatsappUrl) && (
+                <div className="flex items-center gap-3">
+                  {b.contact.phoneHref && (
+                    <a href={b.contact.phoneHref} className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors">
+                      {b.contact.phone}
+                    </a>
+                  )}
+                  {b.contact.phoneHref && b.contact.whatsappUrl && <span className="text-slate-700">·</span>}
+                  {b.contact.whatsappUrl && (
+                    <a
+                      href={b.contact.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-green-500 hover:text-green-400 transition-colors"
+                    >
+                      WhatsApp
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center mt-6 space-y-1">
-          <p className="text-[10px] text-slate-600 font-semibold">iTelematics Software Private Limited</p>
-          <p className="text-[10px] text-slate-700">Bangalore, India</p>
-          <p className="text-[10px] text-slate-700">v1.0 · M03 · Intern Program 2026 · AS 9102 Beta</p>
+          {b.footer && <p className="text-[10px] text-slate-600 font-semibold">{b.footer}</p>}
+          {b.location && <p className="text-[10px] text-slate-700">{b.location}</p>}
+          {b.versionLabel && <p className="text-[10px] text-slate-700">{b.versionLabel}</p>}
         </div>
       </div>
     </div>

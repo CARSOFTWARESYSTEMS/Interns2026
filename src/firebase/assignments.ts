@@ -4,12 +4,20 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
+import { requirePartnerId, inActivePartner, scopedId } from '../tenant/session'
 import type {
   M05Assignment, AssignmentHistory, AssignmentHistoryAction,
   DailyCheckin, WeeklyEngineeringReport, DeveloperCapacity,
   M05Notification, NotificationType, AssignmentComment,
   M05AssignmentStatus, RiskLevel,
 } from '../types/assignments'
+
+// Every function here is Partner-scoped through the active tenant session:
+// creates are stamped with partnerId, queries filter on it, and single reads
+// return null for records owned by another Partner. firestore.rules enforce
+// the same boundary server-side.
+
+const inPartner = () => where('partnerId', '==', requirePartnerId())
 
 // ── Assignments ───────────────────────────────────────────────────────────────
 
@@ -18,6 +26,7 @@ export async function createM05Assignment(
 ): Promise<string> {
   const ref = await addDoc(collection(db, 'assignments'), {
     ...assignment,
+    partnerId: requirePartnerId(),
     lastUpdated: new Date().toISOString(),
   })
   await updateDoc(ref, { id: ref.id, assignmentId: ref.id })
@@ -26,15 +35,16 @@ export async function createM05Assignment(
 
 export async function getM05Assignment(id: string): Promise<M05Assignment | null> {
   const snap = await getDoc(doc(db, 'assignments', id))
-  return snap.exists() ? (snap.data() as M05Assignment) : null
+  return snap.exists() ? inActivePartner(snap.data() as M05Assignment) : null
 }
 
 export async function updateM05Assignment(
   id: string,
   data: Partial<M05Assignment>
 ): Promise<void> {
+  const { partnerId: _ignored, ...rest } = data
   await updateDoc(doc(db, 'assignments', id), {
-    ...data,
+    ...rest,
     lastUpdated: new Date().toISOString(),
   })
 }
@@ -42,6 +52,7 @@ export async function updateM05Assignment(
 export async function getAssignmentsForDeveloper(developerId: string): Promise<M05Assignment[]> {
   const q = query(
     collection(db, 'assignments'),
+    inPartner(),
     where('developerId', '==', developerId),
     orderBy('assignedDate', 'desc')
   )
@@ -52,6 +63,7 @@ export async function getAssignmentsForDeveloper(developerId: string): Promise<M
 export async function getAssignmentsForStory(storyId: string): Promise<M05Assignment[]> {
   const q = query(
     collection(db, 'assignments'),
+    inPartner(),
     where('storyId', '==', storyId),
     orderBy('assignedDate', 'desc')
   )
@@ -62,6 +74,7 @@ export async function getAssignmentsForStory(storyId: string): Promise<M05Assign
 export async function getAssignmentsForSimulator(simulatorId: string): Promise<M05Assignment[]> {
   const q = query(
     collection(db, 'assignments'),
+    inPartner(),
     where('simulatorId', '==', simulatorId),
     orderBy('assignedDate', 'desc')
   )
@@ -72,6 +85,7 @@ export async function getAssignmentsForSimulator(simulatorId: string): Promise<M
 export async function getAllM05Assignments(maxResults = 200): Promise<M05Assignment[]> {
   const q = query(
     collection(db, 'assignments'),
+    inPartner(),
     orderBy('assignedDate', 'desc'),
     limit(maxResults)
   )
@@ -106,8 +120,8 @@ export async function acceptAssignment(
   })
   // Notify assigning manager
   const snap = await getDoc(doc(db, 'assignments', assignmentId))
-  if (snap.exists()) {
-    const a = snap.data() as M05Assignment
+  const a = snap.exists() ? inActivePartner(snap.data() as M05Assignment) : null
+  if (a) {
     await createNotification({
       recipientId: a.assignedBy,
       recipientEmail: '',
@@ -144,8 +158,8 @@ export async function declineAssignment(
     newStatus: 'Declined',
   })
   const snap = await getDoc(doc(db, 'assignments', assignmentId))
-  if (snap.exists()) {
-    const a = snap.data() as M05Assignment
+  const a = snap.exists() ? inActivePartner(snap.data() as M05Assignment) : null
+  if (a) {
     await createNotification({
       recipientId: a.assignedBy,
       recipientEmail: '',
@@ -165,7 +179,7 @@ export async function updateAssignmentStatus(
   note = ''
 ): Promise<void> {
   const snap = await getDoc(doc(db, 'assignments', assignmentId))
-  const previousStatus = snap.exists() ? (snap.data() as M05Assignment).status : ''
+  const previousStatus = (snap.exists() ? inActivePartner(snap.data() as M05Assignment)?.status : '') ?? ''
   await updateM05Assignment(assignmentId, { status: newStatus })
   await recordHistory({
     assignmentId,
@@ -208,6 +222,7 @@ export async function recordHistory(
 ): Promise<void> {
   await addDoc(collection(db, 'assignmentHistory'), {
     ...entry,
+    partnerId: requirePartnerId(),
     timestamp: new Date().toISOString(),
   })
 }
@@ -218,6 +233,7 @@ export async function getAssignmentHistory(
 ): Promise<AssignmentHistory[]> {
   const q = query(
     collection(db, 'assignmentHistory'),
+    inPartner(),
     where('assignmentId', '==', assignmentId),
     orderBy('timestamp', 'desc'),
     limit(maxResults)
@@ -231,9 +247,10 @@ export async function getAssignmentHistory(
 export async function submitDailyCheckin(
   checkin: Omit<DailyCheckin, 'id'>
 ): Promise<void> {
-  const docId = `${checkin.developerId}_${checkin.date}`
+  const docId = scopedId(checkin.developerId, checkin.date)
   await setDoc(doc(db, 'dailyEngineeringCheckins', docId), {
     ...checkin,
+    partnerId: requirePartnerId(),
     id: docId,
   })
 }
@@ -242,9 +259,9 @@ export async function getTodayCheckin(
   developerId: string,
   date: string
 ): Promise<DailyCheckin | null> {
-  const docId = `${developerId}_${date}`
+  const docId = scopedId(developerId, date)
   const snap = await getDoc(doc(db, 'dailyEngineeringCheckins', docId))
-  return snap.exists() ? (snap.data() as DailyCheckin) : null
+  return snap.exists() ? inActivePartner(snap.data() as DailyCheckin) : null
 }
 
 export async function getCheckinHistory(
@@ -253,6 +270,7 @@ export async function getCheckinHistory(
 ): Promise<DailyCheckin[]> {
   const q = query(
     collection(db, 'dailyEngineeringCheckins'),
+    inPartner(),
     where('developerId', '==', developerId),
     orderBy('date', 'desc'),
     limit(maxResults)
@@ -266,7 +284,7 @@ export async function getCheckinHistory(
 export async function saveWeeklyReport(
   report: Omit<WeeklyEngineeringReport, 'id'>
 ): Promise<string> {
-  const ref = await addDoc(collection(db, 'weeklyEngineeringReports'), report)
+  const ref = await addDoc(collection(db, 'weeklyEngineeringReports'), { ...report, partnerId: requirePartnerId() })
   await updateDoc(ref, { id: ref.id })
   return ref.id
 }
@@ -277,6 +295,7 @@ export async function getWeeklyReports(
 ): Promise<WeeklyEngineeringReport[]> {
   const q = query(
     collection(db, 'weeklyEngineeringReports'),
+    inPartner(),
     where('developerId', '==', developerId),
     orderBy('weekStartDate', 'desc'),
     limit(maxResults)
@@ -290,13 +309,14 @@ export async function getWeeklyReports(
 export async function getDeveloperCapacity(
   developerId: string
 ): Promise<DeveloperCapacity | null> {
-  const snap = await getDoc(doc(db, 'developerCapacity', developerId))
-  return snap.exists() ? (snap.data() as DeveloperCapacity) : null
+  const snap = await getDoc(doc(db, 'developerCapacity', scopedId(developerId)))
+  return snap.exists() ? inActivePartner(snap.data() as DeveloperCapacity) : null
 }
 
 export async function upsertDeveloperCapacity(cap: DeveloperCapacity): Promise<void> {
-  await setDoc(doc(db, 'developerCapacity', cap.developerId), {
+  await setDoc(doc(db, 'developerCapacity', scopedId(cap.developerId)), {
     ...cap,
+    partnerId: requirePartnerId(),
     lastUpdated: new Date().toISOString(),
   })
 }
@@ -309,6 +329,7 @@ export async function recalculateCapacity(
   // Load all active assignments for this developer
   const q = query(
     collection(db, 'assignments'),
+    inPartner(),
     where('developerId', '==', developerId),
     where('status', 'in', ['Assigned', 'Accepted', 'In Progress', 'Blocked', 'Ready For QA', 'QA Review', 'Ready For Architect', 'Architect Review'])
   )
@@ -333,7 +354,7 @@ export async function recalculateCapacity(
 }
 
 export async function getAllCapacities(): Promise<DeveloperCapacity[]> {
-  const snap = await getDocs(collection(db, 'developerCapacity'))
+  const snap = await getDocs(query(collection(db, 'developerCapacity'), inPartner()))
   return snap.docs.map(d => d.data() as DeveloperCapacity)
 }
 
@@ -344,6 +365,7 @@ export async function createNotification(
 ): Promise<void> {
   await addDoc(collection(db, 'notifications'), {
     ...n,
+    partnerId: requirePartnerId(),
     read: false,
     createdAt: new Date().toISOString(),
     readAt: '',
@@ -356,6 +378,7 @@ export async function getNotifications(
 ): Promise<M05Notification[]> {
   const q = query(
     collection(db, 'notifications'),
+    inPartner(),
     where('recipientId', '==', recipientId),
     orderBy('createdAt', 'desc'),
     limit(maxResults)
@@ -380,6 +403,7 @@ export async function markAllNotificationsRead(recipientId: string): Promise<voi
 export async function getUnreadCount(recipientId: string): Promise<number> {
   const q = query(
     collection(db, 'notifications'),
+    inPartner(),
     where('recipientId', '==', recipientId),
     where('read', '==', false)
   )
@@ -394,6 +418,7 @@ export async function addComment(
 ): Promise<string> {
   const ref = await addDoc(collection(db, 'assignmentComments'), {
     ...comment,
+    partnerId: requirePartnerId(),
     createdAt: new Date().toISOString(),
     edited: false,
   })
@@ -403,6 +428,7 @@ export async function addComment(
 export async function getComments(assignmentId: string): Promise<AssignmentComment[]> {
   const q = query(
     collection(db, 'assignmentComments'),
+    inPartner(),
     where('assignmentId', '==', assignmentId),
     orderBy('createdAt', 'asc')
   )

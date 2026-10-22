@@ -15,6 +15,8 @@ import {
 import { buildLetterPdf } from '../../../utils/letterPdf'
 import { emptyLetterTemplate, TEMPLATE_THEMES, TEMPLATE_THEME_LABELS, TEMPLATE_FONTS } from '../../../types/peopleLetters'
 import type { PeopleLetterTemplate } from '../../../types/peopleLetters'
+import { brandingFor } from '../../../tenant/branding'
+import { getActivePartnerProfile } from '../../../tenant/session'
 
 type TemplateForm = Omit<PeopleLetterTemplate,
   'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy' | 'templateGroupId' | 'version' | 'isLatest'>
@@ -33,7 +35,7 @@ function samplePreviewLetter(template: PeopleLetterTemplate) {
     letterType: 'offer' as const, templateId: template.id, templateVersion: template.version,
     candidateId: 'preview', candidateName: 'Aarav Sharma', candidateEmail: 'aarav.sharma@example.com',
     designation: 'Battery Intelligence Research Intern',
-    documentId: 'ITEL-EV-INT-OFFER-2026-PREVIEW',
+    documentId: `${brandingFor(getActivePartnerProfile()).documentPrefix}-OFFER-${new Date().getFullYear()}-PREVIEW`,
     internshipStartDate: '2026-08-01', internshipEndDate: '2027-01-31', acceptanceDeadline: '2026-07-20',
     stipendEnabled: template.stipendSectionEnabledByDefault, stipendAmount: 8000,
     linkedOfferLetterId: '', approvedBy: 'preview', approvedAt: now, generatedBy: 'preview', generatedAt: now,

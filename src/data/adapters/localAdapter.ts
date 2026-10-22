@@ -6,6 +6,7 @@
  */
 import type { DataAdapter, DataCollection, AdapterStatus, CollectionName, SyncResult } from '../types'
 import { VALIDATORS } from '../types'
+import { getActivePartnerId } from '../../tenant/session'
 
 // Static JSON imports (bundled at build time)
 import developersRaw  from '../developers.json'
@@ -26,8 +27,10 @@ const BUNDLED: DataCollection = {
 
 const LS_PREFIX = 'ev_local_'
 
+// Dev-only adapter, but still keyed per Partner so switching ?partnerHost=
+// on localhost never shows one Partner's local edits under another.
 function lsKey(name: CollectionName): string {
-  return `${LS_PREFIX}${name}`
+  return `${LS_PREFIX}${getActivePartnerId() ?? 'none'}_${name}`
 }
 
 function readFromLS<T>(name: CollectionName): T[] | null {

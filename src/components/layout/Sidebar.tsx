@@ -6,9 +6,10 @@ import {
   ClipboardList, BarChart2, Mail, Settings, UserCog,
   User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
   PlusSquare, UserPlus, Contact, MessagesSquare, Handshake,
-  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature,
+  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature, Building2,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { useBranding } from '../../contexts/PartnerContext'
 import { getUnreadCount } from '../../firebase/assignments'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
@@ -55,6 +56,7 @@ const DOCUMENTS_ROUTE = '/people/documents'
 const adminItems = [
   { to: '/admin/users',               label: 'Users',               icon: UserCog },
   { to: '/admin/invitations',         label: 'Invitations',         icon: Mail },
+  { to: '/admin/partners',            label: 'Partners',            icon: Building2, platformOnly: true },
   { to: '/admin/developer-settings',  label: 'Developer Settings',  icon: SlidersHorizontal },
   { to: '/admin/assignments/new',     label: 'New Assignment',      icon: PlusSquare },
   { to: '/admin/capacity',            label: 'Capacity',            icon: Users },
@@ -67,10 +69,14 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { userProfile, signOut, role, uid } = useAuthContext()
+  const b = useBranding()
+  const footerLine = [b.footer, b.location.split(',')[0]].filter(Boolean).join(' · ')
   const navigate = useNavigate()
   const [unread, setUnread] = useState(0)
 
-  const isAdmin   = role === 'Platform Admin'
+  const isPlatformAdmin = role === 'Platform Admin'
+  // Admin section: Platform Admin (all Partners) or Admin of the active Partner.
+  const isAdmin   = isPlatformAdmin || role === 'Admin'
   const isManager = role === 'Engineering Manager'
   const isDev     = role === 'Developer'
   const isHR      = role === 'HR Manager'
@@ -209,7 +215,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* Admin Section — Platform Admin only */}
+          {/* Admin Section — Platform Admin + Partner Admin (rules scope the data) */}
           {isAdmin && (
             <>
               <div className="border-t border-slate-800" />
@@ -218,7 +224,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   <Shield size={9} className="text-red-500" /> Admin
                 </p>
                 <nav className="space-y-0.5">
-                  {adminItems.map(({ to, label, icon: Icon }) => (
+                  {adminItems.filter(i => !('platformOnly' in i && i.platformOnly) || isPlatformAdmin).map(({ to, label, icon: Icon }) => (
                     <NavLink
                       key={to}
                       to={to}
@@ -269,18 +275,18 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-slate-300 truncate">{userProfile.displayName}</p>
-                    <PermissionBadge role={userProfile.role} size="xs" />
+                    {role && <PermissionBadge role={role} size="xs" />}
                   </div>
                 </div>
-                <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide">iTelematics Software Pvt. Ltd. · Bangalore</p>
+                {footerLine && <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide truncate">{footerLine}</p>}
               </div>
             ) : (
               <div className="text-[10px] text-slate-500 leading-relaxed">
-                <p className="font-semibold text-slate-400 mb-0.5">UFlight™ | EV.ENGINEER™</p>
-                <p>Aerospace Intelligence &amp; Cybersecurity Platform</p>
-                <p className="mt-1 text-slate-600 font-semibold">iTelematics Software Pvt. Ltd.</p>
-                <p>Bangalore, India</p>
-                <p>v1.0 · M03 · Intern Program 2026</p>
+                <p className="font-semibold text-slate-400 mb-0.5 break-words">{b.title}</p>
+                {b.subtitle && <p>{b.subtitle}</p>}
+                {b.footer && <p className="mt-1 text-slate-600 font-semibold">{b.footer}</p>}
+                {b.location && <p>{b.location}</p>}
+                {b.versionLabel && <p>{b.versionLabel}</p>}
               </div>
             )}
           </div>

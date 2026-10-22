@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Battery, Shield, Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react'
+import { Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { usePartner, useBranding } from '../../contexts/PartnerContext'
+import PartnerBrandMark from '../ui/PartnerBrandMark'
+import PartnerSwitcher from './PartnerSwitcher'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 import ProfileCompletion from '../ui/ProfileCompletion'
@@ -12,7 +15,9 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { userProfile, signOut, isAuthenticated } = useAuthContext()
+  const { userProfile, signOut, isAuthenticated, role, activePartner } = useAuthContext()
+  const { partner } = usePartner()
+  const b = useBranding()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -36,7 +41,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-900 border-b border-slate-700 flex items-center px-4 gap-3">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-900 border-b border-slate-700 flex items-center px-3 sm:px-4 gap-2 sm:gap-3">
       {/* Mobile menu toggle */}
       <button
         onClick={onMenuToggle}
@@ -46,26 +51,26 @@ export default function Header({ onMenuToggle }: HeaderProps) {
       </button>
 
       {/* Brand */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-1.5">
-          <Battery size={18} className="text-brand-400" />
-          <Shield size={14} className="text-brand-300 -ml-1" />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-white font-bold text-sm tracking-wide">UFlight™ | EV.ENGINEER™</span>
-          <span className="text-slate-400 text-[10px] tracking-widest uppercase">Aerospace Intelligence &amp; Cybersecurity</span>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <PartnerBrandMark />
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-white font-bold text-sm tracking-wide truncate">{b.title}</span>
+          {b.subtitle && (
+            <span className="text-slate-400 text-[10px] tracking-widest uppercase truncate hidden sm:block">{b.subtitle}</span>
+          )}
         </div>
       </div>
 
-      <div className="h-6 w-px bg-slate-700 mx-1" />
+      <div className="h-6 w-px bg-slate-700 mx-1 hidden lg:block" />
 
-      <div className="flex flex-col gap-0.5">
-        <span className="text-slate-200 font-semibold text-xs">Aerospace Intelligence &amp; Cybersecurity Platform</span>
-        <span className="text-slate-500 text-[10px]">Engineering Command Center</span>
+      <div className="flex-col gap-0.5 min-w-0 hidden lg:flex">
+        <span className="text-slate-200 font-semibold text-xs truncate">{b.login.subtitle || b.title}</span>
+        <span className="text-slate-500 text-[10px] truncate">{b.tagline}</span>
       </div>
 
       {/* Right side */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <PartnerSwitcher />
         <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase hidden sm:inline">
           AS 9102 BETA
         </span>
@@ -75,10 +80,10 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
         {/* User menu */}
         {isAuthenticated && userProfile && (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative flex-shrink-0" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(o => !o)}
-              className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 pr-1.5 sm:pr-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
             >
               <UserAvatar
                 photoURL={userProfile.photoURL}
@@ -91,7 +96,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                   {userProfile.displayName}
                 </span>
                 <span className="text-[9px] text-slate-500 max-w-[120px] truncate">
-                  {userProfile.role}
+                  {role}
                 </span>
               </div>
               <ChevronDown
@@ -116,7 +121,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                       <p className="text-sm font-bold text-slate-900 truncate">{userProfile.displayName}</p>
                       <p className="text-xs text-slate-400 truncate">{userProfile.email}</p>
                       <div className="mt-1">
-                        <PermissionBadge role={userProfile.role} size="xs" />
+                        {role && <PermissionBadge role={role} size="xs" />}
                       </div>
                     </div>
                   </div>
@@ -146,7 +151,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                       </span>
                     )}
                   </button>
-                  {(userProfile.role === 'Platform Admin' || userProfile.role === 'Engineering Manager') && (
+                  {(role === 'Platform Admin' || role === 'Admin' || role === 'Engineering Manager') && (
                     <button
                       onClick={() => { setDropdownOpen(false); navigate('/settings') }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
@@ -160,7 +165,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 <div className="border-t border-slate-100 py-1.5">
                   <div className="px-4 py-1.5">
                     <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Organization</p>
-                    <p className="text-xs text-slate-600 font-semibold">UFlight™ | EV.ENGINEER™</p>
+                    <p className="text-xs text-slate-600 font-semibold truncate">{activePartner?.displayName ?? partner?.displayName}</p>
                   </div>
                   <button
                     onClick={handleSignOut}

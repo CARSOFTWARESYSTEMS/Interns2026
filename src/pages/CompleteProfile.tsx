@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Battery, Shield, Check, ChevronRight, ChevronLeft, User, GraduationCap, Link2, Star } from 'lucide-react'
+import { Check, ChevronRight, ChevronLeft, User, GraduationCap, Link2, Star } from 'lucide-react'
 import { useAuthContext } from '../contexts/AuthContext'
 import { updateUserProfile, setUserSkills } from '../firebase/firestore'
 import { isFirebaseConfigured } from '../firebase/config'
+import { useBranding } from '../contexts/PartnerContext'
+import PartnerBrandMark from '../components/ui/PartnerBrandMark'
 import {
   COMPETENCY_KEYS, COMPETENCY_FULL_LABELS, COMPETENCY_DESCRIPTIONS,
   COMPETENCY_LEVEL_LABELS, emptyCompetencyRatings,
@@ -33,6 +35,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 export default function CompleteProfile() {
+  const b = useBranding()
   const { userProfile, firebaseUser, refreshProfile } = useAuthContext()
   const navigate = useNavigate()
 
@@ -131,9 +134,8 @@ export default function CompleteProfile() {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-8">
       {/* Header */}
       <div className="flex items-center gap-2 mb-8">
-        <Battery size={22} className="text-brand-600" />
-        <Shield size={14} className="text-brand-400 -ml-1" />
-        <span className="font-bold text-slate-800 text-base ml-1">UFlight™ | EV.ENGINEER™</span>
+        <PartnerBrandMark onDark={false} />
+        <span className="font-bold text-slate-800 text-base ml-1 break-words">{b.title}</span>
       </div>
 
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-100">
@@ -240,7 +242,7 @@ export default function CompleteProfile() {
           {step === 3 && (
             <div>
               <p className="text-xs text-slate-500 mb-3">
-                Rate your current level across the 10 UFlight™ | EV.ENGINEER™ Engineering Competency domains. You can update these anytime from your profile.
+                Rate your current level across the 10 Engineering Competency domains. You can update these anytime from your profile.
               </p>
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {COMPETENCY_KEYS.map(key => (
@@ -319,19 +321,25 @@ export default function CompleteProfile() {
 
       {/* Company footer */}
       <div className="mt-6 text-center space-y-1">
-        <p className="text-[11px] font-semibold text-slate-500">iTelematics Software Private Limited · Bangalore, India</p>
-        <div className="flex items-center justify-center gap-3 text-[10px]">
-          <a href="mailto:info@iTelematics.com" className="text-brand-500 hover:text-brand-600 transition-colors">
-            info@iTelematics.com
-          </a>
-          <span className="text-slate-300">·</span>
-          <a href="tel:+919108206147" className="text-slate-400 hover:text-slate-600 transition-colors">
-            +91 91082 06147
-          </a>
-          <span className="text-slate-300">·</span>
-          <a href="https://wa.me/919108206147" target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-600 transition-colors font-semibold">
-            WhatsApp
-          </a>
+        {(b.footer || b.location) && (
+          <p className="text-[11px] font-semibold text-slate-500">{[b.footer, b.location].filter(Boolean).join(' · ')}</p>
+        )}
+        <div className="flex items-center justify-center gap-3 text-[10px] flex-wrap">
+          {b.contact.email && (
+            <a href={`mailto:${b.contact.email}`} className="text-brand-500 hover:text-brand-600 transition-colors break-all">
+              {b.contact.email}
+            </a>
+          )}
+          {b.contact.phoneHref && (
+            <a href={b.contact.phoneHref} className="text-slate-400 hover:text-slate-600 transition-colors">
+              {b.contact.phone}
+            </a>
+          )}
+          {b.contact.whatsappUrl && (
+            <a href={b.contact.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-600 transition-colors font-semibold">
+              WhatsApp
+            </a>
+          )}
         </div>
       </div>
     </div>

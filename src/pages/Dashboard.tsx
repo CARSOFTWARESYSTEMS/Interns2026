@@ -9,6 +9,7 @@ import StatCard from '../components/ui/StatCard'
 import SectionCard from '../components/ui/SectionCard'
 import StatusBadge from '../components/ui/StatusBadge'
 import ProgressBar from '../components/ui/ProgressBar'
+import { useBranding } from '../contexts/PartnerContext'
 
 const PHASES = [
   'Not Started','Research','Simulator Development','Simulator QA',
@@ -25,6 +26,7 @@ const PHASE_COLORS = [
 ]
 
 export default function Dashboard() {
+  const b = useBranding()
   const developers = useDevelopers()
   const simulators = useSimulators()
   const stories    = useStories()
@@ -57,10 +59,10 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center gap-2 mb-0.5">
           <Battery size={20} className="text-brand-600" />
-          <h1 className="text-xl font-bold text-slate-900">Aerospace Intelligence &amp; Cybersecurity Platform</h1>
+          <h1 className="text-xl font-bold text-slate-900 break-words">{b.login.subtitle || b.title}</h1>
           <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wide">AS 9102 Beta</span>
         </div>
-        <p className="text-sm text-slate-500">Engineering Command Center &middot; Intern Program 2026 &middot; UFlight™ | EV.ENGINEER™</p>
+        <p className="text-sm text-slate-500 break-words">{b.tagline} &middot; {b.name}</p>
       </div>
 
       {/* Primary Stats */}

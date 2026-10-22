@@ -1,41 +1,47 @@
 /**
- * Firebase adapter — reads/writes engineering data collections via Firestore.
+ * Firebase adapter — engineering data collections, PARTNER-SCOPED.
  *
- * Collections: developers, simulators, stories, assignments, weeklyPlan
- * Falls back to bundled JSON when Firestore is unconfigured or read fails.
- * Does NOT touch the IAM collections (users, roles, audit) — those stay in
- * the existing src/firebase/firestore.ts layer.
+ * Path: partners/{partnerId}/engineering/{collection}/items/{docId}
+ * The partnerId is the active tenant session's; firestore.rules require an
+ * active membership in that Partner for every read and write.
+ *
+ * Seeding: an empty Partner stays empty. Bundled demo JSON is written only in
+ * local development (`vite dev`) — production never invents data and never
+ * ships the seed files.
+ *
+ * Does NOT touch IAM collections (users, memberships, audit) — see
+ * src/firebase/firestore.ts and src/firebase/partners.ts.
  */
 
 import {
-  collection, doc, getDocs, setDoc, deleteDoc,
-  writeBatch, serverTimestamp, Timestamp,
+  collection, doc, getDocs, writeBatch, serverTimestamp, Timestamp,
 } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../../firebase/config'
 import type { DataAdapter, DataCollection, AdapterStatus, CollectionName, SyncResult } from '../types'
 import { VALIDATORS } from '../types'
-
-import developersRaw  from '../developers.json'
-import simulatorsRaw  from '../simulators.json'
-import storiesRaw     from '../stories.json'
-import assignmentsRaw from '../assignments.json'
-import weeklyPlanRaw  from '../weeklyPlan.json'
+import { requirePartnerId } from '../../tenant/session'
 import type { Developer, Simulator, Story, Assignment, WeeklyPlan } from '../../types'
 
-const BUNDLED_DEFAULTS: DataCollection = {
-  developers:  developersRaw  as Developer[],
-  simulators:  simulatorsRaw  as Simulator[],
-  stories:     storiesRaw     as Story[],
-  assignments: assignmentsRaw as Assignment[],
-  weeklyPlan:  weeklyPlanRaw  as WeeklyPlan[],
+const EMPTY: DataCollection = { developers: [], simulators: [], stories: [], assignments: [], weeklyPlan: [] }
+
+/** Dev-only demo data. In production builds this branch is removed with the JSON it imports. */
+async function devSeed(): Promise<DataCollection | null> {
+  if (!import.meta.env.DEV) return null
+  const [developers, simulators, stories, assignments, weeklyPlan] = await Promise.all([
+    import('../developers.json'), import('../simulators.json'), import('../stories.json'),
+    import('../assignments.json'), import('../weeklyPlan.json'),
+  ])
+  return {
+    developers:  developers.default  as Developer[],
+    simulators:  simulators.default  as Simulator[],
+    stories:     stories.default     as Story[],
+    assignments: assignments.default as Assignment[],
+    weeklyPlan:  weeklyPlan.default  as WeeklyPlan[],
+  }
 }
 
-// Firestore uses a top-level "ev_data" namespace to separate engineering data
-// from IAM collections.
-const NS = 'ev_data'
-
 function colRef(name: CollectionName) {
-  return collection(db, NS, name, 'items')
+  return collection(db, 'partners', requirePartnerId(), 'engineering', name, 'items')
 }
 
 async function readCollection<T>(name: CollectionName): Promise<T[]> {
@@ -46,7 +52,9 @@ async function readCollection<T>(name: CollectionName): Promise<T[]> {
 
 async function writeCollection(name: CollectionName, data: unknown[]): Promise<void> {
   const col  = colRef(name)
-  // Clear existing docs then batch-write new ones (Firestore limit: 500/batch)
+  const partnerId = requirePartnerId()
+  // Clear existing docs then batch-write new ones (Firestore limit: 500/batch).
+  // Scoped to this Partner's subtree, so it can never touch another Partner.
   const existing = await getDocs(col)
   const BATCH_LIMIT = 400
   let batch = writeBatch(db)
@@ -58,7 +66,7 @@ async function writeCollection(name: CollectionName, data: unknown[]): Promise<v
   }
   for (const item of data) {
     const id = (item as Record<string, unknown>).id as string | undefined ?? doc(col).id
-    batch.set(doc(col, id), { ...(item as object), _updatedAt: serverTimestamp() })
+    batch.set(doc(col, id), { ...(item as object), partnerId, _updatedAt: serverTimestamp() })
     if (++ops >= BATCH_LIMIT) { await batch.commit(); batch = writeBatch(db); ops = 0 }
   }
   if (ops > 0) await batch.commit()
@@ -69,6 +77,7 @@ function stripServerFields(items: unknown[]): unknown[] {
     if (!item || typeof item !== 'object') return item
     const clone = { ...(item as Record<string, unknown>) }
     delete clone._updatedAt
+    delete clone.partnerId
     return clone
   })
 }
@@ -81,8 +90,8 @@ export class FirebaseAdapter implements DataAdapter {
 
   async loadAll(): Promise<DataCollection> {
     if (!isFirebaseConfigured) {
-      this.error = 'Firebase is not configured — using bundled defaults'
-      return { ...BUNDLED_DEFAULTS }
+      this.error = 'Firebase is not configured'
+      return { ...EMPTY }
     }
     try {
       const [developers, simulators, stories, assignments, weeklyPlan] = await Promise.all([
@@ -92,31 +101,29 @@ export class FirebaseAdapter implements DataAdapter {
         readCollection<Assignment>('assignments'),
         readCollection<WeeklyPlan>('weeklyPlan'),
       ])
+      let result: DataCollection = { developers, simulators, stories, assignments, weeklyPlan }
 
-      // If Firestore collection is empty, seed from bundled JSON
-      const seeded: Partial<DataCollection> = {}
-      const toSeed: Promise<void>[] = []
-
-      if (developers.length === 0)  { toSeed.push(writeCollection('developers', BUNDLED_DEFAULTS.developers));  seeded.developers  = BUNDLED_DEFAULTS.developers  }
-      if (simulators.length === 0)  { toSeed.push(writeCollection('simulators', BUNDLED_DEFAULTS.simulators));  seeded.simulators  = BUNDLED_DEFAULTS.simulators  }
-      if (stories.length === 0)     { toSeed.push(writeCollection('stories', BUNDLED_DEFAULTS.stories));        seeded.stories     = BUNDLED_DEFAULTS.stories     }
-      if (assignments.length === 0) { toSeed.push(writeCollection('assignments', BUNDLED_DEFAULTS.assignments));seeded.assignments = BUNDLED_DEFAULTS.assignments }
-      if (weeklyPlan.length === 0)  { toSeed.push(writeCollection('weeklyPlan', BUNDLED_DEFAULTS.weeklyPlan)); seeded.weeklyPlan  = BUNDLED_DEFAULTS.weeklyPlan  }
-
-      if (toSeed.length > 0) await Promise.allSettled(toSeed)
+      // Dev only: seed an entirely empty Partner with demo data.
+      const isEmpty = Object.values(result).every(list => list.length === 0)
+      const seed = isEmpty ? await devSeed() : null
+      if (seed) {
+        await Promise.allSettled((Object.keys(seed) as CollectionName[]).map(k => writeCollection(k, seed[k])))
+        result = seed
+      }
 
       this.lastSync = new Date().toISOString()
       this.error = null
       return {
-        developers:  stripServerFields(seeded.developers  ?? developers)  as Developer[],
-        simulators:  stripServerFields(seeded.simulators  ?? simulators)  as Simulator[],
-        stories:     stripServerFields(seeded.stories     ?? stories)     as Story[],
-        assignments: stripServerFields(seeded.assignments ?? assignments) as Assignment[],
-        weeklyPlan:  stripServerFields(seeded.weeklyPlan  ?? weeklyPlan)  as WeeklyPlan[],
+        developers:  stripServerFields(result.developers)  as Developer[],
+        simulators:  stripServerFields(result.simulators)  as Simulator[],
+        stories:     stripServerFields(result.stories)     as Story[],
+        assignments: stripServerFields(result.assignments) as Assignment[],
+        weeklyPlan:  stripServerFields(result.weeklyPlan)  as WeeklyPlan[],
       }
     } catch (e) {
+      // Fail closed: never substitute bundled data for a Partner's real data.
       this.error = (e as Error).message
-      return { ...BUNDLED_DEFAULTS }
+      throw e
     }
   }
 
@@ -167,7 +174,7 @@ export class FirebaseAdapter implements DataAdapter {
       lastSync:       this.lastSync,
       syncInProgress: false,
       error:          this.error,
-      rootFolderName: isFirebaseConfigured ? 'Firestore (ev_data)' : null,
+      rootFolderName: isFirebaseConfigured ? 'Firestore (Partner engineering data)' : null,
       rootFolderId:   null,
     }
   }

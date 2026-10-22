@@ -4,13 +4,15 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from './config'
+import { requirePartnerId, inActivePartner, scopedId, getActivePartnerProfile } from '../tenant/session'
+import { brandingFor } from '../tenant/branding'
 import type {
   PeopleLetterTemplate, PeopleGeneratedLetter, PeopleLetterApproval,
   PeopleLetterCounter, PeopleLetterAuditLog, PeopleLetterAuditAction,
   LetterType, LetterStatus,
 } from '../types/peopleLetters'
 import {
-  DEFAULT_PARTNER_ID, DEFAULT_ORGANISATION_ID, letterDocPrefix, emptyLetterTemplate,
+  letterDocPrefix, emptyLetterTemplate,
 } from '../types/peopleLetters'
 
 // ── Envelope helper (mirrors src/firebase/people.ts) ─────────────────────────
@@ -23,8 +25,9 @@ function withEnvelope<T extends Record<string, unknown>>(
   const now = new Date().toISOString()
   return {
     ...data,
-    partnerId: DEFAULT_PARTNER_ID,
-    organisationId: DEFAULT_ORGANISATION_ID,
+    // Owning Partner from the active tenant session (never a hard-coded default).
+    partnerId: requirePartnerId(),
+    organisationId: requirePartnerId(), // legacy mirror of partnerId
     createdAt: now,
     updatedAt: now,
     createdBy,
@@ -33,8 +36,9 @@ function withEnvelope<T extends Record<string, unknown>>(
 }
 
 async function touch(collectionName: string, id: string, data: Record<string, unknown>) {
+  const { partnerId: _p, organisationId: _o, ...rest } = data
   await updateDoc(doc(db, collectionName, id), {
-    ...data,
+    ...rest,
     updatedAt: new Date().toISOString(),
   })
 }
@@ -50,7 +54,7 @@ export async function writeLetterAuditLog(
 }
 
 export async function getLetterAuditLogs(maxResults = 50): Promise<PeopleLetterAuditLog[]> {
-  const snap = await getDocs(query(collection(db, LETTER_AUDIT), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, LETTER_AUDIT), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.slice(0, maxResults).map(d => d.data() as PeopleLetterAuditLog)
 }
 
@@ -88,7 +92,7 @@ function bumpVersion(version: string): string {
 
 /** Every latest, non-deleted template — one row per templateGroupId. */
 export async function getAllTemplates(): Promise<PeopleLetterTemplate[]> {
-  const snap = await getDocs(collection(db, TEMPLATES))
+  const snap = await getDocs(query(collection(db, TEMPLATES), where('partnerId', '==', requirePartnerId())))
   return snap.docs
     .map(d => normalizeTemplate(d.data()))
     .filter(t => t.isLatest && !t.deletedAt)
@@ -97,7 +101,7 @@ export async function getAllTemplates(): Promise<PeopleLetterTemplate[]> {
 
 /** Latest-version templates that are archived and/or soft-deleted — for the "Archived & Deleted" panel. */
 export async function getArchivedOrDeletedTemplates(): Promise<PeopleLetterTemplate[]> {
-  const snap = await getDocs(collection(db, TEMPLATES))
+  const snap = await getDocs(query(collection(db, TEMPLATES), where('partnerId', '==', requirePartnerId())))
   return snap.docs
     .map(d => normalizeTemplate(d.data()))
     .filter(t => t.isLatest && (t.isArchived || t.deletedAt))
@@ -106,7 +110,7 @@ export async function getArchivedOrDeletedTemplates(): Promise<PeopleLetterTempl
 
 /** All versions (across time) for one templateGroupId, newest first. */
 export async function getTemplateVersionHistory(templateGroupId: string): Promise<PeopleLetterTemplate[]> {
-  const snap = await getDocs(collection(db, TEMPLATES))
+  const snap = await getDocs(query(collection(db, TEMPLATES), where('partnerId', '==', requirePartnerId())))
   return snap.docs
     .map(d => normalizeTemplate(d.data()))
     .filter(t => t.templateGroupId === templateGroupId)
@@ -115,7 +119,7 @@ export async function getTemplateVersionHistory(templateGroupId: string): Promis
 
 export async function getTemplate(id: string): Promise<PeopleLetterTemplate | null> {
   const snap = await getDoc(doc(db, TEMPLATES, id))
-  return snap.exists() ? normalizeTemplate(snap.data()) : null
+  return snap.exists() ? inActivePartner(normalizeTemplate(snap.data())) : null
 }
 
 /** The template every offer/joining letter draft defaults to. */
@@ -162,17 +166,19 @@ export async function upsertDefaultLetterTemplate(
   template: Omit<PeopleLetterTemplate, 'id' | 'partnerId' | 'organisationId' | 'createdAt' | 'updatedAt' | 'status' | 'createdBy'>,
   updatedBy: string
 ): Promise<void> {
-  const ref = doc(db, TEMPLATES, DEFAULT_TEMPLATE_ID)
+  const templateId = scopedId(DEFAULT_TEMPLATE_ID)
+  const ref = doc(db, TEMPLATES, templateId)
   const existing = await getDoc(ref)
   const now = new Date().toISOString()
   if (existing.exists()) {
-    await updateDoc(ref, { ...template, updatedAt: now })
+    const { partnerId: _p, organisationId: _o, ...rest } = template as Record<string, unknown>
+    await updateDoc(ref, { ...rest, updatedAt: now })
   } else {
     await setDoc(ref, {
       ...template,
-      id: DEFAULT_TEMPLATE_ID,
-      partnerId: DEFAULT_PARTNER_ID,
-      organisationId: DEFAULT_ORGANISATION_ID,
+      id: templateId,
+      partnerId: requirePartnerId(),
+      organisationId: requirePartnerId(),
       createdAt: now,
       updatedAt: now,
       createdBy: updatedBy,
@@ -239,7 +245,8 @@ export async function setDefaultTemplate(templateGroupId: string, performedBy: s
 
 async function nextDocumentId(letterType: LetterType): Promise<string> {
   const year = new Date().getFullYear()
-  const counterId = `${letterType}-${year}`
+  // Counters are per Partner: each Partner numbers its own letters.
+  const counterId = scopedId(`${letterType}-${year}`)
   const ref = doc(db, 'peopleLetterCounters', counterId)
 
   const nextCount = await runTransaction(db, async (tx) => {
@@ -247,14 +254,16 @@ async function nextDocumentId(letterType: LetterType): Promise<string> {
     const current = snap.exists() ? (snap.data() as PeopleLetterCounter).count : 0
     const updated = current + 1
     tx.set(ref, {
-      id: counterId, letterType, year, count: updated,
+      id: counterId, partnerId: requirePartnerId(), letterType, year, count: updated,
       updatedAt: new Date().toISOString(),
     })
     return updated
   })
 
   const padded = String(nextCount).padStart(3, '0')
-  return `ITEL-EV-INT-${letterDocPrefix(letterType)}-${year}-${padded}`
+  // Prefix comes from the Partner's configuration (EV.ENGINEER keeps ITEL-EV-INT).
+  const prefix = brandingFor(getActivePartnerProfile()).documentPrefix
+  return `${prefix}-${letterDocPrefix(letterType)}-${year}-${padded}`
 }
 
 // ── Generated letters ────────────────────────────────────────────────────────
@@ -291,11 +300,11 @@ export async function createDraftLetter(input: NewLetterInput, createdBy: string
 
 export async function getLetter(id: string): Promise<PeopleGeneratedLetter | null> {
   const snap = await getDoc(doc(db, LETTERS, id))
-  return snap.exists() ? (snap.data() as PeopleGeneratedLetter) : null
+  return snap.exists() ? inActivePartner(snap.data() as PeopleGeneratedLetter) : null
 }
 
 export async function getAllLetters(): Promise<PeopleGeneratedLetter[]> {
-  const snap = await getDocs(query(collection(db, LETTERS), orderBy('createdAt', 'desc')))
+  const snap = await getDocs(query(collection(db, LETTERS), where('partnerId', '==', requirePartnerId()), orderBy('createdAt', 'desc')))
   return snap.docs.map(d => d.data() as PeopleGeneratedLetter)
 }
 
@@ -304,7 +313,7 @@ export async function getLettersByType(letterType: LetterType): Promise<PeopleGe
   // filter with an orderBy on a different field requires a Firestore
   // composite index that doesn't exist (and shouldn't need to, for a
   // collection this size). Sort client-side instead.
-  const q = query(collection(db, LETTERS), where('letterType', '==', letterType))
+  const q = query(collection(db, LETTERS), where('partnerId', '==', requirePartnerId()), where('letterType', '==', letterType))
   const snap = await getDocs(q)
   return snap.docs
     .map(d => d.data() as PeopleGeneratedLetter)
@@ -413,7 +422,7 @@ export async function restoreGeneratedLetter(id: string, performedBy: string): P
 
 /** Audit trail for a single template or letter, e.g. `letters/{id}` or `templates/{id}`. */
 export async function getAuditLogsForResource(resource: string): Promise<PeopleLetterAuditLog[]> {
-  const q = query(collection(db, LETTER_AUDIT), where('resource', '==', resource))
+  const q = query(collection(db, LETTER_AUDIT), where('partnerId', '==', requirePartnerId()), where('resource', '==', resource))
   const snap = await getDocs(q)
   return snap.docs
     .map(d => d.data() as PeopleLetterAuditLog)
@@ -424,7 +433,7 @@ export async function getAuditLogsForResource(resource: string): Promise<PeopleL
 
 export async function getApprovalsForLetter(letterId: string): Promise<PeopleLetterApproval[]> {
   // No composite index needed — see getLettersByType for why orderBy is dropped here too.
-  const q = query(collection(db, 'peopleLetterApprovals'), where('letterId', '==', letterId))
+  const q = query(collection(db, 'peopleLetterApprovals'), where('partnerId', '==', requirePartnerId()), where('letterId', '==', letterId))
   const snap = await getDocs(q)
   return snap.docs
     .map(d => d.data() as PeopleLetterApproval)

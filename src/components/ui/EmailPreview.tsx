@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Copy, Download, CheckCircle, Mail } from 'lucide-react'
 import type { Assignment, Developer, Story, Simulator } from '../../types'
+import { useBranding } from '../../contexts/PartnerContext'
+import { escapeHtml, type Branding } from '../../tenant/branding'
 
 interface EmailPreviewProps {
   assignment: Assignment
@@ -10,8 +12,10 @@ interface EmailPreviewProps {
 }
 
 function buildEmailHTML(
-  a: Assignment, dev: Developer, story: Story, sim: Simulator | undefined
+  a: Assignment, dev: Developer, story: Story, sim: Simulator | undefined, b: Branding
 ): string {
+  const name = escapeHtml(b.title)
+  const sub = escapeHtml(b.subtitle)
   const daysRem = Math.ceil((new Date(a.dueDate).getTime() - new Date().getTime()) / 86400000)
 
   return `<!DOCTYPE html>
@@ -19,7 +23,7 @@ function buildEmailHTML(
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>UFlight™ | EV.ENGINEER™ Internship Assignment</title>
+<title>${name} Internship Assignment</title>
 <style>
   body { font-family: 'Arial', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
   .container { max-width: 680px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
@@ -52,8 +56,8 @@ function buildEmailHTML(
 <div class="container">
   <!-- Header -->
   <div class="header">
-    <h1>UFlight™ | EV.ENGINEER™</h1>
-    <p>Aerospace Intelligence & Cybersecurity Platform · Intern Program 2026</p>
+    <h1>${name}</h1>
+    ${sub ? `<p>${sub}</p>` : ''}
   </div>
 
   <!-- Banner -->
@@ -66,7 +70,7 @@ function buildEmailHTML(
   <div class="section">
     <p style="font-size:15px; line-height:1.7;">Dear <strong>${dev.name}</strong>,</p>
     <p style="font-size:14px; color:#475569; line-height:1.7;">
-      Welcome to the <strong>UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform Internship Program 2026</strong>.
+      Welcome to the <strong>${escapeHtml(b.name)} Internship Program</strong>.
       You have been assigned to build a critical engineering module for the ${a.product}.
       This document is your official engineering contract — please read it carefully and confirm acceptance by replying to this email.
     </p>
@@ -172,15 +176,15 @@ function buildEmailHTML(
   <div class="footer">
     <p><strong>Questions?</strong> Reply to this email or contact your mentor.</p>
     <p>Please reply <strong>"Accepted"</strong> to confirm you have read and understood this assignment.</p>
-    <p style="margin-top:16px; color:#cbd5e1;">UFlight™ | EV.ENGINEER™ Aerospace Intelligence & Cybersecurity Platform · Intern Program 2026</p>
-    <p style="margin-top:12px; color:#94a3b8; font-weight:700; font-size:12px;">iTelematics Software Private Limited</p>
-    <p style="color:#94a3b8; font-size:11px;">Bangalore, India</p>
+    <p style="margin-top:16px; color:#cbd5e1;">${name}${sub ? ` · ${sub}` : ''}</p>
+    ${b.footer ? `<p style="margin-top:12px; color:#94a3b8; font-weight:700; font-size:12px;">${escapeHtml(b.footer)}</p>` : ''}
+    ${b.location ? `<p style="color:#94a3b8; font-size:11px;">${escapeHtml(b.location)}</p>` : ''}
     <p style="margin-top:6px; font-size:11px;">
-      <a href="mailto:info@iTelematics.com" style="color:#60a5fa; text-decoration:none;">info@iTelematics.com</a>
-      &nbsp;·&nbsp;
-      <a href="tel:+919108206147" style="color:#94a3b8; text-decoration:none;">+91 91082 06147</a>
-      &nbsp;·&nbsp;
-      <a href="https://wa.me/919108206147" style="color:#4ade80; text-decoration:none;">WhatsApp</a>
+      ${[
+        b.contact.email ? `<a href="mailto:${escapeHtml(b.contact.email)}" style="color:#60a5fa; text-decoration:none;">${escapeHtml(b.contact.email)}</a>` : '',
+        b.contact.phoneHref ? `<a href="${escapeHtml(b.contact.phoneHref)}" style="color:#94a3b8; text-decoration:none;">${escapeHtml(b.contact.phone)}</a>` : '',
+        b.contact.whatsappUrl ? `<a href="${escapeHtml(b.contact.whatsappUrl)}" style="color:#4ade80; text-decoration:none;">WhatsApp</a>` : '',
+      ].filter(Boolean).join('&nbsp;·&nbsp;')}
     </p>
     <p style="margin-top:10px; color:#cbd5e1;">This is an internal assignment document. Do not share externally.</p>
   </div>
@@ -192,8 +196,9 @@ function buildEmailHTML(
 export default function EmailPreview({ assignment, developer, story, simulator }: EmailPreviewProps) {
   const [copied, setCopied] = useState(false)
 
-  const html = buildEmailHTML(assignment, developer, story, simulator)
-  const subject = `UFlight™ | EV.ENGINEER™ Internship Assignment — ${assignment.id} — ${developer.name}`
+  const b = useBranding()
+  const html = buildEmailHTML(assignment, developer, story, simulator, b)
+  const subject = `${b.title} Internship Assignment — ${assignment.id} — ${developer.name}`
 
   function handleCopy() {
     navigator.clipboard.writeText(html)

@@ -134,3 +134,5 @@ backups/
 
 # Local JSON (if using local mode)
 data/local/
+# Tenant migration reports (contain user emails)
+migration-reports/
