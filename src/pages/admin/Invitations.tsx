@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Mail, Plus, Clock, CheckCircle, XCircle, AlertTriangle, Copy, Trash2 } from 'lucide-react'
+import { Mail, Plus, Clock, CheckCircle, XCircle, AlertTriangle, Copy, Trash2, AlertCircle } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import SectionCard from '../../components/ui/SectionCard'
 import PermissionBadge from '../../components/ui/PermissionBadge'
-import { getInvitations, createInvitation, updateInvitationStatus } from '../../firebase/firestore'
+import {
+  listPartnerInvitations, createPartnerInvitation, cancelInvitation, writeTenantAudit, INVITATION_TTL_DAYS,
+} from '../../firebase/partners'
 import { useAuthContext } from '../../contexts/AuthContext'
-import type { Invitation, UserRole, InvitationStatus } from '../../types/auth'
-
-const ROLES: UserRole[] = ['Developer', 'QA Engineer', 'Architect', 'Engineering Manager', 'HR Manager', 'Viewer']
+import { usePartner } from '../../contexts/PartnerContext'
+import { canInviteWithRole } from '../../tenant/authorize'
+import { isLocalDevHost } from '../../tenant/hostname'
+import { PARTNER_ROLES, type PartnerRole } from '../../types/partner'
+import type { Invitation, InvitationStatus } from '../../types/auth'
 
 const STATUS_META: Record<InvitationStatus, { color: string; icon: React.ReactNode }> = {
   Pending:  { color: 'bg-amber-100 text-amber-700 border-amber-200',  icon: <Clock size={11}/> },
@@ -16,69 +20,96 @@ const STATUS_META: Record<InvitationStatus, { color: string; icon: React.ReactNo
   Cancelled:{ color: 'bg-red-100 text-red-600 border-red-200',        icon: <XCircle size={11}/> },
 }
 
-function generateToken(): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
+/**
+ * Invitations are always created for the Partner resolved from the hostname.
+ * The link points at that Partner's primary domain, so it can only be
+ * redeemed there; rules additionally pin partnerId + role to the invite.
+ */
+function invitationLink(token: string, defaultDomain: string): string {
+  const base = isLocalDevHost(window.location.hostname) || !defaultDomain
+    ? window.location.origin
+    : `https://${defaultDomain}`
+  return `${base}/join?token=${encodeURIComponent(token)}`
+}
+
+function effectiveStatus(inv: Invitation): InvitationStatus {
+  return inv.status === 'Pending' && Date.now() >= inv.expiresAtMs ? 'Expired' : inv.status
 }
 
 export default function AdminInvitations() {
-  const { userProfile } = useAuthContext()
+  const { userProfile, principal } = useAuthContext()
+  const { partner } = usePartner()
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading]         = useState(true)
   const [showForm, setShowForm]       = useState(false)
   const [saving, setSaving]           = useState(false)
   const [copied, setCopied]           = useState<string | null>(null)
+  const [error, setError]             = useState('')
 
-  const [form, setForm] = useState({ name: '', email: '', role: 'Developer' as UserRole })
+  const roles = PARTNER_ROLES.filter(r => principal && partner && canInviteWithRole(principal, partner.id, r))
+  const [form, setForm] = useState({ name: '', email: '', role: 'Developer' as PartnerRole })
 
   useEffect(() => {
-    getInvitations('ev-engineer').then(inv => { setInvitations(inv); setLoading(false) })
-  }, [])
+    if (!partner) return
+    listPartnerInvitations(partner.id)
+      .then(inv => setInvitations(inv.filter(i => typeof i.expiresAtMs === 'number')))
+      .catch(() => setError('You do not have permission to view invitations for this Partner.'))
+      .finally(() => setLoading(false))
+  }, [partner])
 
   async function handleCreate() {
-    if (!form.name.trim() || !form.email.trim() || !userProfile) return
+    if (!form.name.trim() || !form.email.trim() || !userProfile || !partner) return
     setSaving(true)
-    const now = new Date()
-    const expires = new Date(now)
-    expires.setDate(expires.getDate() + 7)
-    const inv: Omit<Invitation, 'id'> = {
-      name:      form.name.trim(),
-      email:     form.email.trim(),
-      role:      form.role,
-      orgId:     'ev-engineer',
-      invitedBy: userProfile.email,
-      token:     generateToken(),
-      status:    'Pending',
-      createdAt: now.toISOString(),
-      expiresAt: expires.toISOString(),
+    setError('')
+    try {
+      const inv = await createPartnerInvitation({
+        partnerId: partner.id, email: form.email, name: form.name, role: form.role,
+        inviterUid: userProfile.uid, inviterEmail: userProfile.email,
+      })
+      await writeTenantAudit({
+        uid: userProfile.uid, userEmail: userProfile.email, action: 'user_invited',
+        partnerId: partner.id, targetType: 'invitations', targetId: inv.id.slice(0, 8),
+        details: `Invited ${inv.email} as ${inv.role}`, metadata: { role: inv.role },
+      }).catch(() => {})
+      setInvitations(prev => [inv, ...prev])
+      setForm({ name: '', email: '', role: 'Developer' })
+      setShowForm(false)
+    } catch {
+      setError('The invitation was rejected. You may not be allowed to grant that role.')
+    } finally {
+      setSaving(false)
     }
-    const id = await createInvitation(inv)
-    setInvitations(prev => [{ ...inv, id }, ...prev])
-    setForm({ name: '', email: '', role: 'Developer' })
-    setShowForm(false)
-    setSaving(false)
   }
 
-  async function handleCancel(id: string) {
-    await updateInvitationStatus(id, 'Cancelled')
-    setInvitations(prev => prev.map(i => i.id === id ? { ...i, status: 'Cancelled' } : i))
+  async function handleCancel(inv: Invitation) {
+    if (!userProfile || !partner) return
+    try {
+      await cancelInvitation(inv.id)
+      setInvitations(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'Cancelled' } : i))
+      await writeTenantAudit({
+        uid: userProfile.uid, userEmail: userProfile.email, action: 'invitation_cancelled',
+        partnerId: partner.id, targetType: 'invitations', targetId: inv.id.slice(0, 8),
+        details: `Cancelled invitation for ${inv.email}`,
+      }).catch(() => {})
+    } catch {
+      setError('Could not cancel this invitation.')
+    }
   }
 
-  function copyLink(token: string, id: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/join?token=${token}`)
-    setCopied(id)
+  function copyLink(inv: Invitation) {
+    navigator.clipboard.writeText(invitationLink(inv.id, partner?.defaultDomain ?? ''))
+    setCopied(inv.id)
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const pending  = invitations.filter(i => i.status === 'Pending')
+  const pending  = invitations.filter(i => effectiveStatus(i) === 'Pending')
   const accepted = invitations.filter(i => i.status === 'Accepted')
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Invitations"
-        subtitle="Invite team members to the UFlight™ | EV.ENGINEER™ platform"
+        subtitle={`Invite team members to ${partner?.displayName ?? 'this Partner'}`}
         icon={<Mail size={18}/>}
         actions={
           <button onClick={() => setShowForm(s => !s)} className="btn-primary flex items-center gap-1.5">
@@ -87,8 +118,14 @@ export default function AdminInvitations() {
         }
       />
 
+      {error && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex gap-2 text-sm text-red-700">
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />{error}
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total', value: invitations.length, color: 'text-slate-700' },
           { label: 'Pending', value: pending.length, color: 'text-amber-700' },
@@ -130,9 +167,9 @@ export default function AdminInvitations() {
               <select
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm bg-white focus:outline-none focus:border-brand-400"
                 value={form.role}
-                onChange={e => setForm(p => ({ ...p, role: e.target.value as UserRole }))}
+                onChange={e => setForm(p => ({ ...p, role: e.target.value as PartnerRole }))}
               >
-                {ROLES.map(r => <option key={r}>{r}</option>)}
+                {roles.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
           </div>
@@ -141,7 +178,8 @@ export default function AdminInvitations() {
             <p className="text-xs text-blue-700">
               <strong>Note:</strong> Email sending is not yet integrated (planned: Gmail API in Phase E).
               Copy the invitation link manually and share it with the invitee.
-              The link expires in <strong>7 days</strong>.
+              The link expires in <strong>{INVITATION_TTL_DAYS} days</strong> and only works for this email
+              on {partner?.defaultDomain || 'this sign-in address'}.
             </p>
           </div>
 
@@ -167,28 +205,28 @@ export default function AdminInvitations() {
         ) : (
           <div className="space-y-2">
             {pending.map(inv => (
-              <div key={inv.id} className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+              <div key={inv.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
                 <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-sm font-bold flex-shrink-0">
                   {inv.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-800">{inv.name}</p>
-                  <p className="text-xs text-slate-500">{inv.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-slate-500 truncate">{inv.email}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <PermissionBadge role={inv.role} size="xs" />
-                    <span className="text-[10px] text-slate-400">Invited by {inv.invitedBy}</span>
+                    <span className="text-[10px] text-slate-400">Invited by {inv.invitedByEmail}</span>
                     <span className="text-[10px] text-slate-400">· Expires {new Date(inv.expiresAt).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
-                    onClick={() => copyLink(inv.token, inv.id)}
+                    onClick={() => copyLink(inv)}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-all"
                   >
                     <Copy size={11}/> {copied === inv.id ? 'Copied!' : 'Copy Link'}
                   </button>
                   <button
-                    onClick={() => handleCancel(inv.id)}
+                    onClick={() => handleCancel(inv)}
                     className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                     title="Cancel invitation"
                   >
@@ -217,7 +255,8 @@ export default function AdminInvitations() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {invitations.map(inv => {
-                  const { color, icon } = STATUS_META[inv.status]
+                  const status = effectiveStatus(inv)
+                  const { color, icon } = STATUS_META[status]
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-2.5 px-2 font-semibold text-slate-800">{inv.name}</td>
@@ -225,10 +264,10 @@ export default function AdminInvitations() {
                       <td className="py-2.5 px-2"><PermissionBadge role={inv.role} size="xs" /></td>
                       <td className="py-2.5 px-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border font-bold text-[9px] ${color}`}>
-                          {icon}{inv.status}
+                          {icon}{status}
                         </span>
                       </td>
-                      <td className="py-2.5 px-2 text-slate-400">{inv.invitedBy}</td>
+                      <td className="py-2.5 px-2 text-slate-400">{inv.invitedByEmail}</td>
                       <td className="py-2.5 px-2 text-slate-400">{new Date(inv.createdAt).toLocaleDateString()}</td>
                       <td className="py-2.5 px-2 text-slate-400">{new Date(inv.expiresAt).toLocaleDateString()}</td>
                     </tr>

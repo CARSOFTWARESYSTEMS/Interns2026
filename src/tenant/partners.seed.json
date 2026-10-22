@@ -1,0 +1,165 @@
+{
+  "_comment": "Bootstrap seed for the initial Partners. Used ONLY by scripts/tenant-bootstrap.mjs (to create Firestore records) and by the localhost dev fallback when Firebase is not configured. Production resolution always reads Firestore. Copy marked REVIEW is carried over from the current UI and must be confirmed per Partner before go-live; colours are the current shared brand blue until each Partner's palette is supplied.",
+  "partners": [
+    {
+      "id": "gamyaa",
+      "slug": "gamyaa",
+      "status": "Active",
+      "displayName": "GAMYAA™ AeroSystems",
+      "shortName": "GAMYAA",
+      "legalName": "GAMYAA AeroSystems",
+      "description": "Aerospace engineering intelligence",
+      "defaultDomain": "login.gamyaa.in",
+      "branding": {
+        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
+        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+      },
+      "login": {
+        "title": "GAMYAA™ AeroSystems",
+        "subtitle": "Aerospace Engineering Intelligence Platform",
+        "restrictedNotice": "Access is restricted to authorized GAMYAA™ AeroSystems team members."
+      },
+      "platform": {
+        "title": "GAMYAA™ AeroSystems",
+        "subtitle": "Aerospace Engineering Intelligence",
+        "tagline": "Engineering Command Center",
+        "footer": "iTelematics Software Private Limited",
+        "versionLabel": "v1.0 · Engineering Command Center"
+      },
+      "contact": {
+        "supportEmail": "info@iTelematics.com",
+        "supportPhone": "+91 91082 06147",
+        "whatsappUrl": "https://wa.me/919108206147",
+        "websiteUrl": "",
+        "supportUrl": ""
+      },
+      "city": "Bangalore",
+      "country": "India"
+    },
+    {
+      "id": "uflight",
+      "slug": "uflight",
+      "status": "Active",
+      "displayName": "UFlight™",
+      "shortName": "UFlight",
+      "legalName": "UFlight",
+      "description": "Aerospace intelligence & cybersecurity",
+      "defaultDomain": "login.uflight.in",
+      "branding": {
+        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
+        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+      },
+      "login": {
+        "title": "UFlight™",
+        "subtitle": "Aerospace Intelligence & Cybersecurity Platform",
+        "restrictedNotice": "Access is restricted to authorized UFlight™ team members."
+      },
+      "platform": {
+        "title": "UFlight™",
+        "subtitle": "Aerospace Intelligence & Cybersecurity",
+        "tagline": "Engineering Command Center",
+        "footer": "iTelematics Software Private Limited",
+        "versionLabel": "v1.0 · Engineering Command Center"
+      },
+      "contact": {
+        "supportEmail": "info@iTelematics.com",
+        "supportPhone": "+91 91082 06147",
+        "whatsappUrl": "https://wa.me/919108206147",
+        "websiteUrl": "",
+        "supportUrl": ""
+      },
+      "city": "Bangalore",
+      "country": "India"
+    },
+    {
+      "id": "itelematics",
+      "slug": "itelematics",
+      "status": "Active",
+      "displayName": "iTelematics®",
+      "shortName": "iTelematics",
+      "legalName": "iTelematics Software Private Limited",
+      "description": "Connected systems & telematics",
+      "defaultDomain": "login.itelematics.com",
+      "branding": {
+        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
+        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+      },
+      "login": {
+        "title": "iTelematics®",
+        "subtitle": "Engineering Intelligence Platform",
+        "restrictedNotice": "Access is restricted to authorized iTelematics® team members."
+      },
+      "platform": {
+        "title": "iTelematics®",
+        "subtitle": "Engineering Intelligence",
+        "tagline": "Engineering Command Center",
+        "footer": "iTelematics Software Private Limited",
+        "versionLabel": "v1.0 · Engineering Command Center"
+      },
+      "contact": {
+        "supportEmail": "info@iTelematics.com",
+        "supportPhone": "+91 91082 06147",
+        "whatsappUrl": "https://wa.me/919108206147",
+        "websiteUrl": "",
+        "supportUrl": ""
+      },
+      "city": "Bangalore",
+      "country": "India"
+    },
+    {
+      "id": "ev-engineer",
+      "slug": "ev-engineer",
+      "status": "Active",
+      "displayName": "EV.ENGINEER™",
+      "shortName": "EV.ENGINEER",
+      "legalName": "EV.ENGINEER",
+      "description": "Battery intelligence & cybersecurity",
+      "defaultDomain": "login.autonomous.ev.engineer",
+      "branding": {
+        "logoUrl": "", "logoDarkUrl": "", "faviconUrl": "",
+        "primaryColor": "#2563eb", "secondaryColor": "#0f172a", "accentColor": "#60a5fa"
+      },
+      "login": {
+        "title": "EV.ENGINEER™",
+        "subtitle": "Aerospace Intelligence & Cybersecurity Platform",
+        "restrictedNotice": "Access is restricted to authorized EV.ENGINEER™ team members."
+      },
+      "platform": {
+        "title": "EV.ENGINEER™",
+        "subtitle": "Aerospace Intelligence & Cybersecurity",
+        "tagline": "Engineering Command Center",
+        "footer": "iTelematics Software Private Limited",
+        "versionLabel": "v1.0 · M03 · Intern Program 2026 · AS 9102 Beta"
+      },
+      "contact": {
+        "supportEmail": "info@iTelematics.com",
+        "supportPhone": "+91 91082 06147",
+        "whatsappUrl": "https://wa.me/919108206147",
+        "websiteUrl": "",
+        "supportUrl": ""
+      },
+      "city": "Bangalore",
+      "country": "India"
+    }
+  ],
+  "domains": [
+    { "hostname": "login.gamyaa.in",              "partnerId": "gamyaa",      "isPrimary": true, "status": "Active" },
+    { "hostname": "login.uflight.in",             "partnerId": "uflight",     "isPrimary": true, "status": "Active" },
+    { "hostname": "login.itelematics.com",        "partnerId": "itelematics", "isPrimary": true, "status": "Active" },
+    { "hostname": "login.autonomous.ev.engineer", "partnerId": "ev-engineer", "isPrimary": true, "status": "Active" }
+  ],
+  "defaultSettings": {
+    "modules": {
+      "engineering":      { "enabled": true },
+      "peopleOperations": { "enabled": true },
+      "quality":          { "enabled": false },
+      "cybersecurity":    { "enabled": false },
+      "fai":              { "enabled": false },
+      "digitalTwin":      { "enabled": false },
+      "internships":      { "enabled": true },
+      "reports":          { "enabled": true }
+    },
+    "authPolicy": { "allowAccessRequests": true },
+    "operational": {}
+  }
+}

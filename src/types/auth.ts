@@ -1,5 +1,7 @@
 // ── Super Admins ──────────────────────────────────────────────────────────
-// These emails always receive Platform Admin role regardless of Firestore.
+// Bootstrap Platform Admins. These emails are Platform Admin regardless of
+// Firestore data (mirrored in firestore.rules → isSuperAdminEmail()).
+// Additional Platform Admins are granted via platformAdmins/{uid}.
 export const SUPER_ADMIN_EMAILS: ReadonlySet<string> = new Set([
   'carsoftwaresystems@gmail.com',
   'sudarshana.karkala@gmail.com',
@@ -7,8 +9,12 @@ export const SUPER_ADMIN_EMAILS: ReadonlySet<string> = new Set([
 
 // ── Roles & Permissions ───────────────────────────────────────────────────
 
+// 'Platform Admin' is GLOBAL (platformAdmins/{uid} or a super-admin email).
+// Every other role is held per Partner via partnerMemberships.
+// 'Admin' = full operational control of ONE Partner.
 export type UserRole =
   | 'Platform Admin'
+  | 'Admin'
   | 'Engineering Manager'
   | 'Architect'
   | 'QA Engineer'
@@ -27,6 +33,7 @@ export type PeopleAccessLevel = 'full' | 'org' | 'team' | 'people_ops' | 'self' 
 
 export const PEOPLE_ROLE_ACCESS: Record<UserRole, PeopleAccessLevel> = {
   'Platform Admin':      'full',        // full access
+  'Admin':               'full',        // full access within their Partner
   'Engineering Manager': 'team',        // team people access (treated as "Manager")
   'HR Manager':          'people_ops',  // people operations access
   'Architect':           'self',        // self profile, self leave, self reviews only
@@ -38,6 +45,7 @@ export const PEOPLE_ROLE_ACCESS: Record<UserRole, PeopleAccessLevel> = {
 // Flat permission strings checked by RoleGuard
 const _ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'Platform Admin':       ['*'],
+  'Admin':                ['*'],      // '*' is Partner-scoped: data rules only grant the active Partner
   'Engineering Manager':  ['assignments:write', 'reports:read', 'users:read', 'stories:write', 'developers:write', 'qa:assign', 'architect:assign', 'weekly:approve', 'people:team'],
   'Architect':            ['architecture:approve', 'evidence:approve', 'stories:read', 'simulators:read', 'assignments:read', 'people:self'],
   'QA Engineer':          ['stories:qa', 'evidence:verify', 'assigned:read', 'people:self'],
@@ -65,8 +73,9 @@ export function canAccessRoute(role: UserRole, path: string): boolean {
   const publicRoutes = ['/', '/profile', '/my-dashboard', '/403', '/404']
   if (publicRoutes.includes(path)) return true
 
-  // Admin-only routes
-  if (path.startsWith('/admin')) return role === 'Platform Admin'
+  // Admin routes — Platform Admin, or Admin of the active Partner.
+  // Platform-only admin screens (e.g. /admin/partners) are guarded separately.
+  if (path.startsWith('/admin')) return role === 'Platform Admin' || role === 'Admin'
 
   // People Operations — recruitment/pipeline/policy management routes are
   // restricted to full/org/team/people_ops access levels.
@@ -114,11 +123,16 @@ export interface UserProfile {
   createdAt: string           // ISO 8601
   updatedAt: string
   lastLogin: string
-  status: UserStatus
-  role: UserRole
-  managerId: string
-  architectId: string
-  orgId: string
+  /** @deprecated Partner-scoped — use the active PartnerMembership.status. Read only for migration. */
+  status?: UserStatus
+  /** @deprecated Partner-scoped — use AuthContext.role (derived from membership). Locked by rules; never written by clients. */
+  role?: UserRole
+  /** @deprecated Partner-scoped — lives on PartnerMembership. */
+  managerId?: string
+  /** @deprecated Partner-scoped — lives on PartnerMembership. */
+  architectId?: string
+  /** @deprecated Replaced by partnerId on Partner-owned records. */
+  orgId?: string
   profileComplete: boolean    // @deprecated — kept for backward compat; use profileCompleted
   profileCompleted: boolean   // true once the wizard is finished and persisted to Firestore
   profileCompletedAt: string  // ISO 8601 timestamp of first completion
@@ -143,8 +157,7 @@ export function buildEmptyProfile(uid: string, displayName: string, email: strin
     graduationYear: '', city: '', country: '',
     resumeDriveLink: '', bio: '', experience: '',
     createdAt: now, updatedAt: now, lastLogin: now,
-    status: 'Pending', role: 'Developer',
-    managerId: '', architectId: '', orgId: 'ev-engineer',
+    // No role/status/orgId: those are Partner-scoped and rules reject them here.
     profileComplete: false, profileCompleted: false, profileCompletedAt: '',
   }
 }
@@ -260,7 +273,9 @@ export interface UserResume {
   history: ResumeVersion[]
 }
 
-// ── Organization ──────────────────────────────────────────────────────────
+// ── Organization (legacy) ─────────────────────────────────────────────────
+// @deprecated — superseded by Partner / PartnerMembership in types/partner.ts.
+// Kept so legacy documents still type-check during migration.
 
 export type OrgStatus = 'Active' | 'Inactive' | 'Suspended'
 
@@ -290,6 +305,21 @@ export type AuditAction =
   | 'role_changed' | 'story_assigned' | 'qa_assigned'
   | 'evidence_updated' | 'review_completed' | 'approval_given'
   | 'user_invited' | 'user_blocked' | 'user_deleted'
+  // Tenant administration (spec names in comments)
+  | 'partner_created'      // PARTNER_CREATED
+  | 'partner_updated'      // PARTNER_UPDATED
+  | 'domain_added'         // DOMAIN_ADDED
+  | 'domain_removed'       // DOMAIN_REMOVED
+  | 'admin_assigned'       // ADMIN_ASSIGNED
+  | 'admin_removed'        // ADMIN_REMOVED
+  | 'membership_created'   // MEMBERSHIP_CREATED
+  | 'membership_updated'   // MEMBERSHIP_UPDATED
+  | 'membership_blocked'   // MEMBERSHIP_BLOCKED
+  | 'access_requested'
+  | 'invitation_accepted'
+  | 'invitation_cancelled'
+  | 'project_created'      // PROJECT_CREATED (Phase C)
+  | 'project_archived'     // PROJECT_ARCHIVED (Phase C)
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   login:             'Signed In',
@@ -305,6 +335,20 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   user_invited:      'User Invited',
   user_blocked:      'User Blocked',
   user_deleted:      'User Deleted',
+  partner_created:      'Partner Created',
+  partner_updated:      'Partner Updated',
+  domain_added:         'Domain Added',
+  domain_removed:       'Domain Removed',
+  admin_assigned:       'Admin Assigned',
+  admin_removed:        'Admin Removed',
+  membership_created:   'Membership Created',
+  membership_updated:   'Membership Updated',
+  membership_blocked:   'Membership Blocked',
+  access_requested:     'Access Requested',
+  invitation_accepted:  'Invitation Accepted',
+  invitation_cancelled: 'Invitation Cancelled',
+  project_created:      'Project Created',
+  project_archived:     'Project Archived',
 }
 
 export interface AuditLog {
@@ -315,7 +359,16 @@ export interface AuditLog {
   resource: string
   details: string
   timestamp: string
-  orgId: string
+  /** Partner the event happened in ('' for global events such as Platform Admin actions without a tenant). */
+  partnerId?: string
+  /** Hostname the event came from — safe observability context. */
+  host?: string
+  targetType?: string
+  targetId?: string
+  /** Safe, non-secret metadata only. */
+  metadata?: Record<string, string | number | boolean>
+  /** @deprecated legacy tenant field */
+  orgId?: string
 }
 
 // ── Login History ─────────────────────────────────────────────────────────
@@ -334,15 +387,28 @@ export interface LoginHistory {
 
 export type InvitationStatus = 'Pending' | 'Accepted' | 'Expired' | 'Cancelled'
 
+/**
+ * Partner-scoped invitation. The document id IS the secret token (256-bit,
+ * base64url) so an invitee can `get` it without list access. Redeeming it
+ * creates partnerMemberships/{partnerId}_{uid} for exactly this partnerId and
+ * role — enforced in firestore.rules, not by the client.
+ */
 export interface Invitation {
-  id: string
-  email: string
+  id: string                 // == token
+  email: string              // lowercase
   name: string
-  role: UserRole
-  orgId: string
-  invitedBy: string
-  token: string
+  role: Exclude<UserRole, 'Platform Admin'>
+  partnerId: string
+  invitedBy: string          // inviter uid
+  invitedByEmail: string
   status: InvitationStatus
   createdAt: string
-  expiresAt: string
+  expiresAt: string          // ISO, for display
+  expiresAtMs: number        // epoch ms, compared in rules
+  acceptedBy?: string
+  acceptedAt?: string
+  /** @deprecated legacy docs only */
+  orgId?: string
+  /** @deprecated legacy docs only — new invitations use the doc id */
+  token?: string
 }

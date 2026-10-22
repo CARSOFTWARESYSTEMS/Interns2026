@@ -2,6 +2,7 @@ import { Battery, Shield, Star, CheckCircle, XCircle, Crown, Lock, Eye, Edit3, S
 import PageHeader from '../../components/ui/PageHeader'
 import SectionCard from '../../components/ui/SectionCard'
 import { SUPER_ADMIN_EMAILS, type UserRole } from '../../types/auth'
+import { useAuthContext } from '../../contexts/AuthContext'
 
 // ── Role metadata ─────────────────────────────────────────────────────────
 
@@ -30,6 +31,20 @@ const ROLE_META: RoleMeta[] = [
       'All engineering data (read + write)',
       'Audit log access (all users)',
       'Platform settings',
+    ],
+  },
+  {
+    label: 'Admin',
+    color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200',
+    icon: <Shield size={14} className="text-orange-600" />,
+    description: 'Full operational control of ONE Partner. Cannot access other Partners, create Partners, change domains or grant Platform Admin.',
+    permissions: [
+      'All pages & features within their Partner',
+      'Partner user management (approve, block, change roles)',
+      'Partner invitations (any role except Admin)',
+      'All Partner engineering & people data',
+      'Partner reports and audit log',
+      'No cross-Partner access (enforced by Firestore rules)',
     ],
   },
   {
@@ -146,17 +161,22 @@ function ShieldCheck({ size, className }: { size: number; className?: string }) 
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function DeveloperSettings() {
-  const superAdmins = Array.from(SUPER_ADMIN_EMAILS)
+  const { isPlatformAdmin } = useAuthContext()
+  // Global platform configuration is visible to Platform Admin only.
+  const superAdmins = isPlatformAdmin ? Array.from(SUPER_ADMIN_EMAILS) : []
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Developer Settings"
-        subtitle="Role definitions, access matrix, and super admin configuration — visible to Platform Admin only"
+        subtitle={isPlatformAdmin
+          ? 'Role definitions, access matrix, and super admin configuration'
+          : 'Role definitions and access matrix'}
         icon={<Settings size={18} />}
       />
 
-      {/* Super Admin Card */}
+      {/* Super Admin Card — Platform Admin only */}
+      {isPlatformAdmin && (
       <SectionCard
         title="Super Admins"
         icon={<Crown size={14} className="text-amber-500" />}
@@ -196,8 +216,10 @@ export default function DeveloperSettings() {
         <p className="text-[10px] text-slate-400 mt-3 italic">
           To add or remove super admins, update <code className="font-mono bg-slate-100 px-1 rounded">SUPER_ADMIN_EMAILS</code> in{' '}
           <code className="font-mono bg-slate-100 px-1 rounded">src/types/auth.ts</code> and redeploy Firestore rules.
+          Additional Platform Admins are granted through <code className="font-mono bg-slate-100 px-1 rounded">platformAdmins/{'{uid}'}</code>.
         </p>
       </SectionCard>
+      )}
 
       {/* Role Definitions */}
       <SectionCard

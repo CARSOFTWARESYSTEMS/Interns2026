@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Battery, Shield, Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { usePartner } from '../../contexts/PartnerContext'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 import ProfileCompletion from '../ui/ProfileCompletion'
@@ -12,7 +13,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { userProfile, signOut, isAuthenticated } = useAuthContext()
+  const { userProfile, signOut, isAuthenticated, role } = useAuthContext()
+  const { partner } = usePartner()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -116,7 +118,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                       <p className="text-sm font-bold text-slate-900 truncate">{userProfile.displayName}</p>
                       <p className="text-xs text-slate-400 truncate">{userProfile.email}</p>
                       <div className="mt-1">
-                        <PermissionBadge role={userProfile.role} size="xs" />
+                        {role && <PermissionBadge role={role} size="xs" />}
                       </div>
                     </div>
                   </div>
@@ -146,7 +148,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                       </span>
                     )}
                   </button>
-                  {(userProfile.role === 'Platform Admin' || userProfile.role === 'Engineering Manager') && (
+                  {(role === 'Platform Admin' || role === 'Admin' || role === 'Engineering Manager') && (
                     <button
                       onClick={() => { setDropdownOpen(false); navigate('/settings') }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
@@ -160,7 +162,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 <div className="border-t border-slate-100 py-1.5">
                   <div className="px-4 py-1.5">
                     <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Organization</p>
-                    <p className="text-xs text-slate-600 font-semibold">UFlight™ | EV.ENGINEER™</p>
+                    <p className="text-xs text-slate-600 font-semibold truncate">{partner?.displayName}</p>
                   </div>
                   <button
                     onClick={handleSignOut}

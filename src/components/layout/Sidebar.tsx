@@ -70,7 +70,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate()
   const [unread, setUnread] = useState(0)
 
-  const isAdmin   = role === 'Platform Admin'
+  const isPlatformAdmin = role === 'Platform Admin'
+  // Admin section: Platform Admin (all Partners) or Admin of the active Partner.
+  const isAdmin   = isPlatformAdmin || role === 'Admin'
   const isManager = role === 'Engineering Manager'
   const isDev     = role === 'Developer'
   const isHR      = role === 'HR Manager'
@@ -209,7 +211,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* Admin Section — Platform Admin only */}
+          {/* Admin Section — Platform Admin + Partner Admin (rules scope the data) */}
           {isAdmin && (
             <>
               <div className="border-t border-slate-800" />
@@ -269,7 +271,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-semibold text-slate-300 truncate">{userProfile.displayName}</p>
-                    <PermissionBadge role={userProfile.role} size="xs" />
+                    {role && <PermissionBadge role={role} size="xs" />}
                   </div>
                 </div>
                 <p className="text-[9px] text-slate-600 mt-2 font-semibold tracking-wide">iTelematics Software Pvt. Ltd. · Bangalore</p>

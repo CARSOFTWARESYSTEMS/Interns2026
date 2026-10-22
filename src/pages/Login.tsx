@@ -6,22 +6,21 @@ import { useAuthContext } from '../contexts/AuthContext'
 import { isFirebaseConfigured } from '../firebase/config'
 
 export default function Login() {
-  const { isAuthenticated, isProfileComplete, loading } = useAuthContext()
+  const { isAuthenticated, loading } = useAuthContext()
   const navigate = useNavigate()
   const location = useLocation()
   const [error, setError] = useState('')
 
-  const from = (location.state as { from?: Location })?.from?.pathname ?? '/'
+  // Keep the query string so /join?token=… survives the sign-in round trip.
+  const fromLoc = (location.state as { from?: { pathname: string; search?: string } })?.from
+  const from = fromLoc ? `${fromLoc.pathname}${fromLoc.search ?? ''}` : '/'
 
+  // After sign-in, RequireAuth decides: access gate → profile wizard → app.
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      if (!isProfileComplete) {
-        navigate('/complete-profile', { replace: true })
-      } else {
-        navigate(from, { replace: true })
-      }
+      navigate(from, { replace: true })
     }
-  }, [isAuthenticated, isProfileComplete, loading, navigate, from])
+  }, [isAuthenticated, loading, navigate, from])
 
   if (loading) {
     return (

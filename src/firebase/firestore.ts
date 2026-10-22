@@ -8,7 +8,7 @@ import { db } from './config'
 import type {
   UserProfile, UserSkills, UserResume, Organization,
   OrganizationMember, AuditLog, AuditAction,
-  LoginHistory, Invitation, UserRole,
+  LoginHistory,
 } from '../types/auth'
 
 // ── Users ──────────────────────────────────────────────────────────────────
@@ -29,6 +29,7 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
   })
 }
 
+/** Platform Admin only (rules). Partner Admins list partnerMemberships instead. */
 export async function getAllUsers(): Promise<UserProfile[]> {
   const snap = await getDocs(collection(db, 'users'))
   return snap.docs.map(d => d.data() as UserProfile)
@@ -114,25 +115,10 @@ export async function getLoginHistory(uid: string, maxResults = 10): Promise<Log
 }
 
 // ── Invitations ────────────────────────────────────────────────────────────
-
-export async function createInvitation(inv: Omit<Invitation, 'id'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'invitations'), inv)
-  return ref.id
-}
-
-export async function getInvitations(orgId: string): Promise<Invitation[]> {
-  const q = query(collection(db, 'invitations'), where('orgId', '==', orgId), orderBy('createdAt', 'desc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Invitation)
-}
-
-export async function updateInvitationStatus(id: string, status: Invitation['status']): Promise<void> {
-  await updateDoc(doc(db, 'invitations', id), { status })
-}
+// Partner-scoped invitations live in src/firebase/partners.ts
+// (createPartnerInvitation / listPartnerInvitations / redeemInvitation).
 
 // ── Role Management ────────────────────────────────────────────────────────
-
-export async function setUserRole(uid: string, role: UserRole, orgId: string): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), { role, updatedAt: new Date().toISOString() })
-  await setOrgMember({ uid, orgId, role, joinedAt: new Date().toISOString(), invitedBy: 'admin' })
-}
+// Roles are Partner-scoped and live on partnerMemberships — see
+// src/firebase/partners.ts (updateMembership / createMembership).
+// users/{uid}.role is legacy, locked by firestore.rules, and no longer written.
