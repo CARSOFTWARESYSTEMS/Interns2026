@@ -7,7 +7,6 @@ import SectionCard from '../../components/ui/SectionCard'
 import UserAvatar from '../../components/ui/UserAvatar'
 import PermissionBadge from '../../components/ui/PermissionBadge'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { usePartner } from '../../contexts/PartnerContext'
 import {
   listPartnerMemberships, listAllMemberships, listAllUsers, listPartners,
   updateMembership, createMembership, writeTenantAudit,
@@ -28,8 +27,7 @@ const STATUS_COLORS: Record<MembershipStatus, string> = {
 const ALL = '__all__'
 
 export default function AdminUsers() {
-  const { principal, isPlatformAdmin, userProfile } = useAuthContext()
-  const { partner: activePartner } = usePartner()
+  const { principal, isPlatformAdmin, userProfile, activePartner } = useAuthContext()
 
   const [memberships, setMemberships] = useState<PartnerMembership[]>([])
   const [allUsers, setAllUsers]       = useState<UserProfile[]>([])     // Platform Admin only

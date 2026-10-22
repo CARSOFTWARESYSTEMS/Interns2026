@@ -6,7 +6,7 @@
 // caller's membership in that Partner.
 
 import {
-  doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where,
   writeBatch, addDoc, orderBy,
 } from 'firebase/firestore'
 import { db } from './config'
@@ -38,6 +38,56 @@ export async function listPartners(): Promise<Partner[]> {
 export async function getPartnerSettings(partnerId: string): Promise<PartnerSettings | null> {
   const snap = await getDoc(doc(db, 'partnerSettings', partnerId))
   return snap.exists() ? (snap.data() as PartnerSettings) : null
+}
+
+// ── Partner registry administration (Platform Admin only — enforced by rules) ─
+
+export type PartnerDraft = Omit<Partner, 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>
+
+/** Create a Partner + default settings atomically. Fails if the id is taken. */
+export async function createPartner(draft: PartnerDraft, settings: Omit<PartnerSettings, 'updatedAt' | 'updatedBy'>, actorUid: string): Promise<Partner> {
+  const existing = await getDoc(doc(db, 'partners', draft.id))
+  if (existing.exists()) throw new Error('A Partner with this id already exists')
+  const now = new Date().toISOString()
+  const partner: Partner = { ...draft, createdAt: now, updatedAt: now, createdBy: actorUid, updatedBy: actorUid }
+  const batch = writeBatch(db)
+  batch.set(doc(db, 'partners', draft.id), partner)
+  batch.set(doc(db, 'partnerSettings', draft.id), { ...settings, partnerId: draft.id, updatedAt: now, updatedBy: actorUid })
+  await batch.commit()
+  return partner
+}
+
+export async function updatePartner(id: string, patch: Partial<PartnerDraft>, actorUid: string): Promise<void> {
+  const { id: _id, createdAt: _c, createdBy: _cb, ...rest } = patch as Partial<Partner>
+  await updateDoc(doc(db, 'partners', id), { ...rest, id, updatedAt: new Date().toISOString(), updatedBy: actorUid })
+}
+
+export async function updatePartnerSettings(id: string, patch: Partial<Omit<PartnerSettings, 'partnerId'>>, actorUid: string): Promise<void> {
+  await setDoc(doc(db, 'partnerSettings', id),
+    { ...patch, partnerId: id, updatedAt: new Date().toISOString(), updatedBy: actorUid }, { merge: true })
+}
+
+export async function listPartnerDomains(partnerId: string): Promise<PartnerDomain[]> {
+  const snap = await getDocs(query(collection(db, 'partnerDomains'), where('partnerId', '==', partnerId)))
+  return snap.docs.map(d => d.data() as PartnerDomain)
+}
+
+/** Adds a hostname. Refuses if the (normalised) hostname is mapped already — never silently re-points a domain. */
+export async function addPartnerDomain(partnerId: string, hostname: string, isPrimary: boolean): Promise<PartnerDomain> {
+  const existing = await getDoc(doc(db, 'partnerDomains', hostname))
+  if (existing.exists()) throw new Error('This hostname is already mapped to a Partner')
+  const now = new Date().toISOString()
+  const d: PartnerDomain = { hostname, partnerId, isPrimary, status: 'Active', createdAt: now, updatedAt: now }
+  await setDoc(doc(db, 'partnerDomains', hostname), d)
+  return d
+}
+
+export async function updatePartnerDomain(hostname: string, patch: Partial<Pick<PartnerDomain, 'isPrimary' | 'status'>>): Promise<void> {
+  await updateDoc(doc(db, 'partnerDomains', hostname), { ...patch, updatedAt: new Date().toISOString() })
+}
+
+export async function removePartnerDomain(hostname: string): Promise<void> {
+  await deleteDoc(doc(db, 'partnerDomains', hostname))
 }
 
 // ── Platform Admin ──────────────────────────────────────────────────────────

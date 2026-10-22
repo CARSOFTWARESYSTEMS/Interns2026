@@ -5,12 +5,12 @@ import {
   getUserProfile, createUserProfile, updateUserProfile,
   writeAuditLog, writeLoginHistory,
 } from '../firebase/firestore'
-import { getMembership, hasPlatformAdminGrant } from '../firebase/partners'
+import { getMembership, hasPlatformAdminGrant, getPartner } from '../firebase/partners'
 import {
   buildEmptyProfile, SUPER_ADMIN_EMAILS,
   type UserProfile, type UserRole,
 } from '../types/auth'
-import type { PartnerMembership } from '../types/partner'
+import type { Partner, PartnerMembership } from '../types/partner'
 import { accessStateFor, effectiveRole, type AccessState, type Principal } from '../tenant/authorize'
 import { usePartner } from './PartnerContext'
 import { setActivePartnerId } from '../tenant/session'
@@ -25,6 +25,14 @@ interface AuthContextType {
   /** Membership in the Partner resolved from the hostname (any status), or null. */
   membership: PartnerMembership | null
   isPlatformAdmin: boolean
+  /**
+   * The Partner whose DATA is in view: the hostname's Partner, or — for a
+   * Platform Admin only — the Partner chosen in the switcher.
+   */
+  activePartner: Partner | null
+  activePartnerId: string | null
+  /** True when a Platform Admin is viewing a Partner other than the hostname's. */
+  isViewingOtherPartner: boolean
   loading: boolean
   /** Non-null if loading the profile/membership failed — UI must fail closed. */
   authError: string | null
@@ -50,16 +58,23 @@ interface AuthContextType {
   updateProfile: (data: Partial<UserProfile>) => Promise<void>
   setProfileAfterComplete: (p: UserProfile) => void
   setMembership: (m: PartnerMembership | null) => void
+  /** Platform Admin only; null returns to the hostname's Partner. Ignored for everyone else. */
+  setViewingPartner: (p: Partner | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+
+// Per-tab (sessionStorage): a Platform Admin's switcher choice. Only ever read
+// for a verified Platform Admin; for anyone else it is ignored, and rules
+// would deny the data regardless.
+const VIEWING_KEY = 'pa_viewing_partner'
 
 function isSuperAdminEmail(email: string): boolean {
   return SUPER_ADMIN_EMAILS.has(email.trim().toLowerCase())
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { partnerId, status: partnerStatus } = usePartner()
+  const { partnerId, partner: hostPartner, status: partnerStatus } = usePartner()
 
   const [firebaseUser, setFirebaseUser]   = useState<User | null>(null)
   const [authResolved, setAuthResolved]   = useState(false)
@@ -68,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
   const [sessionLoading, setSessionLoading]   = useState(false)
   const [authError, setAuthError]         = useState<string | null>(null)
+  const [viewingPartner, setViewingPartnerState] = useState<Partner | null>(null)
 
   // ── Firebase auth state ──────────────────────────────────────────────────
   useEffect(() => {
@@ -86,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMembership(null)
     setIsPlatformAdmin(false)
     setAuthError(null)
+    setViewingPartnerState(null)
 
     if (!firebaseUser) { setUserProfile(null); setSessionLoading(false); return }
     if (partnerStatus === 'loading') { setSessionLoading(true); return }
@@ -123,9 +140,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile = { ...profile, ...completed }
       }
 
+      // Restore a Platform Admin's switcher choice for this tab.
+      let viewing: Partner | null = null
+      if (platformAdmin) {
+        let stored: string | null = null
+        try { stored = sessionStorage.getItem(VIEWING_KEY) } catch { /* ignore */ }
+        if (stored && stored !== partnerId) viewing = await getPartner(stored).catch(() => null)
+      } else {
+        try { sessionStorage.removeItem(VIEWING_KEY) } catch { /* ignore */ }
+      }
+      if (cancelled) return
+
       setUserProfile(profile)
       setIsPlatformAdmin(platformAdmin)
       setMembership(m)
+      setViewingPartnerState(viewing)
 
       // 4. Audit + login history. partnerId is attached only where the rules
       //    accept it (caller has a membership doc there, or is Platform Admin).
@@ -199,6 +228,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {})
   }, [userProfile, partnerId, membership, isPlatformAdmin])
 
+  const setViewingPartner = useCallback((p: Partner | null) => {
+    if (!isPlatformAdmin) return
+    const next = p && p.id !== partnerId ? p : null
+    try {
+      if (next) sessionStorage.setItem(VIEWING_KEY, next.id)
+      else sessionStorage.removeItem(VIEWING_KEY)
+    } catch { /* ignore */ }
+    setViewingPartnerState(next)
+  }, [isPlatformAdmin, partnerId])
+
   const setProfileAfterComplete = useCallback((p: UserProfile) => {
     setUserProfile(p)
   }, [])
@@ -220,8 +259,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Publish the tenant session for data services. Done during render (not in
   // an effect) because child effects run BEFORE parent effects: a page's first
   // data load must already see the active Partner. Idempotent assignment.
+  const activePartner = isPlatformAdmin && viewingPartner ? viewingPartner : hostPartner
+  const activePartnerId = activePartner?.id ?? null
   setActivePartnerId(
-    !sessionLoading && (accessState === 'active' || accessState === 'platform-admin') ? partnerId : null,
+    !sessionLoading && (accessState === 'active' || accessState === 'platform-admin') ? activePartnerId : null,
   )
 
   const isProfileComplete =
@@ -240,6 +281,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userProfile,
       membership,
       isPlatformAdmin,
+      activePartner,
+      activePartnerId,
+      isViewingOtherPartner: Boolean(isPlatformAdmin && viewingPartner),
       loading,
       authError,
       isAuthenticated: Boolean(firebaseUser),
@@ -254,6 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       setProfileAfterComplete,
       setMembership,
+      setViewingPartner,
     }}>
       {children}
     </AuthContext.Provider>

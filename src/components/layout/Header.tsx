@@ -4,6 +4,7 @@ import { Menu, User, LogOut, Settings, ChevronDown, LayoutDashboard } from 'luci
 import { useAuthContext } from '../../contexts/AuthContext'
 import { usePartner, useBranding } from '../../contexts/PartnerContext'
 import PartnerBrandMark from '../ui/PartnerBrandMark'
+import PartnerSwitcher from './PartnerSwitcher'
 import UserAvatar from '../ui/UserAvatar'
 import PermissionBadge from '../ui/PermissionBadge'
 import ProfileCompletion from '../ui/ProfileCompletion'
@@ -14,7 +15,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle }: HeaderProps) {
-  const { userProfile, signOut, isAuthenticated, role } = useAuthContext()
+  const { userProfile, signOut, isAuthenticated, role, activePartner } = useAuthContext()
   const { partner } = usePartner()
   const b = useBranding()
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-900 border-b border-slate-700 flex items-center px-4 gap-3">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-slate-900 border-b border-slate-700 flex items-center px-3 sm:px-4 gap-2 sm:gap-3">
       {/* Mobile menu toggle */}
       <button
         onClick={onMenuToggle}
@@ -60,15 +61,16 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="h-6 w-px bg-slate-700 mx-1" />
+      <div className="h-6 w-px bg-slate-700 mx-1 hidden lg:block" />
 
-      <div className="flex flex-col gap-0.5">
-        <span className="text-slate-200 font-semibold text-xs">Aerospace Intelligence &amp; Cybersecurity Platform</span>
-        <span className="text-slate-500 text-[10px]">Engineering Command Center</span>
+      <div className="flex-col gap-0.5 min-w-0 hidden lg:flex">
+        <span className="text-slate-200 font-semibold text-xs truncate">{b.login.subtitle || b.title}</span>
+        <span className="text-slate-500 text-[10px] truncate">{b.tagline}</span>
       </div>
 
       {/* Right side */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+        <PartnerSwitcher />
         <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase hidden sm:inline">
           AS 9102 BETA
         </span>
@@ -78,10 +80,10 @@ export default function Header({ onMenuToggle }: HeaderProps) {
 
         {/* User menu */}
         {isAuthenticated && userProfile && (
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative flex-shrink-0" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(o => !o)}
-              className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 pl-1 sm:pl-2 pr-1.5 sm:pr-2.5 py-1 rounded-lg hover:bg-slate-800 transition-colors"
             >
               <UserAvatar
                 photoURL={userProfile.photoURL}
@@ -94,7 +96,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                   {userProfile.displayName}
                 </span>
                 <span className="text-[9px] text-slate-500 max-w-[120px] truncate">
-                  {userProfile.role}
+                  {role}
                 </span>
               </div>
               <ChevronDown
@@ -163,7 +165,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
                 <div className="border-t border-slate-100 py-1.5">
                   <div className="px-4 py-1.5">
                     <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">Organization</p>
-                    <p className="text-xs text-slate-600 font-semibold truncate">{partner?.displayName}</p>
+                    <p className="text-xs text-slate-600 font-semibold truncate">{activePartner?.displayName ?? partner?.displayName}</p>
                   </div>
                   <button
                     onClick={handleSignOut}

@@ -7,7 +7,6 @@ import {
   listPartnerInvitations, createPartnerInvitation, cancelInvitation, writeTenantAudit, INVITATION_TTL_DAYS,
 } from '../../firebase/partners'
 import { useAuthContext } from '../../contexts/AuthContext'
-import { usePartner } from '../../contexts/PartnerContext'
 import { canInviteWithRole } from '../../tenant/authorize'
 import { isLocalDevHost } from '../../tenant/hostname'
 import { PARTNER_ROLES, type PartnerRole } from '../../types/partner'
@@ -37,8 +36,8 @@ function effectiveStatus(inv: Invitation): InvitationStatus {
 }
 
 export default function AdminInvitations() {
-  const { userProfile, principal } = useAuthContext()
-  const { partner } = usePartner()
+  // The Partner in view (hostname's, or a Platform Admin's switcher choice).
+  const { userProfile, principal, activePartner: partner } = useAuthContext()
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading]         = useState(true)
   const [showForm, setShowForm]       = useState(false)

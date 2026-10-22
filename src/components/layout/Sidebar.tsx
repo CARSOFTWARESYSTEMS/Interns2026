@@ -6,7 +6,7 @@ import {
   ClipboardList, BarChart2, Mail, Settings, UserCog,
   User, LogOut, Shield, SlidersHorizontal, Bell, CheckSquare,
   PlusSquare, UserPlus, Contact, MessagesSquare, Handshake,
-  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature,
+  UserCheck, MessageCircle, Plane, BookOpen, Sparkles, FileSignature, Building2,
 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useBranding } from '../../contexts/PartnerContext'
@@ -56,6 +56,7 @@ const DOCUMENTS_ROUTE = '/people/documents'
 const adminItems = [
   { to: '/admin/users',               label: 'Users',               icon: UserCog },
   { to: '/admin/invitations',         label: 'Invitations',         icon: Mail },
+  { to: '/admin/partners',            label: 'Partners',            icon: Building2, platformOnly: true },
   { to: '/admin/developer-settings',  label: 'Developer Settings',  icon: SlidersHorizontal },
   { to: '/admin/assignments/new',     label: 'New Assignment',      icon: PlusSquare },
   { to: '/admin/capacity',            label: 'Capacity',            icon: Users },
@@ -223,7 +224,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   <Shield size={9} className="text-red-500" /> Admin
                 </p>
                 <nav className="space-y-0.5">
-                  {adminItems.map(({ to, label, icon: Icon }) => (
+                  {adminItems.filter(i => !('platformOnly' in i && i.platformOnly) || isPlatformAdmin).map(({ to, label, icon: Icon }) => (
                     <NavLink
                       key={to}
                       to={to}

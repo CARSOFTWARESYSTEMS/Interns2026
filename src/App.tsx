@@ -70,6 +70,7 @@ import AdminInvitations from './pages/admin/Invitations'
 import DeveloperSettings from './pages/admin/DeveloperSettings'
 import AssignmentCreate from './pages/admin/AssignmentCreate'
 import Capacity from './pages/admin/Capacity'
+import Partners from './pages/admin/Partners'
 import DailyCheckin from './pages/DailyCheckin'
 import Notifications from './pages/Notifications'
 
@@ -313,6 +314,16 @@ export default function App() {
               element={
                 <RoleGuard allow={['Platform Admin', 'Admin', 'Engineering Manager']}>
                   <Capacity />
+                </RoleGuard>
+              }
+            />
+
+            {/* Partner registry — Platform Admin only (rules enforce the same) */}
+            <Route
+              path="admin/partners"
+              element={
+                <RoleGuard allow={['Platform Admin']}>
+                  <Partners />
                 </RoleGuard>
               }
             />
