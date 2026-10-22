@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import SectionCard from '../components/ui/SectionCard'
+import PartnerLogoUploader from '../components/ui/PartnerLogoUploader'
+import { useAuthContext } from '../contexts/AuthContext'
 import { useData } from '../data/DataProvider'
 import { DATA_MODE } from '../data/types'
 import type { CollectionName } from '../data/types'
@@ -226,6 +228,7 @@ function DataModePanel() {
 
 export default function Settings() {
   const b = useBranding()
+  const { userProfile, activePartner, role } = useAuthContext()
   return (
     <div className="space-y-6">
       <PageHeader
@@ -236,6 +239,13 @@ export default function Settings() {
 
       {/* Data Mode Panel (M04) */}
       <DataModePanel />
+
+      {/* Partner logo — the Partner's Admin (own Partner) or a Platform Admin */}
+      {userProfile && activePartner && (role === 'Admin' || role === 'Platform Admin') && (
+        <SectionCard title="Partner logo">
+          <PartnerLogoUploader key={activePartner.id} partner={activePartner} actor={{ uid: userProfile.uid, email: userProfile.email }} />
+        </SectionCard>
+      )}
 
       {/* Company Info */}
       <SectionCard title="Company Information">

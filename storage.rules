@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════════════
+//  Firebase Storage rules — Partner-scoped files
+//
+//  Cross-service rules: authorisation reads the same Firestore records the
+//  database rules use (partnerMemberships, platformAdmins, offerDrafts), so
+//  the file store and the database enforce one tenant boundary.
+//
+//  Layout:
+//    partners/{pid}/offerDrafts/{offerId}/{file}   offer letter PDFs (private)
+//    partners/{pid}/branding/{file}                Partner logos (public)
+//  Everything else is denied.
+// ════════════════════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return request.auth.token.get('email', '').lower();
+    }
+
+    function isSuperAdminEmail() {
+      return isSignedIn()
+        && request.auth.token.get('email_verified', false) == true
+        && myEmail() in ['carsoftwaresystems@gmail.com', 'sudarshana.karkala@gmail.com'];
+    }
+
+    function isPlatformAdmin() {
+      return isSuperAdminEmail()
+        || (isSignedIn() && firestore.exists(/databases/(default)/documents/platformAdmins/$(request.auth.uid)));
+    }
+
+    function membership(pid) {
+      return /databases/(default)/documents/partnerMemberships/$(pid + '_' + request.auth.uid);
+    }
+
+    function roleIn(pid) {
+      return isSignedIn()
+        && firestore.exists(membership(pid))
+        && firestore.get(membership(pid)).data.status == 'Active'
+          ? firestore.get(membership(pid)).data.role : '';
+    }
+
+    function canManageOffersIn(pid) {
+      return isPlatformAdmin() || roleIn(pid) in ['Admin', 'HR Manager'];
+    }
+
+    function isAdminOf(pid) {
+      return isPlatformAdmin() || roleIn(pid) == 'Admin';
+    }
+
+    function offerPath(offerId) {
+      return /databases/(default)/documents/offerDrafts/$(offerId);
+    }
+
+    // The addressed candidate, once the offer has been sent for review, and
+    // only if the offer record really belongs to this Partner folder.
+    function isOfferRecipient(pid, offerId) {
+      return isSignedIn()
+        && request.auth.token.get('email_verified', false) == true
+        && firestore.exists(offerPath(offerId))
+        && firestore.get(offerPath(offerId)).data.partnerId == pid
+        && firestore.get(offerPath(offerId)).data.viewerEmail == myEmail()
+        && firestore.get(offerPath(offerId)).data.status in ['In Review', 'Confirmed'];
+    }
+
+    // ── Offer letter drafts (private PDFs) ────────────────────────────────
+    match /partners/{pid}/offerDrafts/{offerId}/{fileName} {
+      allow read: if canManageOffersIn(pid) || isOfferRecipient(pid, offerId);
+
+      allow create: if canManageOffersIn(pid)
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf'
+        && fileName.matches('^[0-9]+-[^/]+[.]pdf$');
+
+      // Files are immutable once written; a replacement is a new versioned file.
+      allow update: if false;
+
+      // Managers may delete — but never the file of a confirmed offer.
+      allow delete: if canManageOffersIn(pid)
+        && (!firestore.exists(offerPath(offerId))
+            || firestore.get(offerPath(offerId)).data.status != 'Confirmed');
+    }
+
+    // ── Partner logos (public: shown on the login page before sign-in) ────
+    match /partners/{pid}/branding/{fileName} {
+      allow read: if true;
+      allow create: if isAdminOf(pid)
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|svg[+]xml|webp|jpeg)');
+      allow update: if false;
+      allow delete: if isAdminOf(pid);
+    }
+
+    // ── Everything else ───────────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

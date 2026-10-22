@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "https://login.gamyaa.in",
+      "https://login.uflight.in",
+      "https://login.itelematics.com",
+      "https://login.autonomous.ev.engineer",
+      "http://localhost:5173"
+    ],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

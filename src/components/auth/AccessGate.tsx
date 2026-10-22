@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Lock, Clock, Ban, AlertCircle, LogOut } from 'lucide-react'
+import { Lock, Clock, Ban, AlertCircle, LogOut, FileCheck2 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { usePartner } from '../../contexts/PartnerContext'
 import { requestAccess, writeTenantAudit } from '../../firebase/partners'
+import { listMyOffers } from '../../firebase/offers'
 import GateScreen from './GateScreen'
 
 /**
@@ -20,6 +21,18 @@ export default function AccessGate() {
   const [error, setError] = useState('')
 
   const partnerName = partner?.displayName ?? null
+
+  // A candidate with an offer to review doesn't need Partner access for it.
+  const [hasOffer, setHasOffer] = useState(false)
+  useEffect(() => {
+    if (!partner || !userProfile?.email) return
+    listMyOffers(partner.id, userProfile.email).then(o => setHasOffer(o.length > 0)).catch(() => {})
+  }, [partner, userProfile?.email])
+  const offerButton = hasOffer ? (
+    <button onClick={() => navigate('/offer')} className="btn-primary w-full justify-center flex items-center gap-1.5">
+      <FileCheck2 size={14} /> Review your offer letter
+    </button>
+  ) : null
   const contact = partner?.contact
 
   async function handleSignOut() {
@@ -64,7 +77,7 @@ export default function AccessGate() {
   if (accessState === 'pending') {
     return (
       <GateScreen partnerName={partnerName} icon={<Clock size={18} className="text-amber-400" />}
-        title="Access request pending" actions={signOutButton}>
+        title="Access request pending" actions={<>{offerButton}{signOutButton}</>}>
         <p>Your {partnerName} access request is pending approval.</p>
         <p className="text-xs text-slate-500">Signed in as {userProfile?.email}</p>
         {contactLine}
@@ -91,6 +104,7 @@ export default function AccessGate() {
       title={`Access not configured for ${partnerName ?? 'this workspace'}`}
       actions={
         <>
+          {offerButton}
           <button onClick={handleRequestAccess} disabled={busy} className="btn-primary w-full justify-center">
             {busy ? 'Sending request…' : 'Request access'}
           </button>

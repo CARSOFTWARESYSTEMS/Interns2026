@@ -320,6 +320,11 @@ export type AuditAction =
   | 'invitation_cancelled'
   | 'project_created'      // PROJECT_CREATED (Phase C)
   | 'project_archived'     // PROJECT_ARCHIVED (Phase C)
+  | 'offer_uploaded'
+  | 'offer_replaced'
+  | 'offer_sent_for_review'
+  | 'offer_confirmed'
+  | 'logo_updated'
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   login:             'Signed In',
@@ -349,6 +354,11 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   invitation_cancelled: 'Invitation Cancelled',
   project_created:      'Project Created',
   project_archived:     'Project Archived',
+  offer_uploaded:        'Offer Draft Uploaded',
+  offer_replaced:        'Offer Draft Replaced',
+  offer_sent_for_review: 'Offer Sent for Review',
+  offer_confirmed:       'Offer Confirmed',
+  logo_updated:          'Partner Logo Updated',
 }
 
 export interface AuditLog {
