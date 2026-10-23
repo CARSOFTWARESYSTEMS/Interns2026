@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Eye, Download, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Download, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { usePartner, useBranding } from '../../contexts/PartnerContext'
 import OfferDocumentCard from './OfferDocumentCard'
+import OfferPdfViewer from './OfferPdfViewer'
 import OfferStatusBadge from './OfferStatusBadge'
-import { listMyOffers, confirmOffer, openOfferPdf, downloadOfferPdf, offerFileErrorMessage } from '../../firebase/offers'
+import {
+  listMyOffers, confirmOffer, fetchOfferPdf, openOfferPdf, downloadOfferPdf, offerFileErrorMessage,
+} from '../../firebase/offers'
 import { writeTenantAudit } from '../../firebase/partners'
 import { OFFER_CONFIRMATION_TEXT, type OfferDraft } from '../../types/offers'
 
@@ -14,8 +17,9 @@ import { OFFER_CONFIRMATION_TEXT, type OfferDraft } from '../../types/offers'
  * the standalone candidate page (/offer) and, for members, inside the
  * dashboard. firestore.rules + storage.rules enforce the same scope.
  *
- * `embedded`: inside the dashboard. The page around it has the <h1>, and on
- * wide screens the document and its status sit side by side.
+ * `embedded`: inside the dashboard. The page around it has the <h1>, on
+ * wide screens the document and its status sit side by side, and View shows
+ * the PDF in the page.
  */
 export default function MyOffers({ embedded = false }: { embedded?: boolean }) {
   const { firebaseUser, userProfile } = useAuthContext()
@@ -87,10 +91,25 @@ function OfferPanel({ offer, name, email, partnerName, embedded, onConfirmed }: 
   const [busy, setBusy] = useState<'' | 'view' | 'download' | 'confirm'>('')
   const [error, setError] = useState('')
 
+  // In the dashboard the PDF opens in the page when the browser has a built-in
+  // viewer; otherwise (e.g. Android Chrome) it opens in a new tab as before.
+  const inline = embedded && navigator.pdfViewerEnabled === true
+  const [previewUrl, setPreviewUrl] = useState('')
+  useEffect(() => { setPreviewUrl('') }, [offer.file.path])   // a new revision needs a fresh download
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
+  // Wide screens: keep the status / confirm card in view beside the open PDF.
+  const side = embedded ? 'lg:col-span-2 lg:sticky lg:top-20' : ''
+
   async function run(kind: 'view' | 'download', fn: () => Promise<void>) {
     setBusy(kind); setError('')
     try { await fn() } catch (e) { setError(offerFileErrorMessage(e)) }
     finally { setBusy('') }
+  }
+
+  function view() {
+    if (!inline) return run('view', () => openOfferPdf(offer))
+    if (previewUrl) return setPreviewUrl('')
+    return run('view', async () => setPreviewUrl(URL.createObjectURL(await fetchOfferPdf(offer))))
   }
 
   async function confirm() {
@@ -115,7 +134,7 @@ function OfferPanel({ offer, name, email, partnerName, embedded, onConfirmed }: 
   return (
     // The lg:col-span-* classes only take effect in the embedded grid.
     <section aria-labelledby={`offer-${offer.id}`}
-      className={embedded ? 'grid gap-5 lg:grid-cols-5 lg:items-start' : 'space-y-5'}>
+      className={embedded ? 'grid grid-cols-1 gap-5 lg:grid-cols-5 lg:items-start' : 'space-y-5'}>
       <div className="lg:col-span-5 rounded-2xl bg-white ring-1 ring-slate-200 px-5 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
         <div className="min-w-0 flex-1">
           <Heading id={`offer-${offer.id}`} className="text-2xl font-bold tracking-tight text-slate-900">Draft offer letter</Heading>
@@ -128,12 +147,13 @@ function OfferPanel({ offer, name, email, partnerName, embedded, onConfirmed }: 
         <div className="self-start sm:self-center"><OfferStatusBadge status={offer.status} /></div>
       </div>
 
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-3 space-y-5">
         <OfferDocumentCard offer={offer}>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={() => run('view', () => openOfferPdf(offer))} disabled={busy !== ''}
+            <button onClick={view} disabled={busy !== ''} aria-expanded={inline ? !!previewUrl : undefined}
               className="btn-primary justify-center inline-flex items-center gap-2 px-5 py-2.5 disabled:opacity-60">
-              {busy === 'view' ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />} View document
+              {busy === 'view' ? <Loader2 size={16} className="animate-spin" /> : previewUrl ? <EyeOff size={16} /> : <Eye size={16} />}
+              {previewUrl ? 'Hide document' : 'View document'}
             </button>
             <button onClick={() => run('download', () => downloadOfferPdf(offer))} disabled={busy !== ''}
               className="btn-secondary justify-center inline-flex items-center gap-2 px-5 py-2.5 disabled:opacity-60">
@@ -141,10 +161,11 @@ function OfferPanel({ offer, name, email, partnerName, embedded, onConfirmed }: 
             </button>
           </div>
         </OfferDocumentCard>
+        {previewUrl && <OfferPdfViewer offer={offer} url={previewUrl} onClose={() => setPreviewUrl('')} />}
       </div>
 
       {offer.status === 'In Review' ? (
-        <div className="lg:col-span-2 rounded-2xl bg-white ring-1 ring-slate-200 p-5 sm:p-6 space-y-5">
+        <div className={`${side} rounded-2xl bg-white ring-1 ring-slate-200 p-5 sm:p-6 space-y-5`}>
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" checked={reviewed} onChange={e => setReviewed(e.target.checked)}
               className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-slate-300 accent-brand-600" />
@@ -162,7 +183,7 @@ function OfferPanel({ offer, name, email, partnerName, embedded, onConfirmed }: 
           </p>
         </div>
       ) : (
-        <div className="lg:col-span-2 rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 p-5 sm:p-6 flex items-start gap-3">
+        <div className={`${side} rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 p-5 sm:p-6 flex items-start gap-3`}>
           <CheckCircle2 size={22} className="text-emerald-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-emerald-900">Status: Confirmed</p>
