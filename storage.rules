@@ -7,6 +7,13 @@ rules_version = '2';
 //  database rules use (partnerMemberships, platformAdmins, offerDrafts), so
 //  the file store and the database enforce one tenant boundary.
 //
+//  LIMIT: one Storage request may read at most TWO Firestore documents
+//  (repeat reads of the same document count once). Past that the request is
+//  denied in production — the emulator does not enforce it, so rules tests
+//  pass either way. Checks are ordered so every allowed path stays within
+//  two: super-admin email (no read) → partnerMemberships → offerDrafts →
+//  platformAdmins last (grants there are rare; super admins match by email).
+//
 //  Layout:
 //    partners/{pid}/offerDrafts/{offerId}/{file}   offer letter PDFs (private)
 //    partners/{pid}/branding/{file}                Partner logos (public)
@@ -46,8 +53,13 @@ service firebase.storage {
           ? firestore.get(membership(pid)).data.role : '';
     }
 
+    function isOfferManagerMember(pid) {
+      return roleIn(pid) in ['Admin', 'HR Manager'];
+    }
+
+    // Membership before the platformAdmins lookup (see LIMIT above).
     function canManageOffersIn(pid) {
-      return isPlatformAdmin() || roleIn(pid) in ['Admin', 'HR Manager'];
+      return isSuperAdminEmail() || isOfferManagerMember(pid) || isPlatformAdmin();
     }
 
     function isAdminOf(pid) {
@@ -71,7 +83,11 @@ service firebase.storage {
 
     // ── Offer letter drafts (private PDFs) ────────────────────────────────
     match /partners/{pid}/offerDrafts/{offerId}/{fileName} {
-      allow read: if canManageOffersIn(pid) || isOfferRecipient(pid, offerId);
+      // Order matters (see LIMIT above): a candidate costs membership + offer.
+      allow read: if isSuperAdminEmail()
+        || isOfferManagerMember(pid)
+        || isOfferRecipient(pid, offerId)
+        || isPlatformAdmin();
 
       // `resource == null`: the object must not exist yet. An overwrite can be
       // evaluated as a create, so immutability is enforced here explicitly.
