@@ -203,7 +203,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               ))}
               {myOffers.length > 0 && (
                 <NavLink
-                  to="/offer"
+                  to="/people/my-offer"
                   className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                   onClick={onClose}
                 >

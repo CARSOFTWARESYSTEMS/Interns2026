@@ -65,6 +65,7 @@ import PeopleDocumentsOfferLetter from './pages/people/documents/OfferLetter'
 import PeopleDocumentsJoiningLetter from './pages/people/documents/JoiningLetter'
 import PeopleDocumentsGenerated from './pages/people/documents/GeneratedLetters'
 import PeopleOfferDrafts from './pages/people/OfferDrafts'
+import PeopleMyOfferLetter from './pages/people/MyOfferLetter'
 
 // Admin pages
 import AdminUsers from './pages/admin/Users'
@@ -192,6 +193,8 @@ export default function App() {
                 recruitment/candidates/interviews/offers/onboarding/policies are
                 restricted to org/team/people-ops-level roles. */}
             <Route path="people" element={<PeopleDashboard />} />
+            {/* A member's own offer letter (rules scope it to their email). */}
+            <Route path="people/my-offer" element={<PeopleMyOfferLetter />} />
             <Route
               path="people/recruitment"
               element={
