@@ -439,3 +439,73 @@ describe('Phase C — Partner-owned data', () => {
     await assertSucceeds(getDoc(doc(db('pa'), 'ev_data/stories/items/old')))
   })
 })
+
+describe('Removing members (User Management → Remove)', () => {
+  const GDEV_INVITE = 'D'.repeat(43)
+
+  // What removeMembership() sends: cancel the email's Pending invitations and
+  // delete the membership in ONE batch.
+  function removal(who: Who, membershipId: string, inviteTokens: string[] = []) {
+    const f = db(who)
+    const b = writeBatch(f)
+    for (const t of inviteTokens) b.update(doc(f, 'invitations', t), { status: 'Cancelled' })
+    b.delete(doc(f, 'partnerMemberships', membershipId))
+    return b.commit()
+  }
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const f = ctx.firestore() as unknown as Firestore
+      await setDoc(doc(f, 'invitations', GDEV_INVITE), {
+        id: GDEV_INVITE, email: USERS.gDev.email, name: 'gDev', role: 'Developer', partnerId: 'gamyaa',
+        invitedBy: USERS.gAdmin.uid, invitedByEmail: USERS.gAdmin.email, status: 'Pending',
+        createdAt: new Date().toISOString(), expiresAt: '', expiresAtMs: Date.now() + 7 * DAY,
+      })
+    })
+  })
+
+  it('Partner Admin finds the email’s pending invitations, then removes the member and cancels them together', async () => {
+    await assertSucceeds(getDocs(query(collection(db('gAdmin'), 'invitations'),
+      where('partnerId', '==', 'gamyaa'), where('email', '==', USERS.gDev.email), where('status', '==', 'Pending'))))
+    await assertSucceeds(removal('gAdmin', 'gamyaa_gDev', [GDEV_INVITE]))
+    await env.withSecurityRulesDisabled(async ctx => {
+      const f = ctx.firestore() as unknown as Firestore
+      if ((await getDoc(doc(f, 'partnerMemberships', 'gamyaa_gDev'))).exists()) throw new Error('membership still exists')
+      if ((await getDoc(doc(f, 'invitations', GDEV_INVITE))).data()?.status !== 'Cancelled') throw new Error('invitation not cancelled')
+    })
+  })
+
+  it('the removed person is back to a non-member: no Partner data, but may request access again', async () => {
+    await assertSucceeds(getDoc(doc(db('gDev'), 'assignments/a2')))
+    await assertSucceeds(removal('gAdmin', 'gamyaa_gDev', [GDEV_INVITE]))
+    await assertFails(getDoc(doc(db('gDev'), 'assignments/a2')))
+    await assertSucceeds(setDoc(doc(db('gDev'), 'partnerMemberships', 'gamyaa_gDev'), membership('gamyaa', 'gDev', 'Viewer', 'Pending')))
+  })
+
+  it('Partner Admin cannot remove themselves, another Admin, or another Partner’s member', async () => {
+    await assertFails(removal('gAdmin', 'gamyaa_gAdmin'))
+    await assertFails(removal('gAdmin', 'gamyaa_multi'))         // multi is an Admin of GAMYAA
+    await assertFails(removal('gAdmin', 'uflight_multi'))
+  })
+
+  it('Engineering Managers and Developers cannot remove anyone', async () => {
+    await assertFails(removal('gMgr', 'gamyaa_gDev'))
+    await assertFails(removal('gDev', 'gamyaa_gBlock'))
+    await assertFails(removal('gDev', 'gamyaa_gDev'))            // not even themselves
+  })
+
+  it('Platform Admin (by record or super-admin email) can remove any member, Admins included', async () => {
+    await assertSucceeds(removal('pa', 'gamyaa_gAdmin'))
+    await assertSucceeds(removal('superAdmin', 'uflight_uAdmin'))
+  })
+
+  it('all-or-nothing: if an invitation can’t be cancelled, the member is not removed', async () => {
+    // TOKEN_ADMIN is a Pending *Admin* invitation for newbie, which only a Platform Admin may cancel.
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore() as unknown as Firestore, 'partnerMemberships', 'gamyaa_newbie'), membership('gamyaa', 'newbie', 'Developer'))
+    })
+    await assertFails(removal('gAdmin', 'gamyaa_newbie', [TOKEN_ADMIN]))
+    await assertSucceeds(getDoc(doc(db('newbie'), 'partnerMemberships', 'gamyaa_newbie')))   // still a member
+    await assertSucceeds(removal('pa', 'gamyaa_newbie', [TOKEN_ADMIN]))
+  })
+})

@@ -315,6 +315,7 @@ export type AuditAction =
   | 'membership_created'   // MEMBERSHIP_CREATED
   | 'membership_updated'   // MEMBERSHIP_UPDATED
   | 'membership_blocked'   // MEMBERSHIP_BLOCKED
+  | 'membership_removed'   // MEMBERSHIP_REMOVED
   | 'access_requested'
   | 'invitation_accepted'
   | 'invitation_cancelled'
@@ -349,6 +350,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   membership_created:   'Membership Created',
   membership_updated:   'Membership Updated',
   membership_blocked:   'Membership Blocked',
+  membership_removed:   'Membership Removed',
   access_requested:     'Access Requested',
   invitation_accepted:  'Invitation Accepted',
   invitation_cancelled: 'Invitation Cancelled',

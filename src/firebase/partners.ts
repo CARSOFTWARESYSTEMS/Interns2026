@@ -170,6 +170,30 @@ export async function createMembership(
   return m
 }
 
+/**
+ * Removes a member from one Partner: deletes their membership and, in the
+ * same batch, cancels any Pending invitations to their email for that
+ * Partner, so an old invite link can't bring them back. Their global account
+ * (users/{uid}) and their records in the Partner are kept; they can be added
+ * or invited again. Rules: Platform Admin, or an Admin of that Partner for a
+ * non-Admin member other than themselves.
+ */
+export async function removeMembership(
+  m: Pick<PartnerMembership, 'partnerId' | 'uid' | 'email'>,
+): Promise<{ cancelledInvites: number }> {
+  const pending = await getDocs(query(
+    collection(db, 'invitations'),
+    where('partnerId', '==', m.partnerId),
+    where('email', '==', m.email.toLowerCase()),
+    where('status', '==', 'Pending'),
+  ))
+  const batch = writeBatch(db)
+  pending.docs.forEach(d => batch.update(d.ref, { status: 'Cancelled' }))
+  batch.delete(doc(db, 'partnerMemberships', membershipId(m.partnerId, m.uid)))
+  await batch.commit()
+  return { cancelledInvites: pending.size }
+}
+
 export type MembershipPatch = Partial<Pick<PartnerMembership,
   'role' | 'status' | 'employeeId' | 'designation' | 'team' | 'managerId' | 'architectId' | 'approvedBy'>>
 

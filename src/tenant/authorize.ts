@@ -125,6 +125,17 @@ export function canChangeMembership(p: Principal, c: MembershipChange): boolean 
   return true
 }
 
+/**
+ * Removing a member from a Partner (mirrors the partnerMemberships delete rule).
+ *   • Platform Admin: anyone.
+ *   • Partner Admin: members of their own Partner, but never themselves and
+ *     never another Admin.
+ */
+export function canRemoveMembership(p: Principal, m: { targetUid: string; partnerId: string; role: PartnerRole }): boolean {
+  if (p.isPlatformAdmin) return true
+  return isPartnerAdmin(p, m.partnerId) && m.targetUid !== p.uid && m.role !== 'Admin'
+}
+
 export function canGrantPlatformAdmin(p: Principal): boolean {
   return p.isPlatformAdmin
 }

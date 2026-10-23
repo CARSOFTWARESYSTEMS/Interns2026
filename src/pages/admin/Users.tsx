@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
-  Users, Search, Shield, CheckCircle, XCircle, Clock, Building2, UserPlus, AlertCircle,
+  Users, Search, Shield, CheckCircle, XCircle, Clock, Building2, UserPlus, AlertCircle, Trash2,
 } from 'lucide-react'
 import PageHeader from '../../components/ui/PageHeader'
 import SectionCard from '../../components/ui/SectionCard'
 import UserAvatar from '../../components/ui/UserAvatar'
 import PermissionBadge from '../../components/ui/PermissionBadge'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import { useAuthContext } from '../../contexts/AuthContext'
 import {
   listPartnerMemberships, listAllMemberships, listAllUsers, listPartners,
-  updateMembership, createMembership, writeTenantAudit,
+  updateMembership, createMembership, removeMembership, writeTenantAudit,
 } from '../../firebase/partners'
-import { canChangeMembership } from '../../tenant/authorize'
+import { canChangeMembership, canRemoveMembership } from '../../tenant/authorize'
 import {
   PARTNER_ROLES, type MembershipStatus, type Partner, type PartnerMembership, type PartnerRole,
 } from '../../types/partner'
@@ -34,6 +35,10 @@ export default function AdminUsers() {
   const [partners, setPartners]       = useState<Partner[]>([])         // Platform Admin only
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState('')
+  const [notice, setNotice]           = useState('')
+  const [removing, setRemoving]       = useState<PartnerMembership | null>(null)   // awaiting confirmation
+  const [removeBusy, setRemoveBusy]   = useState(false)
+  const [removeError, setRemoveError] = useState('')
   const [search, setSearch]           = useState('')
   const [filterRole, setFilterRole]   = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -94,7 +99,7 @@ export default function AdminUsers() {
   async function changeRole(m: PartnerMembership, role: PartnerRole) {
     if (!principal || role === m.role) return
     if (!canChangeMembership(principal, { targetUid: m.uid, partnerId: m.partnerId, beforeRole: m.role, afterRole: role })) return
-    setError('')
+    setError(''); setNotice('')
     try {
       await updateMembership(m.partnerId, m.uid, { role }, principal.uid)
       setMemberships(prev => prev.map(x => x.id === m.id ? { ...x, role } : x))
@@ -108,7 +113,7 @@ export default function AdminUsers() {
   async function changeStatus(m: PartnerMembership, status: MembershipStatus) {
     if (!principal || status === m.status) return
     if (!canChangeMembership(principal, { targetUid: m.uid, partnerId: m.partnerId, beforeRole: m.role, afterRole: m.role })) return
-    setError('')
+    setError(''); setNotice('')
     try {
       const patch = status === 'Active' && m.status === 'Pending'
         ? { status, approvedBy: principal.uid } : { status }
@@ -123,13 +128,34 @@ export default function AdminUsers() {
 
   async function addToPartner(u: UserProfile, partnerId: string, role: PartnerRole) {
     if (!principal || !isPlatformAdmin) return
-    setError('')
+    setError(''); setNotice('')
     try {
       const m = await createMembership(partnerId, u, role, principal.uid)
       setMemberships(prev => [...prev, m])
       await audit(role === 'Admin' ? 'admin_assigned' : 'membership_created', m, `Added as ${role}`, { role })
     } catch {
       setError('Could not add the user to this Partner.')
+    }
+  }
+
+  // After the confirmation dialog. The person goes back to being a non-member
+  // of this Partner (Platform Admin sees them again under "Not in …").
+  async function confirmRemove() {
+    const m = removing
+    if (!m || !principal) return
+    setRemoveBusy(true); setRemoveError('')
+    try {
+      const { cancelledInvites } = await removeMembership(m)
+      setMemberships(prev => prev.filter(x => x.id !== m.id))
+      setRemoving(null)
+      setNotice(`${m.displayName || m.email} was removed from ${partnerName(m.partnerId)}.`
+        + (cancelledInvites ? ` ${cancelledInvites} pending invitation${cancelledInvites === 1 ? ' was' : 's were'} cancelled.` : ''))
+      await audit('membership_removed', m, `Removed from Partner (was ${m.role}, ${m.status})`,
+        { role: m.role, status: m.status, cancelledInvites: String(cancelledInvites) })
+    } catch {
+      setRemoveError('The member couldn’t be removed. You may not have permission, or a pending invitation to this email can only be cancelled by a Platform Admin.')
+    } finally {
+      setRemoveBusy(false)
     }
   }
 
@@ -154,6 +180,11 @@ export default function AdminUsers() {
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex gap-2 text-sm text-red-700">
           <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />{error}
+        </div>
+      )}
+      {notice && (
+        <div role="status" className="p-3 rounded-lg bg-green-50 border border-green-200 flex gap-2 text-sm text-green-800">
+          <CheckCircle size={15} className="flex-shrink-0 mt-0.5" />{notice}
         </div>
       )}
 
@@ -227,6 +258,9 @@ export default function AdminUsers() {
                 : false
               const grantable = PARTNER_ROLES.filter(r => principal && canChangeMembership(principal,
                 { targetUid: m.uid, partnerId: m.partnerId, beforeRole: m.role, afterRole: r }))
+              const removable = principal
+                ? canRemoveMembership(principal, { targetUid: m.uid, partnerId: m.partnerId, role: m.role })
+                : false
               return (
                 <div key={m.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -263,6 +297,13 @@ export default function AdminUsers() {
                     ) : m.uid === principal?.uid ? (
                       <span className="text-[10px] text-slate-400">You</span>
                     ) : null}
+                    {removable && (
+                      <button onClick={() => { setNotice(''); setRemoveError(''); setRemoving(m) }}
+                        aria-label={`Remove ${m.displayName || m.email} from ${partnerName(m.partnerId)}`}
+                        className="inline-flex items-center gap-1 rounded-lg border border-transparent px-2 py-1 text-xs font-medium text-red-600 hover:border-red-200 hover:bg-red-50">
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -281,6 +322,29 @@ export default function AdminUsers() {
           </div>
         </SectionCard>
       )}
+
+      <ConfirmDialog
+        open={removing !== null}
+        title={removing ? `Remove ${removing.displayName || removing.email} from ${partnerName(removing.partnerId)}?` : ''}
+        confirmLabel="Remove member"
+        busy={removeBusy}
+        error={removeError}
+        onConfirm={confirmRemove}
+        onCancel={() => { if (!removeBusy) setRemoving(null) }}>
+        {removing && <>
+          <p>
+            <span className="font-medium text-slate-900 break-all">{removing.email}</span> ({removing.role}, {removing.status})
+            will lose access to {partnerName(removing.partnerId)} immediately. Any pending invitations to this email
+            for {partnerName(removing.partnerId)} are cancelled.
+          </p>
+          <p>Their account and their work in {partnerName(removing.partnerId)} are kept.</p>
+          <p>
+            {isPlatformAdmin
+              ? `To give them access again, add them back from “Not in ${partnerName(removing.partnerId)}” or send a new invitation.`
+              : 'To give them access again, send a new invitation.'}
+          </p>
+        </>}
+      </ConfirmDialog>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   accessStateFor, effectiveRole, authorize, canWriteIn, canAdministerPartner,
-  canManagePartnerRegistry, canInviteWithRole, canChangeMembership, canGrantPlatformAdmin,
+  canManagePartnerRegistry, canInviteWithRole, canChangeMembership, canRemoveMembership, canGrantPlatformAdmin,
   type Principal,
 } from './authorize'
 
@@ -139,5 +139,28 @@ describe('admin escalation', () => {
   it('Platform Admin can assign Partner Admins', () => {
     expect(canInviteWithRole(platformAdmin, 'gamyaa', 'Admin')).toBe(true)
     expect(canChangeMembership(platformAdmin, { targetUid: 'z', partnerId: 'gamyaa', beforeRole: null, afterRole: 'Admin' })).toBe(true)
+  })
+})
+
+describe('removing members (mirrors the partnerMemberships delete rule)', () => {
+  it('Platform Admin can remove anyone, Admins included', () => {
+    expect(canRemoveMembership(platformAdmin, { targetUid: 'z', partnerId: 'gamyaa', role: 'Developer' })).toBe(true)
+    expect(canRemoveMembership(platformAdmin, { targetUid: 'ga', partnerId: 'gamyaa', role: 'Admin' })).toBe(true)
+  })
+
+  it('Partner Admin can remove ordinary members of their own Partner only', () => {
+    expect(canRemoveMembership(gamyaaAdmin, { targetUid: 'z', partnerId: 'gamyaa', role: 'Developer' })).toBe(true)
+    expect(canRemoveMembership(gamyaaAdmin, { targetUid: 'z', partnerId: 'uflight', role: 'Developer' })).toBe(false)
+  })
+
+  it('Partner Admin cannot remove themselves or another Admin', () => {
+    expect(canRemoveMembership(gamyaaAdmin, { targetUid: 'ga', partnerId: 'gamyaa', role: 'Admin' })).toBe(false)
+    expect(canRemoveMembership(gamyaaAdmin, { targetUid: 'z', partnerId: 'gamyaa', role: 'Admin' })).toBe(false)
+  })
+
+  it('non-admins cannot remove anyone, wherever they are Admin', () => {
+    expect(canRemoveMembership(sameUser, { targetUid: 'z', partnerId: 'uflight', role: 'Viewer' })).toBe(false)   // Developer there
+    const mgr: Principal = { uid: 'm', isPlatformAdmin: false, memberships: { gamyaa: { role: 'Engineering Manager', status: 'Active' } } }
+    expect(canRemoveMembership(mgr, { targetUid: 'z', partnerId: 'gamyaa', role: 'Developer' })).toBe(false)
   })
 })
