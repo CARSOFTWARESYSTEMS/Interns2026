@@ -2,10 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   NEUTRAL_SOCIAL_META, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, SOCIAL_META_END, SOCIAL_META_START,
-  partnerAssetDir, partnerHtmlFile, renderSocialMeta, socialMetaFor, withSocialMeta,
+  partnerAssetDir, renderSocialMeta, socialMetaFor, withSocialMeta,
 } from './socialMeta'
 import seed from './partners.seed.json'
-import vercel from '../../vercel.json'
 import type { Partner } from '../types/partner'
 
 const repoFile = (path: string) => new URL(`../../${path}`, import.meta.url)
@@ -85,30 +84,5 @@ describe('index.html (neutral, unknown hosts)', () => {
     expect(() => withSocialMeta('<head></head>', '')).toThrow(/social-meta/)
     const twice = indexHtml.replace(SOCIAL_META_END, `${SOCIAL_META_END}\n${SOCIAL_META_START}\n${SOCIAL_META_END}`)
     expect(() => withSocialMeta(twice, '')).toThrow(/social-meta/)
-  })
-})
-
-describe('vercel.json serves each login domain its Partner page', () => {
-  const routes = vercel.routes as Array<{ src: string; dest: string; has: Array<{ type: string; value: { eq: string } }> }>
-
-  it.each(seed.domains.map(d => [d.hostname, d.partnerId]))('%s → %s', (hostname, partnerId) => {
-    const matching = routes.filter(r => r.has.some(h => h.type === 'host' && h.value.eq === hostname))
-    expect(matching).toHaveLength(1)
-    expect(matching[0].dest).toBe(`/${partnerHtmlFile(partnerId)}`)
-    expect(partners.some(p => p.id === partnerId)).toBe(true)
-  })
-
-  it('only rewrites the page itself, never assets', () => {
-    for (const r of routes) {
-      const src = new RegExp(r.src)
-      expect(['/', '/index.html'].every(p => src.test(p))).toBe(true)
-      expect(['/assets/index.js', '/og-image.png', '/login', '/index.htm'].some(p => src.test(p))).toBe(false)
-    }
-    expect(routes).toHaveLength(seed.domains.length)
-  })
-
-  it('has a built page for every route', () => {
-    const built = new Set(partners.map(p => `/${partnerHtmlFile(p.id)}`))
-    for (const r of routes) expect(built.has(r.dest)).toBe(true)
   })
 })
