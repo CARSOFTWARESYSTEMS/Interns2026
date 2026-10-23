@@ -44,8 +44,13 @@ export function paletteFor(primary: string): Record<(typeof SHADES)[number], RGB
   }
 }
 
+/** Icon the served HTML shipped with (per login domain, see socialMeta.ts); kept when the Partner configures none. */
+let servedFavicon: string | null = null
+
 function setFavicon(href: string) {
   let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+  if (servedFavicon === null) servedFavicon = link?.getAttribute('href') ?? ''
+  if (!href) href = servedFavicon
   if (!href) { link?.remove(); return }
   if (!link) {
     link = document.createElement('link')
