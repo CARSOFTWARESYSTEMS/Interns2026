@@ -7,9 +7,11 @@ import type { OfferDraft } from '../../types/offers'
  * search, print). `url` is an object URL of the rules-checked download, so
  * nothing here is a shareable link. Scrolls itself into view when opened.
  */
-export default function OfferPdfViewer({ offer, url, onClose }: {
+export default function OfferPdfViewer({ offer, url, detail, onClose }: {
   offer: OfferDraft
   url: string
+  /** Extra context after the file name, e.g. the candidate on the managers' page. */
+  detail?: string
   onClose: () => void
 }) {
   const ref = useRef<HTMLElement>(null)
@@ -20,7 +22,10 @@ export default function OfferPdfViewer({ offer, url, onClose }: {
       className="scroll-mt-20 rounded-2xl bg-white ring-1 ring-slate-200 overflow-hidden">
       <div className="flex items-center gap-2 pl-4 sm:pl-5 pr-2 py-2 border-b border-slate-200">
         <FileText size={16} className="text-brand-600 flex-shrink-0" aria-hidden="true" />
-        <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{offer.file.name}</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">
+          {offer.file.name}
+          {detail && <span className="ml-2 font-normal text-slate-500">{detail}</span>}
+        </p>
         <a href={url} target="_blank" rel="noopener"
           className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50 whitespace-nowrap">
           <ExternalLink size={14} /> <span className="hidden sm:inline">Open in new tab</span>
@@ -30,7 +35,7 @@ export default function OfferPdfViewer({ offer, url, onClose }: {
           <X size={16} />
         </button>
       </div>
-      <iframe title={`Offer letter: ${offer.file.name}`} src={`${url}#view=FitH&navpanes=0`}
+      <iframe title={`Offer letter: ${offer.file.name}`} src={`${url}#navpanes=0`}
         className="block w-full h-[80vh] min-h-[32rem] bg-slate-100" />
     </section>
   )

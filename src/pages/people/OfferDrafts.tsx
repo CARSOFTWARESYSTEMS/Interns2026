@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Upload, Eye, RefreshCw, Send, Link2, AlertCircle, Loader2, FileUp, Check } from 'lucide-react'
+import { Upload, Eye, EyeOff, RefreshCw, Send, Link2, AlertCircle, Loader2, FileUp, Check } from 'lucide-react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useBranding } from '../../contexts/PartnerContext'
 import PartnerBrandMark from '../../components/ui/PartnerBrandMark'
 import OfferStatusBadge from '../../components/offers/OfferStatusBadge'
+import OfferPdfViewer from '../../components/offers/OfferPdfViewer'
 import { formatDateTime, confirmedAtIso } from '../../components/offers/OfferDocumentCard'
 import {
-  listPartnerOffers, createOfferDraft, replaceOfferDraft, sendOfferForReview, openOfferPdf,
+  listPartnerOffers, createOfferDraft, replaceOfferDraft, sendOfferForReview, fetchOfferPdf, openOfferPdf,
 } from '../../firebase/offers'
 import { writeTenantAudit } from '../../firebase/partners'
 import { isLocalDevHost } from '../../tenant/hostname'
@@ -45,8 +46,20 @@ export default function OfferDrafts() {
     }).catch(() => {})
   }
 
+  // View shows the PDF on this page (the browser's built-in viewer); browsers
+  // without one (e.g. Android Chrome) open it in a new tab instead.
+  const [preview, setPreview] = useState<{ offer: OfferDraft; url: string } | null>(null)
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url) }, [preview])
+
+  async function view(o: OfferDraft) {
+    if (navigator.pdfViewerEnabled !== true) return openOfferPdf(o)
+    if (preview?.offer.id === o.id) return setPreview(null)
+    setPreview({ offer: o, url: URL.createObjectURL(await fetchOfferPdf(o)) })
+  }
+
   function upsert(o: OfferDraft) {
     setOffers(prev => [o, ...(prev ?? []).filter(x => x.id !== o.id)])
+    if (preview?.offer.id === o.id && preview.offer.file.path !== o.file.path) setPreview(null)   // replaced: old revision
   }
 
   return (
@@ -130,7 +143,7 @@ export default function OfferDrafts() {
                       {o.status === 'Confirmed' && <p className="mt-1 text-xs text-emerald-700 tabular-nums">{formatDateTime(confirmedAtIso(o))}</p>}
                     </td>
                     <td className="px-3 py-4 text-slate-600 tabular-nums whitespace-nowrap">{formatDateTime(o.updatedAt)}</td>
-                    <td className="px-6 py-4"><OfferActions offer={o} onChange={upsert} onError={setError} onNotice={setNotice} audit={audit} /></td>
+                    <td className="px-6 py-4"><OfferActions offer={o} viewing={preview?.offer.id === o.id} onView={view} onChange={upsert} onError={setError} onNotice={setNotice} audit={audit} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -157,13 +170,19 @@ export default function OfferDrafts() {
                     </>}
                   </dl>
                   {o.status === 'Draft' && <p className="text-xs text-amber-700">Not visible to the candidate until you send it for review.</p>}
-                  <OfferActions offer={o} onChange={upsert} onError={setError} onNotice={setNotice} audit={audit} />
+                  <OfferActions offer={o} viewing={preview?.offer.id === o.id} onView={view} onChange={upsert} onError={setError} onNotice={setNotice} audit={audit} />
                 </li>
               ))}
             </ul>
           </>
         )}
       </section>
+
+      {preview && (
+        <OfferPdfViewer key={preview.url} offer={preview.offer} url={preview.url}
+          detail={`${preview.offer.candidateName || preview.offer.viewerEmail} · Revision ${String(preview.offer.version).padStart(2, '0')}`}
+          onClose={() => setPreview(null)} />
+      )}
     </div>
   )
 }
@@ -234,8 +253,10 @@ function UploadDraft({ onUploaded, onError }: { onUploaded: (o: OfferDraft) => v
 
 // ── Row actions ─────────────────────────────────────────────────────────────
 
-function OfferActions({ offer, onChange, onError, onNotice, audit }: {
+function OfferActions({ offer, viewing, onView, onChange, onError, onNotice, audit }: {
   offer: OfferDraft
+  viewing: boolean
+  onView: (o: OfferDraft) => Promise<void>
   onChange: (o: OfferDraft) => void
   onError: (e: string) => void
   onNotice: (n: string) => void
@@ -253,9 +274,11 @@ function OfferActions({ offer, onChange, onError, onNotice, audit }: {
 
   return (
     <div className="flex flex-wrap gap-2 xl:justify-end">
-      <button className={`${btn} ring-slate-200 text-slate-700 hover:bg-slate-50`} disabled={busy !== ''}
-        onClick={() => act('view', () => openOfferPdf(offer))}>
-        {busy === 'view' ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} View
+      <button className={`${btn} ${viewing ? 'ring-brand-200 bg-brand-50 text-brand-700' : 'ring-slate-200 text-slate-700 hover:bg-slate-50'}`}
+        disabled={busy !== ''} aria-expanded={viewing}
+        onClick={() => act('view', () => onView(offer))}>
+        {busy === 'view' ? <Loader2 size={14} className="animate-spin" /> : viewing ? <EyeOff size={14} /> : <Eye size={14} />}
+        {viewing ? 'Hide' : 'View'}
       </button>
 
       {offer.status !== 'Confirmed' && (
