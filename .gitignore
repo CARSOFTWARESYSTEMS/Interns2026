@@ -30,6 +30,7 @@ pnpm-debug.log*
 # Firebase
 firebase-debug.log
 .firebaserc.local
+.firebase/
 
 # Google Credentials
 google-credentials.json
