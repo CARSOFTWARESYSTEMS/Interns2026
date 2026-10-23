@@ -26,5 +26,6 @@ function partnerHtml(): Plugin {
 
 export default defineConfig({
   plugins: [react(), partnerHtml()],
-  base: './',
+  // Absolute, so a deep link such as /admin/users loads /assets/… rather than /admin/assets/….
+  base: '/',
 })
