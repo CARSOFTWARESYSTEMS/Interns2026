@@ -6,6 +6,7 @@ import { useAuthContext } from '../contexts/AuthContext'
 import { isFirebaseConfigured } from '../firebase/config'
 import { useBranding } from '../contexts/PartnerContext'
 import PartnerBrandMark from '../components/ui/PartnerBrandMark'
+import { isLoginHost, startCentralSession } from '../auth/centralSession'
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuthContext()
@@ -80,6 +81,9 @@ export default function Login() {
           )}
 
           <GoogleLoginButton
+            // Also start the central session, so this Partner's applications sign in without asking.
+            // Optional for the dashboard itself: it must keep working if this fails.
+            onSuccess={(user) => { if (isLoginHost()) startCentralSession(user).catch(() => {}) }}
             onError={(err) => setError(err.message.replace('Firebase: ', '').replace(/ \(.*\)/, ''))}
           />
 

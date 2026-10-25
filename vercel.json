@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
     {
+      "src": "^/api/auth(?:/(.*))?$",
+      "dest": "/api/auth?__route=$1"
+    },
+    {
       "src": "^/(?:index\\.html|(?:[^/]+/)*[^/.]*)$",
       "has": [{ "type": "host", "value": { "eq": "login.itelematics.com" } }],
       "dest": "/index.itelematics.html"

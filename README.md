@@ -41,3 +41,10 @@ Do NOT commit:
 Only commit:
 
 - .env.example
+
+## Multi-domain sign-in
+
+The login hosts also sign users in to the Partner websites (itelematics.com,
+ev.engineer, gamyaa.in, uflight.in and their subdomains) through a Vercel
+Function at `/api/auth`. Setup, the per-site rewrite and the security model:
+[docs/auth/multi-domain-sso.md](docs/auth/multi-domain-sso.md).
