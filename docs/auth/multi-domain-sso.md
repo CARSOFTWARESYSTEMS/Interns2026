@@ -15,9 +15,45 @@ a central session that lets a second site sign in without asking again.
 The table lives in one place: [`src/auth/providers.ts`](../../src/auth/providers.ts).
 Add or remove a host there and nowhere else.
 
+## Protecting routes — required on every site
+
+**Signing in is not access.** Any Google account can sign in. A protected
+page, API or action may serve a request only when all four hold:
+
+> **authenticated + active membership + correct domain/partner + required role/permission**
+
+| Check | How to read it from `GET /api/auth/session` |
+|---|---|
+| authenticated | `authenticated === true` |
+| active membership | `roles` is not empty. A Partner role is listed only while the user's membership in this site's Partner is **Active** — Pending, Suspended, Blocked or removed members get no role. `Platform Admin` is the platform-wide grant. |
+| correct domain/partner | `domain` equals this site's own hostname. The session's Partner is fixed by that hostname (table above), and a session never works on another host. |
+| required role/permission | `roles` contains a role this route allows, using the platform's existing role names (`Platform Admin`, `Admin`, `Engineering Manager`, `HR Manager`, `Architect`, `QA Engineer`, `Developer`, `Viewer`). |
+
+**`authenticated: true` with `roles: []` means signed in with no access.** Any
+error, non-200 response or unexpected shape also means no access.
+
+```js
+// Allowed roles are per route, e.g. ['Platform Admin', 'Admin', 'HR Manager'].
+async function canOpen(allowedRoles) {
+  const res = await fetch('/api/auth/session', { cache: 'no-store' })
+  if (!res.ok) return false
+  const s = await res.json()
+  return s.authenticated === true                       // authenticated
+    && Array.isArray(s.roles) && s.roles.length > 0     // active membership
+    && s.domain === location.hostname                   // correct domain/partner
+    && s.roles.some(r => allowedRoles.includes(r))      // required role/permission
+}
+```
+
+A check in the browser only decides what to show. Anything that returns
+protected data must make the same four checks on the server: a site's server
+calls `https://<login host>/api/auth/app/<site host>/session` with the visitor's
+`Cookie` header and applies them to the answer. Roles are read live from
+Intern2026 on every call, so suspending or removing a member takes effect at once.
+
 ## How a sign-in works
 
-```
+```text
 aerospace.ev.engineer                login.autonomous.ev.engineer
 ─────────────────────                ────────────────────────────
 1 GET /api/auth/login?return=/aerospace/uflight-3d
@@ -43,115 +79,233 @@ aerospace.ev.engineer                login.autonomous.ev.engineer
 
 If the user already has a central session on the login host (they signed in to
 another site of the same provider, or to the dashboard), step 2 issues the code
-immediately: the round trip is invisible.
+immediately and no sign-in page is shown.
 
 All of this runs in one Vercel Function, [`api/auth.ts`](../../api/auth.ts) →
 [`server/auth/handler.ts`](../../server/auth/handler.ts), deployed with this
-project to the login hosts. Application sites reach it through a rewrite (below),
-so their cookies stay on their own host and their sessions stay server-side.
+project to the login hosts. Application sites reach it through a rewrite, so
+their cookies stay on their own host and their sessions stay server-side.
 
 ## Endpoints
 
-On an application host (after the rewrite below):
+On an application host (after its rewrite is deployed):
 
 | | |
 |---|---|
 | `GET /api/auth/login?return=<path>` | Start sign-in. `return` is a path on the same host (path, query, hash); anything else is refused. |
 | `GET /api/auth/callback` | Used by the flow only. |
 | `GET /api/auth/session` | `{ "authenticated": false }` or `{ "authenticated": true, "user": { "id", "name", "email" }, "roles": [...], "domain": "<host>" }` |
-| `POST /api/auth/logout` | Ends this site's session. JSON for `fetch`; a form post is redirected to `?return=<path>` (or `/`). |
+| `POST /api/auth/logout` | Ends this site's session only. JSON for `fetch`; a form post is redirected to `?return=<path>` (or `/`). |
 
 On a login host: `GET /api/auth/authorize`, `POST /api/auth/session` (Firebase ID
 token → central session; same-origin only), `GET /api/auth/session` (central
-session status), `POST /api/auth/logout` (ends single sign-on for that provider).
+session status), `POST /api/auth/logout` (ends that login host's central session).
 
-`roles` are read live from Intern2026 on every call — `Platform Admin` plus the
-user's role in the provider's Partner when that membership is Active — so
-suspending a member takes effect at once. An empty list means signed in, no
-access: **a site must check `roles`, not just `authenticated`, before showing
-anything restricted.**
+## 1. Vercel environment variables (this project, `interns2026`)
 
-## Connecting an application site
+Set in Vercel → `interns2026` → Settings → Environment Variables, environment
+**Production** only (preview URLs are not login hosts). Mark the first two
+**Sensitive**. Never prefix them with `VITE_`, which would compile them into the
+browser bundle.
 
-Each site's Vercel project needs one rewrite per host, pointing at its login
-host, with the site's own hostname in the path:
+| Name | Value |
+|---|---|
+| `AUTH_STATE_SECRET` | A new random value: `openssl rand -base64 48` (64 characters). |
+| `FIREBASE_SERVICE_ACCOUNT` | Service-account key for Firebase project `ev2027`: Firebase console → Project settings → Service accounts → *Generate new private key*. Paste the JSON as is (or `base64 -i key.json`), then delete the downloaded file. |
+| `AUTH_SESSION_IDLE_HOURS` | Optional. Default `12` (allowed 1–24). |
+| `AUTH_SESSION_MAX_HOURS` | Optional. Default `168` = 7 days (allowed 1–720). |
+
+Environment variables apply to new deployments only: **redeploy production**
+after adding them. Until both required values are present, every `/api/auth`
+request answers `503 {"error":"unavailable"}` and the dashboard is unaffected.
+
+## 2. Rewrite rules for each application project
+
+Add the rules to the project that serves the hosts, **before** any catch-all
+rewrite. Hosts below were grouped by their Vercel deployment on 2026-10-25;
+check the project's Domains list before editing. Apex hosts that Vercel
+currently redirects to `www.` (`ev.engineer`, `gamyaa.in`, `uflight.in`) never
+reach the rewrite — their rules are included so the sites keep working if
+the redirect is removed.
+
+**itelematics.com project** — `vercel.json`
+(`www.itelematics.com` does not currently serve HTTPS; add it to the project's
+Domains before testing it.)
 
 ```json
 {
   "rewrites": [
-    {
-      "source": "/api/auth/:action(login|callback|session|logout)",
-      "has": [{ "type": "host", "value": "aerospace.ev.engineer" }],
-      "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ev.engineer/:action"
-    },
-    {
-      "source": "/api/auth/:action(login|callback|session|logout)",
-      "has": [{ "type": "host", "value": "aerospace.gamyaa.in" }],
-      "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action"
-    }
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "itelematics.com" } }], "destination": "https://login.itelematics.com/api/auth/app/itelematics.com/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "www.itelematics.com" } }], "destination": "https://login.itelematics.com/api/auth/app/www.itelematics.com/:action" }
   ]
 }
 ```
 
-That example is the project that serves `autonomous.ev.engineer`,
-`aerospace.ev.engineer` and `aerospace.gamyaa.in` (one Vercel deployment as of
-2026-10-25): it needs a rule for each of those hosts, and the two `aerospace.`
-hosts go to **different** login hosts. Put these rules before any catch-all
-rewrite. Hosts that only redirect to `www.` (e.g. `ev.engineer`, `gamyaa.in`,
-`uflight.in`) don't need one.
+**www.ev.engineer project** — `vercel.json`
 
-Then, in the site:
-
-```js
-// Sign in and come back to this exact page
-location.href = '/api/auth/login?return=' +
-  encodeURIComponent(location.pathname + location.search + location.hash)
-
-// Who is signed in?
-const me = await fetch('/api/auth/session').then(r => r.json())
-
-// Sign out
-await fetch('/api/auth/logout', { method: 'POST' })
+```json
+{
+  "rewrites": [
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/ev.engineer/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "www.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/www.ev.engineer/:action" }
+  ]
+}
 ```
 
-```html
-<!-- or without JavaScript -->
-<form method="post" action="/api/auth/logout?return=/"><button>Sign out</button></form>
+**autonomous / aerospace project** (`autonomous.ev.engineer`,
+`aerospace.ev.engineer`, `aerospace.gamyaa.in` share one deployment) —
+`vercel.json`. Note `aerospace.gamyaa.in` goes to a **different** login host.
+
+```json
+{
+  "rewrites": [
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "autonomous.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/autonomous.ev.engineer/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ev.engineer/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.gamyaa.in" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action" }
+  ]
+}
 ```
 
-A site's own server code can check a visitor by calling
-`https://<login host>/api/auth/app/<site host>/session` with the visitor's
-`Cookie` header.
+**gamyaa project** (`www.gamyaa.in`, `aerosystems.gamyaa.in`, `gamyaa.in`;
+Next.js, repo `gamyaaaerosystems/gamyaa`) — in `next.config.ts`, replace
+`rewrites()` so the sign-in rules apply in both AeroSystems canonical modes:
 
-## Deploying this project
+```ts
+  async rewrites() {
+    // Multi-domain sign-in: /api/auth/* is served by login.gamyaa.in (docs/auth/multi-domain-sso.md in Interns2026).
+    const sso = ["www.gamyaa.in", "gamyaa.in", "aerosystems.gamyaa.in"].map(host => ({
+      source: "/api/auth/:action(login|callback|session|logout)",
+      has: [{ type: "host" as const, value: host.replace(/\./g, "\\.") }],
+      destination: `https://login.gamyaa.in/api/auth/app/${host}/:action`,
+    }));
+    if (aeroCanonical !== "subdomain") return { beforeFiles: sso, afterFiles: [], fallback: [] };
+    return {
+      beforeFiles: [
+        ...sso,
+        {
+          source: "/",
+          has: [{ type: "host" as const, value: AERO_HOST }],
+          destination: "/aerosystems",
+        },
+        {
+          // Anything that is not a framework asset, API route, file with an extension,
+          // or already-prefixed path is served from the /aerosystems route tree.
+          source: "/:path((?!_next/|api/|aerosystems(?:/|$))[^.]+)",
+          has: [{ type: "host" as const, value: AERO_HOST }],
+          destination: "/aerosystems/:path",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
+```
 
-1. **Vercel environment variables** (Production, this project). Server-only —
-   never `VITE_`-prefixed:
-   - `AUTH_STATE_SECRET` — 32+ random characters (`openssl rand -base64 48`).
-   - `FIREBASE_SERVICE_ACCOUNT` — a service-account key for the Firebase project
-     (JSON, or base64 of it). It needs Firebase Auth (verify tokens, read users)
-     and Firestore read/write.
-   - Optional: `AUTH_SESSION_IDLE_HOURS` (default 12), `AUTH_SESSION_MAX_HOURS` (default 168).
+**www.uflight.in project** — `vercel.json`
 
-   Without the first two, every `/api/auth` request answers "temporarily
-   unavailable" — the dashboard itself keeps working.
-2. **Firestore rules**: `firebase deploy --only firestore:rules`. The change only
-   makes the existing default-deny explicit for the four `auth*` collections.
-3. **Firestore TTL** (cleanup of expired records), once per collection:
+```json
+{
+  "rewrites": [
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "uflight.in" } }], "destination": "https://login.uflight.in/api/auth/app/uflight.in/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "www.uflight.in" } }], "destination": "https://login.uflight.in/api/auth/app/www.uflight.in/:action" }
+  ]
+}
+```
+
+A project that uses the older `routes` property instead takes the same rule as
+`{ "src": "^/api/auth/(login|callback|session|logout)$", "has": [{ "type": "host", "value": { "eq": "<host>" } }], "dest": "https://<login host>/api/auth/app/<host>/$1" }`,
+placed before its catch-all. A Next.js project takes the `next.config.ts` form above.
+
+## 3. Firestore rules and TTL (project `ev2027`)
+
+```sh
+# Rules: explicit deny for authSessions, authCodes, authEvents, authRateLimits
+firebase deploy --only firestore:rules --project ev2027
+
+# TTL on ttlAt (deletes expired records)
+gcloud firestore fields ttls update ttlAt --collection-group=authSessions   --enable-ttl --async --project=ev2027
+gcloud firestore fields ttls update ttlAt --collection-group=authCodes      --enable-ttl --async --project=ev2027
+gcloud firestore fields ttls update ttlAt --collection-group=authEvents     --enable-ttl --async --project=ev2027
+gcloud firestore fields ttls update ttlAt --collection-group=authRateLimits --enable-ttl --async --project=ev2027
+
+# Check: all four should become ACTIVE
+gcloud firestore fields ttls list --project=ev2027
+```
+
+Applied to `ev2027` on 2026-10-25. Retention: sessions 30 days after expiry,
+codes 1 day, audit events 400 days. No new indexes are needed.
+
+## 4. Post-deployment smoke tests
+
+### Stage 1 — backend only (no site changes yet)
+
+Needs: production deployment of `main` succeeded, and section 1 done and redeployed.
+
+1. Each login host answers. Expect `{"authenticated":false}`; `{"error":"unavailable"}` means the environment variables are missing or production wasn't redeployed.
+   ```sh
+   for h in login.itelematics.com login.autonomous.ev.engineer login.gamyaa.in login.uflight.in; do
+     echo "$h $(curl -s https://$h/api/auth/session)"; done
    ```
-   gcloud firestore fields ttls update ttlAt --collection-group=authSessions   --enable-ttl --project=<project>
-   gcloud firestore fields ttls update ttlAt --collection-group=authCodes      --enable-ttl --project=<project>
-   gcloud firestore fields ttls update ttlAt --collection-group=authEvents     --enable-ttl --project=<project>
-   gcloud firestore fields ttls update ttlAt --collection-group=authRateLimits --enable-ttl --project=<project>
+2. The query string reaches the function. Expect `400`:
+   ```sh
+   curl -s -o /dev/null -w '%{http_code}\n' 'https://login.uflight.in/api/auth/app/www.uflight.in/login?return=%2F%2Fevil.example'
    ```
-   Retention: sessions 30 days after expiry, codes 1 day, audit events 400 days.
-4. **Check after the deploy**:
-   - `curl https://login.uflight.in/api/auth/session` → `{"authenticated":false}` (the function is routed).
-   - `curl -i 'https://login.uflight.in/api/auth/app/uflight.in/login?return=%2F%2Fevil.example'`
-     → `400` "We can't send you there" (the query string reaches the function).
-   - After connecting a site: sign in from a deep link and confirm you land back
-     on it, the session cookie is on the site's host, and `/api/auth/session`
-     answers there.
+3. A sign-in starts. Expect `302`, `location: https://login.uflight.in/api/auth/authorize?state=…`, `set-cookie: __Host-i26_txn=…; HttpOnly; Secure; SameSite=Lax` and `cache-control: no-store`:
+   ```sh
+   curl -si 'https://login.uflight.in/api/auth/app/www.uflight.in/login?return=%2F' | grep -iE '^(HTTP|location|set-cookie|cache-control)'
+   ```
+4. Dashboard unchanged: sign in at `https://login.gamyaa.in/login` with Google and use the dashboard as before. Then open `https://login.gamyaa.in/api/auth/session`: `authenticated: true` with your roles (the dashboard sign-in started the central session). Sign out; it shows `authenticated: false` again.
+5. Firestore console: `authEvents` has `login_success`, `session_created` and `logout` for that sign-in, with no tokens or cookie values in them.
+
+### Stage 2 — each application project, after its rewrite deploys
+
+For each host the project serves:
+
+```sh
+curl -s https://<site>/api/auth/session                                  # {"authenticated":false}
+curl -si 'https://<site>/api/auth/login?return=%2F' | grep -iE '^(HTTP|location|set-cookie)'
+# 302 to its login host, and set-cookie: __Host-i26_txn=… arriving through the rewrite
+```
+
+### Stage 3 — real Google sign-in and exact return
+
+Use a **new private window for every row** so each one starts signed out and
+must show the Google sign-in. The Console line in step 3 is exactly what the
+site's Login button will do.
+
+1. Open the **Start URL**.
+2. The address bar shows the **Expected URL** (for apex hosts Vercel has already moved you to `www.`; the `#hash` survives).
+3. DevTools → Console:
+   ```js
+   location.href = '/api/auth/login?return=' + encodeURIComponent(location.pathname + location.search + location.hash)
+   ```
+4. You are on the **Login host**, with that Partner's branding and "You're signing in to *site*". Sign in with Google.
+5. You land on **exactly the Expected URL**: same path, same query (`%20` intact), same `#hash`.
+6. Console: `await (await fetch('/api/auth/session')).json()` → `authenticated: true`, your `user`, the `roles` you hold in that Partner, and `domain` equal to the site's hostname.
+7. DevTools → Application → Cookies: on the site only `__Host-i26_session`, marked HttpOnly, Secure, SameSite=Lax, with no Domain.
+
+| # | Start URL | Login host | Expected URL after sign-in |
+|---|---|---|---|
+| 1 | `https://itelematics.com/internships?smoke=it&q=a%20b#apply` | `login.itelematics.com` | `https://itelematics.com/internships?smoke=it&q=a%20b#apply` |
+| 2 | `https://ev.engineer/ev-engineer?smoke=ev&q=a%20b#overview` | `login.autonomous.ev.engineer` | `https://www.ev.engineer/ev-engineer?smoke=ev&q=a%20b#overview` |
+| 3 | `https://autonomous.ev.engineer/av-concepts?smoke=auto&q=a%20b#top` | `login.autonomous.ev.engineer` | `https://autonomous.ev.engineer/av-concepts?smoke=auto&q=a%20b#top` |
+| 4 | `https://aerospace.ev.engineer/aerospace/uflight-3d?smoke=aero&view=orbit#telemetry` | `login.autonomous.ev.engineer` | `https://aerospace.ev.engineer/aerospace/uflight-3d?smoke=aero&view=orbit#telemetry` |
+| 5 | `https://gamyaa.in/aerosystems?smoke=gamyaa&q=a%20b#solutions` | `login.gamyaa.in` | `https://www.gamyaa.in/aerosystems?smoke=gamyaa&q=a%20b#solutions` |
+| 6 | `https://uflight.in/?smoke=uflight&q=a%20b#top` | `login.uflight.in` | `https://www.uflight.in/?smoke=uflight&q=a%20b#top` |
+| 7 | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` |
+
+Row 7 checks the one deployment that serves two providers.
+
+Then, in the window from row 2 (still signed in):
+
+- **Single sign-on:** do row 4 in the same window. Expect no Google prompt and the same exact return.
+- **Provider isolation:** do row 5 in the same window. Expect the GAMYAA sign-in page (a different provider never reuses EV.ENGINEER's session).
+- **Local logout:** on `aerospace.ev.engineer`, run `await (await fetch('/api/auth/logout', { method: 'POST' })).json()`. Expect `{authenticated:false}`, the cookie gone, `/api/auth/session` false, and `www.ev.engineer` still signed in. Signing in again on `aerospace.ev.engineer` needs no Google prompt.
+- **Open redirect refused:** open `https://aerospace.ev.engineer/api/auth/login?return=https%3A%2F%2Fevil.example`. Expect "We can't send you there".
+- **No membership, no access:** sign in with a Google account that has no membership in that Partner. Expect `authenticated: true, roles: []`, and the site must deny every protected route.
+- **Audit:** `authEvents` shows `login_started`, `login_success`, `session_created`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created` and `logout` for these runs.
+
+Only after these pass: add the sites' Login button and sign-in prompt.
 
 ## Security properties
 
@@ -172,20 +326,19 @@ A site's own server code can check a visitor by calling
 Tests: [`server/auth/handler.test.ts`](../../server/auth/handler.test.ts) runs the
 whole flow through a simulated browser with one cookie jar per host;
 [`src/auth/*.test.ts`](../../src/auth) cover the host table and return paths;
-`tests/rules/tenant.rules.test.ts` pins the Firestore rules.
+`tests/rules/tenant.rules.test.ts` and `tests/rules/authStore.test.ts` cover the
+Firestore rules and the Firestore store in the emulator.
 
-## Not done yet
+## Decisions for this release
 
-- **Global logout.** Signing out of the dashboard on a login host ends single
-  sign-on for that provider; sessions already created on sites stay until they
-  expire or the user signs out there. The store can revoke all of a user's
-  sessions (`revokeUserSessions`) for a future admin action.
-- **The dashboard's own Firebase sign-in** still uses Firebase's default browser
-  persistence (IndexedDB), as before. The new SSO cookies, codes and sessions
-  never touch browser storage. Moving the dashboard onto the central session
-  (Firebase custom tokens minted from it) is possible later.
-- **Role names.** Roles are the platform's existing ones (`Admin` = Partner
-  Admin, `Developer`, `Viewer`, …). Names such as Domain Admin, Reviewer or
-  Intern need a product decision before they are added.
-- Two sign-ins started at once in two tabs of the same site: the later one wins;
-  the earlier shows "couldn't be verified" and the user signs in again.
+- **Authentication ≠ authorization.** Any Google account may authenticate; protected access needs all four checks above.
+- **Sessions:** 12 hours idle, 7 days absolute, configurable with `AUTH_SESSION_IDLE_HOURS` and `AUTH_SESSION_MAX_HOURS`.
+- **Roles:** the platform's existing role names. No SSO-specific roles.
+- **Logout is local.** A site's logout ends only that site's session. Signing out of the dashboard on a login host ends that login host's central session (no more automatic sign-in there), not the sites' sessions. There is no global logout.
+- **Site endpoints:** served by this project through each site's rewrite. Revisit only if production testing shows a problem.
+
+## Future security work (not part of this release)
+
+- **Dashboard browser token.** The dashboard on the login hosts still uses the Firebase Auth SDK's default persistence, which keeps its refresh token in IndexedDB. This release does not change that. The SSO cookies, codes and sessions never touch browser storage. A later change could sign the dashboard in from the HttpOnly central session (short-lived Firebase custom tokens, in-memory persistence).
+- **Global logout / revoke all sessions** for a user (the store already supports `revokeUserSessions`).
+- Two sign-ins started at once in two tabs of the same site: the later one wins; the earlier shows "couldn't be verified" and the user signs in again.
