@@ -37,7 +37,8 @@ export const AUTH_PROVIDERS: Readonly<Record<AuthProviderId, AuthProvider>> = {
     id: 'ev_engineer',
     partnerId: 'ev-engineer',
     loginHost: 'login.autonomous.ev.engineer',
-    allowedHosts: ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer'],
+    // aerospace.ishavasyam.org serves Space, built and hosted on EV.ENGINEER, so it signs in here.
+    allowedHosts: ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer', 'aerospace.ishavasyam.org'],
   },
   gamyaa: {
     id: 'gamyaa',
@@ -49,7 +50,7 @@ export const AUTH_PROVIDERS: Readonly<Record<AuthProviderId, AuthProvider>> = {
     id: 'uflight',
     partnerId: 'uflight',
     loginHost: 'login.uflight.in',
-    allowedHosts: ['uflight.in', 'www.uflight.in'],
+    allowedHosts: ['uflight.in', 'www.uflight.in', 'cybersecurity.uflight.in'],
   },
 }
 

@@ -7,6 +7,7 @@ import GateScreen from '../components/auth/GateScreen'
 import { useBranding, usePartner } from '../contexts/PartnerContext'
 import { isAllowedAppHost, providerForLoginHost } from '../auth/providers'
 import { peekLoginState } from '../auth/loginState'
+import { returnUrl, sanitizeReturnPath } from '../auth/returnPath'
 import { CentralSessionError, startCentralSession } from '../auth/centralSession'
 
 const MESSAGES: Record<string, string> = {
@@ -66,10 +67,19 @@ export default function SsoLogin() {
             Signing you in…
           </div>
         ) : (
-          <GoogleLoginButton
-            onSuccess={handleSignedIn}
-            onError={err => setError(err.message.replace('Firebase: ', '').replace(/ \(.*\)/, ''))}
-          />
+          <>
+            <GoogleLoginButton
+              onSuccess={handleSignedIn}
+              onError={err => setError(err.message.replace('Firebase: ', '').replace(/ \(.*\)/, ''))}
+            />
+            {/* Cancelling returns to the page the sign-in started on, on a host this login host serves. */}
+            <a
+              href={returnUrl(target.host, sanitizeReturnPath(target.path, target.host) ?? '/')}
+              className="py-3 text-center text-sm text-slate-400 hover:text-slate-200 transition-colors rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+            >
+              Back to {target.host}
+            </a>
+          </>
         )
       }
     >

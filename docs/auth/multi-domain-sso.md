@@ -8,9 +8,9 @@ a central session that lets a second site sign in without asking again.
 | Login host | Signs in to | Roles from Partner |
 |---|---|---|
 | `login.itelematics.com` | `itelematics.com`, `www.itelematics.com` | `itelematics` |
-| `login.autonomous.ev.engineer` | `ev.engineer`, `www.ev.engineer`, `autonomous.ev.engineer`, `aerospace.ev.engineer` | `ev-engineer` |
+| `login.autonomous.ev.engineer` | `ev.engineer`, `www.ev.engineer`, `autonomous.ev.engineer`, `aerospace.ev.engineer`, `aerospace.ishavasyam.org` | `ev-engineer` |
 | `login.gamyaa.in` | `gamyaa.in`, `www.gamyaa.in`, `aerospace.gamyaa.in`, `aerosystems.gamyaa.in` | `gamyaa` |
-| `login.uflight.in` | `uflight.in`, `www.uflight.in` | `uflight` |
+| `login.uflight.in` | `uflight.in`, `www.uflight.in`, `cybersecurity.uflight.in` | `uflight` |
 
 The table lives in one place: [`src/auth/providers.ts`](../../src/auth/providers.ts).
 Add or remove a host there and nowhere else.
@@ -153,15 +153,21 @@ Domains before testing it.)
 ```
 
 **autonomous / aerospace project** (`autonomous.ev.engineer`,
-`aerospace.ev.engineer`, `aerospace.gamyaa.in` share one deployment) —
-`vercel.json`. Note `aerospace.gamyaa.in` goes to a **different** login host.
+`aerospace.ev.engineer`, `aerospace.ishavasyam.org`, `aerospace.gamyaa.in` and
+`cybersecurity.uflight.in` share one deployment; Next.js, repo `CARSOFTWARESYSTEMS/AutonomousEV`). Its
+`next.config.ts` generates these rules from the site's own host table
+(`src/lib/auth/sites.ts`), so nothing needs copying by hand. Note
+`aerospace.gamyaa.in` and `cybersecurity.uflight.in` go to **different** login
+hosts. The equivalent `vercel.json` form:
 
 ```json
 {
   "rewrites": [
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "autonomous.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/autonomous.ev.engineer/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ev.engineer/:action" },
-    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.gamyaa.in" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action" }
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ishavasyam.org" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ishavasyam.org/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.gamyaa.in" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "cybersecurity.uflight.in" } }], "destination": "https://login.uflight.in/api/auth/app/cybersecurity.uflight.in/:action" }
   ]
 }
 ```
@@ -293,8 +299,10 @@ site's Login button will do.
 | 5 | `https://gamyaa.in/aerosystems?smoke=gamyaa&q=a%20b#solutions` | `login.gamyaa.in` | `https://www.gamyaa.in/aerosystems?smoke=gamyaa&q=a%20b#solutions` |
 | 6 | `https://uflight.in/?smoke=uflight&q=a%20b#top` | `login.uflight.in` | `https://www.uflight.in/?smoke=uflight&q=a%20b#top` |
 | 7 | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` |
+| 8 | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` | `login.uflight.in` (not EV.ENGINEER) | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` |
+| 9 | `https://aerospace.ishavasyam.org/space?smoke=isha#research` | `login.autonomous.ev.engineer` | `https://aerospace.ishavasyam.org/space?smoke=isha#research` |
 
-Row 7 checks the one deployment that serves two providers.
+Rows 7 and 8 check the one deployment that serves three providers.
 
 Then, in the window from row 2 (still signed in):
 

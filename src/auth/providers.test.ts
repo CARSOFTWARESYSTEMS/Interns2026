@@ -6,9 +6,9 @@ import seed from '../tenant/partners.seed.json'
 
 const SPEC: Record<string, string[]> = {
   'login.itelematics.com': ['itelematics.com', 'www.itelematics.com'],
-  'login.autonomous.ev.engineer': ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer'],
+  'login.autonomous.ev.engineer': ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer', 'aerospace.ishavasyam.org'],
   'login.gamyaa.in': ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in'],
-  'login.uflight.in': ['uflight.in', 'www.uflight.in'],
+  'login.uflight.in': ['uflight.in', 'www.uflight.in', 'cybersecurity.uflight.in'],
 }
 
 const allowed = AUTH_PROVIDER_LIST.flatMap(p => p.allowedHosts.map(h => [p.loginHost, h] as const))
