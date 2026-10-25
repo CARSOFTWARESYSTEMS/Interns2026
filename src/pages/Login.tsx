@@ -83,13 +83,18 @@ export default function Login() {
           <GoogleLoginButton
             // Also start the central session, so this Partner's applications sign in without asking.
             // Optional for the dashboard itself: it must keep working if this fails.
-            onSuccess={(user) => { if (isLoginHost()) startCentralSession(user).catch(() => {}) }}
+            onSuccess={(user) => { if (isLoginHost()) startCentralSession(user, 'workspace').catch(() => {}) }}
             onError={(err) => setError(err.message.replace('Firebase: ', '').replace(/ \(.*\)/, ''))}
           />
 
           <div className="mt-6 pt-5 border-t border-slate-800">
             <p className="text-[10px] text-slate-600 text-center leading-relaxed mb-3">
               {b.login.restrictedNotice}
+            </p>
+            <p className="text-center mb-3">
+              <a href="/privacy" className="text-[10px] text-slate-500 hover:text-slate-300 underline decoration-slate-700 underline-offset-2">
+                What signing in records
+              </a>
             </p>
             <div className="flex flex-col items-center gap-1.5">
               {b.contact.email && (

@@ -1,9 +1,11 @@
+import type { UserActivation } from '../../src/types/activation.js'
 import type { AuthEvent, AuthStore, CodeRecord, SessionRecord } from './types.js'
 
 export interface MemoryAuthStore extends AuthStore {
   readonly sessions: Map<string, SessionRecord>
   readonly codes: Map<string, CodeRecord>
   readonly events: AuthEvent[]
+  readonly activations: Map<string, UserActivation>
 }
 
 /** In-process AuthStore for tests and local development. Same contract as the Firestore store. */
@@ -11,10 +13,11 @@ export function createMemoryAuthStore(): MemoryAuthStore {
   const sessions = new Map<string, SessionRecord>()
   const codes = new Map<string, CodeRecord>()
   const events: AuthEvent[] = []
+  const activations = new Map<string, UserActivation>()
   const counters = new Map<string, number>()
 
   return {
-    sessions, codes, events,
+    sessions, codes, events, activations,
 
     async putSession(id, s) {
       if (sessions.has(id)) throw new Error('Session id already exists')
@@ -57,6 +60,12 @@ export function createMemoryAuthStore(): MemoryAuthStore {
     },
     async recordEvent(e) {
       events.push(structuredClone(e))
+    },
+    async updateActivation(id, fn) {
+      const current = activations.get(id)
+      const { next, result } = fn(current ? structuredClone(current) : null)
+      if (next) activations.set(id, structuredClone(next))
+      return result
     },
   }
 }

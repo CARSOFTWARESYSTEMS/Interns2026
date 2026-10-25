@@ -768,5 +768,18 @@ service cloud.firestore {
     match /authCodes/{id}      { allow read, write: if false; }
     match /authEvents/{id}     { allow read, write: if false; }
     match /authRateLimits/{id} { allow read, write: if false; }
+
+    // ── Sign-in activations (written only by /api/auth) ───────────────────
+    // userActivations/{partnerId}_{uid}: where and when one user first and
+    // last signed in to one Partner's sites, their coarse location and recent
+    // sign-in events. Nothing secret: no tokens, codes, session ids, cookies
+    // or IP addresses. Readable by Platform Admin (every Partner) and by an
+    // Admin of that Partner only — a Partner Admin's list query must filter
+    // on partnerId. No client writes, Platform Admin included.
+    match /userActivations/{id} {
+      allow get:   if isSignedIn() && isAdminOf(idPartner(id));
+      allow list:  if isSignedIn() && isAdminOf(resource.data.partnerId);
+      allow write: if false;
+    }
   }
 }

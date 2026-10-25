@@ -253,9 +253,10 @@ export default function Profile() {
               <div className="space-y-3">
                 <EditField label="Full Name" field="displayName" required />
                 <EditField label="Mobile" field="mobile" type="tel" />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <EditField label="City" field="city" />
-                  <EditField label="Country" field="country" />
+                  <EditField label="State / Region" field="stateOrRegion" />
+                  <div className="col-span-2 sm:col-span-1"><EditField label="Country" field="country" /></div>
                 </div>
                 <EditField label="Bio" field="bio" type="textarea" />
               </div>
@@ -265,6 +266,7 @@ export default function Profile() {
                 <InfoRow label="Email" value={userProfile.email} />
                 <InfoRow label="Mobile" value={userProfile.mobile} />
                 <InfoRow label="City" value={userProfile.city} />
+                <InfoRow label="State / Region" value={userProfile.stateOrRegion ?? ''} />
                 <InfoRow label="Country" value={userProfile.country} />
                 <InfoRow label="Bio" value={userProfile.bio} />
               </>

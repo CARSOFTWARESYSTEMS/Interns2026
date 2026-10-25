@@ -17,6 +17,17 @@ const HOUR = 60 * MIN
 const EV_LOGIN = 'login.autonomous.ev.engineer'
 const PAGE = 'https://aerospace.ev.engineer/aerospace/uflight-3d?view=orbit&lang=en#telemetry'
 
+/** Where a site's rewrite proxy runs: never the visitor's location. */
+const PROXY_GEO = {
+  'x-vercel-ip-country': 'US', 'x-vercel-ip-country-region': 'VA', 'x-vercel-ip-city': 'Ashburn',
+  'x-vercel-ip-timezone': 'America/New_York',
+}
+const BENGALURU = {
+  'x-vercel-ip-country': 'IN', 'x-vercel-ip-country-region': 'KA', 'x-vercel-ip-city': 'Bengaluru',
+  'x-vercel-ip-timezone': 'Asia/Kolkata', 'x-vercel-ip-latitude': '12.9716', 'x-vercel-ip-longitude': '77.5946',
+  'x-vercel-ip-postal-code': '560001',
+}
+
 interface TestUser { uid: string; email: string; emailVerified: boolean; name: string; enabled: boolean }
 
 function setup() {
@@ -31,6 +42,7 @@ function setup() {
     ['gamyaa_u1', { role: 'Admin', status: 'Active' }],
     ['uflight_u1', { role: 'Developer', status: 'Active' }],
   ])
+  const profiles = new Map<string, { country?: string; stateOrRegion?: string; city?: string }>()
   const directory: Directory = {
     verifyIdToken: vi.fn(async (token: string) => {
       const m = /^idtoken:(\w+):(\d+)$/.exec(token)
@@ -43,9 +55,15 @@ function setup() {
       const m = memberships.get(`${partnerId}_${u.uid}`)
       return m?.status === 'Active' ? [m.role] : []
     },
+    accessFor: async (u, partnerId) => {
+      const m = memberships.get(`${partnerId}_${u.uid}`)
+      if (!m) return 'no_membership'
+      return m.status === 'Active' ? 'granted' : m.status === 'Pending' ? 'pending' : m.status === 'Suspended' ? 'suspended' : 'blocked'
+    },
+    profileLocation: vi.fn(async (uid: string) => profiles.get(uid) ?? null),
   }
   const handler = createAuthHandler({ store, directory, secret: SECRET, policy: DEFAULT_AUTH_POLICY, now: () => t })
-  return { store, users, memberships, directory, handler, now: () => t, advance: (ms: number) => { t += ms } }
+  return { store, users, memberships, profiles, directory, handler, now: () => t, advance: (ms: number) => { t += ms } }
 }
 
 type Env = ReturnType<typeof setup>
@@ -71,7 +89,17 @@ class Browser {
   readonly jars = new Map<string, Map<string, string>>()
   readonly setCookies: string[] = []
 
-  constructor(private readonly env: Env, private readonly routing: Routing = 'path', private readonly ip = '203.0.113.7') {}
+  /**
+   * `geo`: the visitor's x-vercel-ip-* headers, sent on requests that go
+   * straight to a host. A request through a site's rewrite carries the
+   * site's proxy location instead (PROXY_GEO), as on Vercel.
+   */
+  constructor(
+    private readonly env: Env,
+    private readonly routing: Routing = 'path',
+    private readonly ip = '203.0.113.7',
+    private readonly geo: Record<string, string> = {},
+  ) {}
 
   jar(host: string): Map<string, string> {
     let jar = this.jars.get(host)
@@ -94,6 +122,7 @@ class Browser {
 
     const headers = new Headers({ host: target.host, 'user-agent': 'vitest-browser', 'x-real-ip': this.ip })
     if (target.host !== visible.host) headers.set('x-forwarded-host', visible.host)
+    for (const [k, v] of Object.entries(target.host === visible.host ? this.geo : PROXY_GEO)) headers.set(k, v)
     const jar = this.jar(visible.hostname)
     if (jar.size) headers.set('cookie', [...jar].map(([k, v]) => `${k}=${v}`).join('; '))
     const origin = init.origin === undefined ? (method === 'POST' ? visible.origin : null) : init.origin
@@ -126,14 +155,18 @@ function signIn(browser: Browser, env: Env, loginHost = EV_LOGIN, uid = 'u1', au
   })
 }
 
-function loginUrl(page: string): string {
+/** A site's Login link for `page`, optionally saying why (trigger) and where (label) it started. */
+function loginUrl(page: string, context: { trigger?: string; label?: string } = {}): string {
   const u = new URL(page)
-  return `https://${u.host}/api/auth/login?return=${encodeURIComponent(u.pathname + u.search + u.hash)}`
+  const params = new URLSearchParams({ return: u.pathname + u.search + u.hash, ...context })
+  return `https://${u.host}/api/auth/login?${params}`
 }
 
+type Context = { trigger?: string; label?: string }
+
 /** Click Login on `page` and follow the flow up to (not into) the app's callback. */
-async function startLogin(env: Env, browser: Browser, page = PAGE, uid = 'u1'): Promise<{ callback: string; askedToSignIn: boolean; authorize: string }> {
-  const authorize = location(await browser.fetch(loginUrl(page)))
+async function startLogin(env: Env, browser: Browser, page = PAGE, uid = 'u1', context: Context = {}): Promise<{ callback: string; askedToSignIn: boolean; authorize: string }> {
+  const authorize = location(await browser.fetch(loginUrl(page, context)))
   let res = await browser.fetch(authorize)
   let askedToSignIn = false
   if (new URL(location(res)).pathname === '/sso') {
@@ -145,8 +178,8 @@ async function startLogin(env: Env, browser: Browser, page = PAGE, uid = 'u1'): 
 }
 
 /** The full flow: Login click → (sign in) → callback → back on the page. */
-async function login(env: Env, browser: Browser, page = PAGE, uid = 'u1') {
-  const started = await startLogin(env, browser, page, uid)
+async function login(env: Env, browser: Browser, page = PAGE, uid = 'u1', context: Context = {}) {
+  const started = await startLogin(env, browser, page, uid, context)
   const res = await browser.fetch(started.callback)
   return { ...started, res }
 }
@@ -286,6 +319,7 @@ describe('sign-in flow', () => {
       'authorization_code_issued:success:central',
       'authorization_code_exchanged:success',
       'session_created:success:app',
+      'user_activation:success',
     ])
     for (const e of env.store.events) {
       expect(e).toMatchObject({ providerId: 'ev_engineer', partnerId: 'ev-engineer', at: env.now(), ip: '203.0.113.7', userAgent: 'vitest-browser' })
@@ -299,6 +333,199 @@ describe('sign-in flow', () => {
     ]
     const stored = JSON.stringify([...env.store.sessions, ...env.store.codes, env.store.events])
     for (const s of secrets) expect(stored).not.toContain(s)
+  })
+})
+
+// ── Activation records ─────────────────────────────────────────────────────
+
+describe('activation records (userActivations)', () => {
+  const SATELLITE = 'https://autonomous.ev.engineer/space/satellite-engineering?mode=advanced#energy'
+  const premium = { trigger: 'premium_route_required', label: 'Satellite Engineering' }
+
+  it('writes the first activation once, with where and why the user signed in', async () => {
+    const env = setup()
+    const browser = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+    await login(env, browser, SATELLITE, 'u1', premium)
+
+    expect([...env.store.activations.keys()]).toEqual(['ev-engineer_u1'])
+    expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({
+      id: 'ev-engineer_u1', uid: 'u1', email: 'asha@example.com', emailVerified: true, displayName: 'Asha Rao',
+      partnerId: 'ev-engineer', ecosystem: 'ev_engineer', loginProvider: EV_LOGIN,
+      firstActivatedAt: START,
+      firstSourceDomain: 'autonomous.ev.engineer',
+      firstSourceHost: 'autonomous.ev.engineer',
+      firstSourcePath: '/space/satellite-engineering',
+      firstSourcePageLabel: 'Satellite Engineering',
+      firstLoginTrigger: 'premium_route_required',
+      firstLoginPromptType: 'required',
+      lastLoginAt: START,
+      lastAccess: 'granted',
+      loginCount: 1,
+      recentEvents: [expect.objectContaining({ event: 'user_activation', trigger: 'premium_route_required', promptType: 'required', access: 'granted' })],
+    })
+    expect(env.store.events.filter(e => e.event === 'user_activation')).toHaveLength(1)
+  })
+
+  it('keeps the first source and replaces the latest login on later sign-ins', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser, SATELLITE, 'u1', premium)
+    env.advance(2 * HOUR)
+    await login(env, browser, 'https://www.ev.engineer/ev-engineer?ref=mail', 'u1', { trigger: 'five_minute_prompt', label: 'EV Engineer' })
+
+    const a = env.store.activations.get('ev-engineer_u1')!
+    expect(a).toMatchObject({
+      firstActivatedAt: START, firstSourceDomain: 'autonomous.ev.engineer', firstSourcePath: '/space/satellite-engineering',
+      firstSourcePageLabel: 'Satellite Engineering', firstLoginTrigger: 'premium_route_required', firstLoginPromptType: 'required',
+      lastLoginAt: START + 2 * HOUR, lastSourceDomain: 'ev.engineer', lastSourceHost: 'www.ev.engineer', lastSourcePath: '/ev-engineer',
+      lastSourcePageLabel: 'EV Engineer', lastLoginTrigger: 'five_minute_prompt', lastLoginPromptType: 'optional', loginCount: 2,
+    })
+    expect(a.recentEvents.map(e => e.event)).toEqual(['login_success', 'user_activation'])
+    // First activation is an event once, not on every sign-in.
+    expect(env.store.events.filter(e => e.event === 'user_activation')).toHaveLength(1)
+  })
+
+  it('keeps one record per Partner: each ecosystem has its own first activation', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser, SATELLITE, 'u1', premium)
+    await login(env, browser, 'https://aerospace.gamyaa.in/aerospace', 'u1', { trigger: 'header_login', label: 'Aerospace' })
+    expect([...env.store.activations.keys()].sort()).toEqual(['ev-engineer_u1', 'gamyaa_u1'])
+    expect(env.store.activations.get('gamyaa_u1')).toMatchObject({
+      partnerId: 'gamyaa', ecosystem: 'gamyaa', loginProvider: 'login.gamyaa.in',
+      firstSourceHost: 'aerospace.gamyaa.in', firstLoginTrigger: 'header_login', firstLoginPromptType: null,
+    })
+  })
+
+  it('treats a missing or unknown trigger as manual_login and keeps labels to plain text', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser, PAGE, 'u1', { trigger: 'admin_override', label: `  <b>UFlight</b>\n3D ${'x'.repeat(200)}` })
+    const a = env.store.activations.get('ev-engineer_u1')!
+    expect(a.firstLoginTrigger).toBe('manual_login')
+    expect(a.firstLoginPromptType).toBeNull()
+    expect(a.firstSourcePageLabel).toBe(`<b>UFlight</b> 3D ${'x'.repeat(200)}`.slice(0, 80))
+    expect(a.firstSourcePath).toBe('/aerospace/uflight-3d')
+  })
+
+  it('records whether the sign-in opened protected access — signed in is not authorized', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser, SATELLITE, 'u2')
+    expect(await session(browser, 'autonomous.ev.engineer')).toMatchObject({ authenticated: true, roles: [] })
+    expect(env.store.activations.get('ev-engineer_u2')).toMatchObject({ lastAccess: 'no_membership' })
+
+    env.memberships.set('ev-engineer_u2', { role: 'Viewer', status: 'Suspended' })
+    await login(env, browser, SATELLITE, 'u2')
+    expect(env.store.activations.get('ev-engineer_u2')!.recentEvents[0]).toMatchObject({ event: 'login_success', access: 'suspended' })
+  })
+
+  describe('location', () => {
+    it("stores the visitor's approximate country, state, city and time zone — never coordinates or postal code", async () => {
+      const env = setup()
+      const browser = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+      await login(env, browser, SATELLITE, 'u1', premium)
+      const a = env.store.activations.get('ev-engineer_u1')!
+      expect(a).toMatchObject({
+        country: 'India', countryCode: 'IN', stateOrRegion: 'Karnataka', city: 'Bengaluru', timezone: 'Asia/Kolkata',
+        locationSource: 'ip_approximate', locationCapturedAt: START,
+      })
+      const stored = JSON.stringify(a)
+      for (const secret of ['12.9716', '77.5946', '560001', '203.0.113.7', 'latitude', 'longitude']) expect(stored).not.toContain(secret)
+    })
+
+    it("uses the location from the authorize step, not the site proxy's on the callback", async () => {
+      const env = setup()
+      const browser = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+      await login(env, browser, SATELLITE, 'u1', premium)
+      expect(env.store.activations.get('ev-engineer_u1')!.countryCode).toBe('IN')
+    })
+
+    it("prefers the location on the user's profile", async () => {
+      const env = setup()
+      env.profiles.set('u1', { country: 'India', stateOrRegion: 'Karnataka', city: 'Mangaluru' })
+      const browser = new Browser(env, 'path', '203.0.113.7', { ...BENGALURU, 'x-vercel-ip-country-region': 'TN', 'x-vercel-ip-city': 'Chennai' })
+      await login(env, browser, SATELLITE, 'u1', premium)
+      expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({
+        country: 'India', countryCode: 'IN', stateOrRegion: 'Karnataka', city: 'Mangaluru', timezone: 'Asia/Kolkata',
+        locationSource: 'user_profile',
+      })
+    })
+
+    it('signs in normally without any location, and keeps an earlier one', async () => {
+      const env = setup()
+      await login(env, new Browser(env, 'path', '203.0.113.7', BENGALURU), SATELLITE, 'u1', premium)
+      env.advance(HOUR)
+      const browser = new Browser(env)
+      const { res } = await login(env, browser, SATELLITE, 'u1', premium)
+      expect(location(res)).toBe(SATELLITE)
+      expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({ country: 'India', stateOrRegion: 'Karnataka', locationCapturedAt: START, loginCount: 2 })
+
+      const fresh = setup()
+      ;(fresh.directory.profileLocation as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('firestore down'))
+      const { res: res2 } = await login(fresh, new Browser(fresh), SATELLITE, 'u1', premium)
+      expect(location(res2)).toBe(SATELLITE)
+      expect(fresh.store.activations.get('ev-engineer_u1')).toMatchObject({ country: '', countryCode: '', locationSource: null, locationCapturedAt: null })
+    })
+  })
+
+  it('never blocks a sign-in when the activation record cannot be written', async () => {
+    const env = setup()
+    vi.spyOn(env.store, 'updateActivation').mockRejectedValue(new Error('quota exceeded'))
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const browser = new Browser(env)
+    const { res } = await login(env, browser, SATELLITE, 'u1', premium)
+    expect(location(res)).toBe(SATELLITE)
+    expect((await session(browser, 'autonomous.ev.engineer')).authenticated).toBe(true)
+    expect(errors).toHaveBeenCalledWith('[auth] activation record failed', expect.anything())
+    errors.mockRestore()
+  })
+
+  it('adds a logout event without changing the latest login', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser, SATELLITE, 'u1', premium)
+    env.advance(MIN)
+    await browser.fetch('https://autonomous.ev.engineer/api/auth/logout', { method: 'POST' })
+    const a = env.store.activations.get('ev-engineer_u1')!
+    expect(a.lastLoginAt).toBe(START)
+    expect(a.recentEvents[0]).toMatchObject({ event: 'logout', at: START + MIN, host: 'autonomous.ev.engineer', trigger: null })
+  })
+
+  it('records the dashboard sign-in as workspace access on the login host; the /sso sign-in alone records nothing', async () => {
+    const env = setup()
+    const sso = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+    expect((await signIn(sso, env)).status).toBe(200)
+    expect(env.store.activations.size).toBe(0)
+
+    const dashboard = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+    const res = await dashboard.fetch(`https://${EV_LOGIN}/api/auth/session`, {
+      method: 'POST', contentType: 'application/json', body: JSON.stringify({ idToken: `idtoken:u1:${env.now()}`, purpose: 'workspace' }),
+    })
+    expect(res.status).toBe(200)
+    expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({
+      firstSourceHost: EV_LOGIN, firstSourcePath: '/', firstSourcePageLabel: 'Engineering Command Center',
+      firstLoginTrigger: 'workspace_access', firstLoginPromptType: null, countryCode: 'IN',
+    })
+  })
+
+  it('holds no token, code, session id, cookie, nonce, IP address or user agent', async () => {
+    const env = setup()
+    const browser = new Browser(env, 'path', '203.0.113.7', BENGALURU)
+    const { callback } = await login(env, browser, SATELLITE, 'u1', premium)
+    await browser.fetch('https://autonomous.ev.engineer/api/auth/logout', { method: 'POST' })
+    const stored = JSON.stringify([...env.store.activations.values()])
+    const code = [...env.store.codes.values()][0]
+    const secrets = [
+      new URL(callback).searchParams.get('code')!,
+      new URL(callback).searchParams.get('state')!,
+      browser.jar(EV_LOGIN).get(COOKIE.central)!,
+      code.nonce, code.challenge, code.centralRef,
+      ...env.store.sessions.keys(),
+      '203.0.113.7', 'vitest-browser',
+    ]
+    for (const secret of secrets) expect(stored).not.toContain(secret)
+    expect(stored).not.toMatch(/token|cookie|session|nonce|challenge|"ip"|userAgent/i)
   })
 })
 
@@ -489,7 +716,16 @@ describe('state', () => {
     expect(res.status).toBe(400)
     const html = await res.text()
     expect(html).toContain('Reference: expired_login')
-    expect(html).toContain(`href="https://aerospace.ev.engineer/api/auth/login?return=${encodeURIComponent('/aerospace/uflight-3d?view=orbit&lang=en#telemetry')}"`)
+    expect(html).toContain(`href="https://aerospace.ev.engineer/api/auth/login?return=${encodeURIComponent('/aerospace/uflight-3d?view=orbit&lang=en#telemetry')}&amp;trigger=manual_login"`)
+  })
+
+  it('starts again with the trigger and page label the sign-in began with', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    const authorize = location(await browser.fetch(loginUrl(PAGE, { trigger: 'premium_route_required', label: 'UFlight 3D' })))
+    env.advance(10 * MIN + 1)
+    const html = await (await browser.fetch(authorize)).text()
+    expect(html).toContain('&amp;trigger=premium_route_required&amp;label=UFlight+3D"')
   })
 })
 

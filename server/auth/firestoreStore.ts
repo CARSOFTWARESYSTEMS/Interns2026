@@ -1,4 +1,5 @@
 import type { DocumentData, Firestore } from 'firebase-admin/firestore'
+import type { UserActivation } from '../../src/types/activation.js'
 import { sha256 } from './crypto.js'
 import type { AuthStore, CodeRecord, SessionRecord } from './types.js'
 
@@ -8,10 +9,13 @@ import type { AuthStore, CodeRecord, SessionRecord } from './types.js'
 //   authCodes/{sha256(code)}       one-time authorization codes
 //   authEvents/{auto}              audit trail
 //   authRateLimits/{sha256(key)}   fixed-window counters
+//   userActivations/{partnerId}_{uid}  first/latest sign-in per user and Partner
 //
-// firestore.rules deny all client access to these collections. Each document
-// carries `ttlAt` (a Timestamp) for a Firestore TTL policy to delete it once
-// it is no longer useful — see docs/auth/multi-domain-sso.md.
+// firestore.rules deny all client access to the auth* collections. Each of
+// their documents carries `ttlAt` (a Timestamp) for a Firestore TTL policy to
+// delete it once it is no longer useful — see docs/auth/multi-domain-sso.md.
+// userActivations are Admin-readable user records with no TTL and nothing
+// secret on them.
 
 const DAY = 24 * 60 * 60_000
 const RETAIN = {
@@ -31,6 +35,7 @@ export function createFirestoreAuthStore(db: Firestore): AuthStore {
   const codes = db.collection('authCodes')
   const events = db.collection('authEvents')
   const limits = db.collection('authRateLimits')
+  const activations = db.collection('userActivations')
 
   return {
     async putSession(id, s) {
@@ -73,6 +78,15 @@ export function createFirestoreAuthStore(db: Firestore): AuthStore {
     },
     async recordEvent(e) {
       await events.add({ ...e, ttlAt: new Date(e.at + RETAIN.event) })
+    },
+    async updateActivation(id, fn) {
+      const ref = activations.doc(id)
+      return db.runTransaction(async tx => {
+        const snap = await tx.get(ref)
+        const { next, result } = fn(snap.exists ? (snap.data() as UserActivation) : null)
+        if (next) tx.set(ref, next)
+        return result
+      })
     },
   }
 }

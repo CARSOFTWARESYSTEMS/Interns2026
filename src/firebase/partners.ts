@@ -116,6 +116,12 @@ export async function listPartnerMemberships(partnerId: string): Promise<Partner
   return snap.docs.map(d => d.data() as PartnerMembership)
 }
 
+/** One user's memberships in every Partner — Platform Admin only. */
+export async function listMembershipsForUser(uid: string): Promise<PartnerMembership[]> {
+  const snap = await getDocs(query(collection(db, 'partnerMemberships'), where('uid', '==', uid)))
+  return snap.docs.map(d => d.data() as PartnerMembership)
+}
+
 /** All memberships across Partners — Platform Admin only. */
 export async function listAllMemberships(): Promise<PartnerMembership[]> {
   const snap = await getDocs(collection(db, 'partnerMemberships'))

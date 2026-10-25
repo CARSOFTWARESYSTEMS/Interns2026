@@ -92,7 +92,7 @@ On an application host (after its rewrite is deployed):
 
 | | |
 |---|---|
-| `GET /api/auth/login?return=<path>` | Start sign-in. `return` is a path on the same host (path, query, hash); anything else is refused. |
+| `GET /api/auth/login?return=<path>[&trigger=<trigger>&label=<page>]` | Start sign-in. `return` is a path on the same host (path, query, hash); anything else is refused. `trigger` and `label` say why and where the sign-in started (see [Activation records](#activation-records-and-the-users-view)); both are optional. |
 | `GET /api/auth/callback` | Used by the flow only. |
 | `GET /api/auth/session` | `{ "authenticated": false }` or `{ "authenticated": true, "user": { "id", "name", "email" }, "roles": [...], "domain": "<host>" }` |
 | `POST /api/auth/logout` | Ends this site's session only. JSON for `fetch`; a form post is redirected to `?return=<path>` (or `/`). |
@@ -241,6 +241,14 @@ gcloud firestore fields ttls list --project=ev2027
 Applied to `ev2027` on 2026-10-25. Retention: sessions 30 days after expiry,
 codes 1 day, audit events 400 days. No new indexes are needed.
 
+**Activation records (added after 2026-10-25):** the same rules deploy adds
+`userActivations` — readable by Platform Admin and by that Partner's Admins,
+written by no client. Deploy the rules **before** the dashboard build that
+reads them; until then the Users page lists members with a notice that sign-in
+activity isn't available. `userActivations` has no TTL (they are the user
+records Admins work from) and needs no index: list queries filter on one field
+and sort in the browser.
+
 ## 4. Post-deployment smoke tests
 
 ### Stage 1 — backend only (no site changes yet)
@@ -328,7 +336,8 @@ Only after these pass: add the sites' Login button and sign-in prompt.
 | Session lifetime | 12 h idle, 7 days absolute; a new id on every sign-in (rotation); revoked on logout, rotation, code replay, disabled account. |
 | Central sign-in | Verifies the Firebase ID token server-side (signature, revocation, disabled account) and requires a sign-in within the last 5 minutes. |
 | Rate limits | Per IP per minute: 30 sign-in starts, 30 authorizations, 10 token sign-ins. |
-| Audit | `authEvents`: `login_started`, `login_success`, `login_failed`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created`, `session_refreshed`, `logout`, `session_revoked` — user, Partner, host, time, result, reason, IP, user agent. No tokens, codes or cookie values. |
+| Audit | `authEvents`: `login_started`, `login_success`, `login_failed`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created`, `session_refreshed`, `logout`, `session_revoked`, `user_activation` — user, Partner, host, time, result, reason, IP, user agent. No tokens, codes or cookie values. Server-only: no Admin view reads them. |
+| Activation records | `userActivations/{partnerId}_{uid}`: first and latest sign-in, coarse location, last 15 sign-in/sign-out events. No tokens, codes, session ids, cookies, nonces, IP addresses, user agents or coordinates (tested in `handler.test.ts`). |
 | Errors | Fixed friendly pages per case (`expired_login`, `invalid_return`, `invalid_state`, `expired_code`, `code_used`, `session_failed`, `unauthorized_domain`, …); no internal detail. |
 
 Tests: [`server/auth/handler.test.ts`](../../server/auth/handler.test.ts) runs the
@@ -336,6 +345,46 @@ whole flow through a simulated browser with one cookie jar per host;
 [`src/auth/*.test.ts`](../../src/auth) cover the host table and return paths;
 `tests/rules/tenant.rules.test.ts` and `tests/rules/authStore.test.ts` cover the
 Firestore rules and the Firestore store in the emulator.
+
+## Activation records and the Users view
+
+Every completed sign-in updates one record per user per Partner,
+`userActivations/{partnerId}_{uid}` ([`server/auth/activation.ts`](../../server/auth/activation.ts),
+types in [`src/types/activation.ts`](../../src/types/activation.ts)), inside a
+transaction:
+
+- **First activation** — written once, never overwritten: when, source domain and host, page path (no query or hash) and label, login trigger and prompt type.
+- **Latest login** — replaced on every sign-in, with the access the user had at that moment (`granted`, `platform_admin`, `no_membership`, `pending`, `suspended`, `blocked`). Live access is still the membership.
+- **Identity** — email, verified flag and name as Google reports them now.
+- **Coarse location** — country, state/region, city, time zone. The user's profile (`country`, `stateOrRegion`, `city`) wins; otherwise Vercel's `x-vercel-ip-*` headers, read at `/api/auth/authorize` (the one step the browser sends straight to the login host — requests through a site's rewrite carry the proxy's location). Latitude, longitude and postal code are never read; the IP address is not stored. A sign-in without a location keeps the previous one.
+- **Recent events** — the last 15 `user_activation`, `login_success` and `logout` entries.
+
+Where a sign-in comes from:
+
+| Trigger | Prompt type | Sent by |
+|---|---|---|
+| `premium_route_required` | required | A site's login gate on a required-login page |
+| `five_minute_prompt` | optional | A site's optional prompt after five anonymous minutes |
+| `header_login` | — | A site's header Login control |
+| `workspace_access` | — | The dashboard's own sign-in (`POST /api/auth/session` with `purpose: "workspace"`; host = the login host) |
+| `manual_login` | — | Anything else, including a missing or unknown `trigger` |
+
+`label` is plain text, 80 characters at most. Both values are display
+metadata for Admins and never affect access. A failure to write the record is
+logged and never blocks the sign-in.
+
+**Users view** (`/admin/users`): Platform Admin sees every Partner; an Admin
+sees their own Partner only — firestore.rules enforce the same, so the scope
+holds even against a hand-made query. Viewers and every other role get
+nothing. One row per user per Partner joins the membership with the activation
+record; someone who signed in without a membership shows as
+*Authenticated · No Membership*. `/admin/users/<uid>` shows identity,
+membership, activation and access, location and recent events per Partner;
+`/admin/users/manage` is the membership management page that was
+`/admin/users` before.
+
+**Privacy notice:** `/privacy` on every login host, linked from `/login` and
+`/sso`. Keep it in step with this section.
 
 ## Decisions for this release
 

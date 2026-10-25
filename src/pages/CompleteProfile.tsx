@@ -23,9 +23,9 @@ const GRAD_YEARS = Array.from({ length: 6 }, (_, i) => String(2024 + i))
 const DEGREES = ['B.E.', 'B.Tech', 'M.E.', 'M.Tech', 'MCA', 'MBA', 'Ph.D.', 'Diploma', 'Other']
 const EXPERIENCE = ['Fresher', '< 1 year', '1 year', '2 years', '3+ years']
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+function Field({ label, required, className, children }: { label: string; required?: boolean; className?: string; children: ReactNode }) {
   return (
-    <div>
+    <div className={className}>
       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -47,6 +47,7 @@ export default function CompleteProfile() {
     mobile: userProfile?.mobile ?? '',
     bio: userProfile?.bio ?? '',
     city: userProfile?.city ?? '',
+    stateOrRegion: userProfile?.stateOrRegion ?? '',
     country: userProfile?.country ?? '',
     college: userProfile?.college ?? '',
     degree: userProfile?.degree ?? '',
@@ -180,11 +181,14 @@ export default function CompleteProfile() {
               <Field label="Mobile Number">
                 <input className={inputCls} value={form.mobile} onChange={e => setField('mobile', e.target.value)} placeholder="+91 98765 43210" />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Field label="City">
                   <input className={inputCls} value={form.city} onChange={e => setField('city', e.target.value)} placeholder="Mangalore" />
                 </Field>
-                <Field label="Country">
+                <Field label="State / Region">
+                  <input className={inputCls} value={form.stateOrRegion} onChange={e => setField('stateOrRegion', e.target.value)} placeholder="Karnataka" />
+                </Field>
+                <Field label="Country" className="col-span-2 sm:col-span-1">
                   <input className={inputCls} value={form.country} onChange={e => setField('country', e.target.value)} placeholder="India" />
                 </Field>
               </div>

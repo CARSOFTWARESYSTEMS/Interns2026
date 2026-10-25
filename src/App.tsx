@@ -12,6 +12,7 @@ import Layout from './components/layout/Layout'
 // Auth pages (no layout)
 import Login from './pages/Login'
 import SsoLogin from './pages/SsoLogin'
+import Privacy from './pages/Privacy'
 import CompleteProfile from './pages/CompleteProfile'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
@@ -70,6 +71,8 @@ import PeopleMyOfferLetter from './pages/people/MyOfferLetter'
 
 // Admin pages
 import AdminUsers from './pages/admin/Users'
+import UserDirectory from './pages/admin/UserDirectory'
+import UserDetail from './pages/admin/UserDetail'
 import AdminInvitations from './pages/admin/Invitations'
 import DeveloperSettings from './pages/admin/DeveloperSettings'
 import AssignmentCreate from './pages/admin/AssignmentCreate'
@@ -113,6 +116,9 @@ export default function App() {
 
           {/* ── Single sign-on for application hosts (state from /api/auth/authorize) ── */}
           <Route path="/sso" element={<SsoLogin />} />
+
+          {/* ── What signing in records (linked from the sign-in pages) ── */}
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* ── Invitation redemption: signed in, membership not yet required ── */}
           <Route
@@ -309,7 +315,23 @@ export default function App() {
               path="admin/users"
               element={
                 <RoleGuard allow={['Platform Admin', 'Admin']}>
+                  <UserDirectory />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/users/manage"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Admin']}>
                   <AdminUsers />
+                </RoleGuard>
+              }
+            />
+            <Route
+              path="admin/users/:uid"
+              element={
+                <RoleGuard allow={['Platform Admin', 'Admin']}>
+                  <UserDetail />
                 </RoleGuard>
               }
             />

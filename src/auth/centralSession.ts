@@ -20,7 +20,12 @@ export function isLoginHost(hostname: string = window.location.hostname): boolea
   return providerForLoginHost(hostname) !== null
 }
 
-export async function startCentralSession(user: User): Promise<void> {
+/**
+ * `workspace`: the dashboard's own sign-in, recorded as the user's workspace
+ * access. `sso`: the /sso page, part of an application sign-in that is
+ * recorded when it completes.
+ */
+export async function startCentralSession(user: User, purpose: 'workspace' | 'sso'): Promise<void> {
   const idToken = await user.getIdToken()
   let res: Response
   try {
@@ -28,7 +33,7 @@ export async function startCentralSession(user: User): Promise<void> {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify({ idToken, purpose }),
     })
   } catch {
     throw new CentralSessionError('network')

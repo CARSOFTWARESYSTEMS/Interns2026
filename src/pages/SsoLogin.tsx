@@ -39,7 +39,7 @@ export default function SsoLogin() {
     setContinuing(true)
     setError('')
     try {
-      await startCentralSession(user)
+      await startCentralSession(user, 'sso')
       window.location.replace(`/api/auth/authorize?state=${encodeURIComponent(state!)}`)
     } catch (e) {
       setContinuing(false)
@@ -91,6 +91,11 @@ export default function SsoLogin() {
         <p className="flex gap-1.5 text-xs text-red-300"><AlertCircle size={13} className="flex-shrink-0 mt-0.5" />{error}</p>
       )}
       {b.login.restrictedNotice && <p className="text-[11px] text-slate-500">{b.login.restrictedNotice}</p>}
+      <p className="text-[11px]">
+        <a href="/privacy" target="_blank" rel="noopener" className="text-slate-400 underline decoration-slate-600 underline-offset-2 hover:text-slate-200">
+          What signing in records
+        </a>
+      </p>
     </GateScreen>
   )
 }

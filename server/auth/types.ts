@@ -1,4 +1,6 @@
 import type { AuthProviderId } from '../../src/auth/providers.js'
+import type { AccessResult, CoarseLocation, UserActivation } from '../../src/types/activation.js'
+import type { ProfileLocation } from './location.js'
 
 // ── Records ────────────────────────────────────────────────────────────────
 //
@@ -49,6 +51,12 @@ export interface CodeRecord {
   usedAt: number | null
   /** Storage id of the app session created by redeeming it (revoked if the code is replayed). */
   sessionId: string | null
+  /**
+   * Approximate location of the browser that asked for the code. Read at
+   * authorize, the one step the browser sends straight to the login host.
+   * Absent on codes issued before activation tracking.
+   */
+  location?: CoarseLocation | null
 }
 
 // ── Audit ──────────────────────────────────────────────────────────────────
@@ -63,6 +71,8 @@ export type AuthEventName =
   | 'session_refreshed'
   | 'logout'
   | 'session_revoked'
+  /** First sign-in of a user to a Partner's sites (details on userActivations). */
+  | 'user_activation'
 
 export interface AuthEvent {
   event: AuthEventName
@@ -102,6 +112,12 @@ export interface AuthStore {
   /** Fixed-window counter: counts this hit and returns the window's total. */
   hit(key: string, windowMs: number, now: number): Promise<number>
   recordEvent(e: AuthEvent): Promise<void>
+  /**
+   * Atomic read-modify-write of userActivations/{id} (a transaction in
+   * Firestore), so concurrent sign-ins agree on which one was first. `fn`
+   * returns the record to write (or null to leave it) and the caller's result.
+   */
+  updateActivation<T>(id: string, fn: (a: UserActivation | null) => { next: UserActivation | null; result: T }): Promise<T>
 }
 
 export interface VerifiedSignIn {
@@ -121,4 +137,8 @@ export interface Directory {
   isUserEnabled(uid: string): Promise<boolean>
   /** The roles the user holds for this Partner right now. */
   rolesFor(user: { uid: string; email: string; emailVerified: boolean }, partnerId: string): Promise<string[]>
+  /** Whether those roles open the Partner's protected areas, and if not, why (membership state). */
+  accessFor(user: { uid: string; email: string; emailVerified: boolean }, partnerId: string): Promise<AccessResult>
+  /** Location the user entered on their profile (users/{uid}), or null. */
+  profileLocation(uid: string): Promise<ProfileLocation | null>
 }

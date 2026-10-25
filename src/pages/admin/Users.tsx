@@ -7,6 +7,7 @@ import SectionCard from '../../components/ui/SectionCard'
 import UserAvatar from '../../components/ui/UserAvatar'
 import PermissionBadge from '../../components/ui/PermissionBadge'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { UsersTabs } from '../../components/admin/UsersUi'
 import { useAuthContext } from '../../contexts/AuthContext'
 import {
   listPartnerMemberships, listAllMemberships, listAllUsers, listPartners,
@@ -176,6 +177,7 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <PageHeader title="User Management" subtitle={subtitle} icon={<Users size={18}/>} />
+      <UsersTabs />
 
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex gap-2 text-sm text-red-700">

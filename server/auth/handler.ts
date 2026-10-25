@@ -14,7 +14,7 @@
 //     POST logout      — end the central session
 //   Application host: `app/<host>/<action>` (rewrite from the app's project), or
 //   `<action>` with the app host in the Host header (handler mounted natively)
-//     GET  login       — start sign-in; ?return=<same-host path>
+//     GET  login       — start sign-in; ?return=<same-host path>[&trigger=…&label=…]
 //     GET  callback    — redeem the code, create this host's session, return
 //     GET  session     — { authenticated, user, roles, domain }
 //     POST logout      — end this host's session
@@ -23,13 +23,22 @@
 // single-use, expires in seconds, is bound to one host, to the state nonce
 // and to a PKCE verifier held in that host's HttpOnly cookie; sessions are
 // opaque random ids whose SHA-256 is the only thing stored.
+//
+// Every completed sign-in also updates the user's activation record for the
+// Partner (userActivations/{partnerId}_{uid}): first activation kept once,
+// latest sign-in, coarse location, recent events. Best effort — a failure
+// there is logged and never blocks the sign-in.
 
+import { parseLoginTrigger, sanitizePageLabel, type LoginTrigger } from '../../src/auth/loginContext.js'
 import { isAllowedAppHost, providerForAppHost, providerForLoginHost, type AuthProvider } from '../../src/auth/providers.js'
 import { returnUrl, sanitizeReturnPath } from '../../src/auth/returnPath.js'
+import type { CoarseLocation } from '../../src/types/activation.js'
 import { normalizeHostname } from '../../src/tenant/hostname.js'
+import { activationId, applySignIn, applySignOut } from './activation.js'
 import { COOKIE, clearCookie, readCookie, setCookie } from './cookies.js'
 import { pkceChallenge, randomToken, safeEqual, seal, sha256, unseal } from './crypto.js'
 import { errorInfo, renderErrorPage, type AuthErrorCode, type ErrorAction } from './errors.js'
+import { locationFromHeaders, resolveLocation } from './location.js'
 import type { AuthPolicy } from './policy.js'
 import type {
   AuthEvent, AuthStore, CodeRecord, Directory, SessionKind, SessionRecord, VerifiedSignIn,
@@ -44,13 +53,19 @@ export interface AuthDeps {
   now?: () => number
 }
 
-/** Signed state carried through the login host: origin host, return path, nonce, timestamp (+ PKCE challenge). */
+/**
+ * Signed state carried through the login host: origin host, return path,
+ * nonce, timestamp (+ PKCE challenge), and why the sign-in started: trigger
+ * and page label (absent on states minted before they existed).
+ */
 export interface LoginState {
   h: string
   p: string
   n: string
   c: string
   t: number
+  g?: string
+  l?: string
 }
 
 /** The application host's own record of a sign-in in progress (HttpOnly cookie). */
@@ -189,11 +204,17 @@ function homeAction(host: string): ErrorAction {
   return { label: `Go to ${host}`, href: `https://${host}/` }
 }
 
-/** Restart sign-in at the app, returning to the same page (state is already verified). */
+/** Restart sign-in at the app, returning to the same page with the same trigger (state is already verified). */
 function signInAgainAction(state: LoginState): ErrorAction {
   const path = sanitizeReturnPath(state.p, state.h) ?? '/'
-  return { label: 'Sign in again', href: `https://${state.h}/api/auth/login?return=${encodeURIComponent(path)}` }
+  const context = new URLSearchParams({ return: path, trigger: parseLoginTrigger(state.g) })
+  const label = sanitizePageLabel(state.l)
+  if (label) context.set('label', label)
+  return { label: 'Sign in again', href: `https://${state.h}/api/auth/login?${context}` }
 }
+
+/** The dashboard's own sign-in, recorded as an activation on the login host. */
+const WORKSPACE_LABEL = 'Engineering Command Center'
 
 // ── Handler ────────────────────────────────────────────────────────────────
 
@@ -269,6 +290,51 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       await audit({ event, result: 'success', reason, ...aboutSession(s) })
     }
 
+    /**
+     * Records a completed sign-in on the user's activation record for this
+     * Partner. Never throws: the user is signed in either way.
+     */
+    async function recordSignIn(
+      who: { uid: string; email: string; emailVerified: boolean; name: string },
+      where: { host: string; path: string; pageLabel: string; trigger: LoginTrigger },
+      approximate: CoarseLocation | null,
+    ): Promise<void> {
+      try {
+        const [access, profile] = await Promise.all([
+          directory.accessFor(who, provider.partnerId),
+          directory.profileLocation(who.uid).catch(err => {
+            logError('profile location read failed', err)
+            return null
+          }),
+        ])
+        // Named fields only: `who` may be a code record, whose nonce and challenge stay out of it.
+        const facts = {
+          uid: who.uid, email: who.email, emailVerified: who.emailVerified, name: who.name,
+          ...where, access, at: now(),
+          providerId: provider.id, partnerId: provider.partnerId, loginProvider: provider.loginHost,
+        }
+        const location = resolveLocation(profile, approximate)
+        const first = await store.updateActivation(activationId(provider.partnerId, who.uid), prev => ({
+          next: applySignIn(prev, facts, location),
+          result: prev === null,
+        }))
+        if (first) await audit({ event: 'user_activation', result: 'success', uid: who.uid, host: where.host })
+      } catch (err) {
+        logError('activation record failed', err)
+      }
+    }
+
+    async function recordSignOut(s: Loaded): Promise<void> {
+      try {
+        await store.updateActivation(activationId(s.rec.partnerId, s.rec.uid), prev => ({
+          next: applySignOut(prev, s.rec.host, now()),
+          result: undefined,
+        }))
+      } catch (err) {
+        logError('activation sign-out record failed', err)
+      }
+    }
+
     async function touch(s: Loaded): Promise<void> {
       if (now() - s.rec.lastSeenAt < policy.touchIntervalMs) return
       try {
@@ -283,7 +349,8 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
 
     async function startLogin(): Promise<Response> {
       if (await limited('login')) return fail('rate_limited', { html: true })
-      const raw = new URL(req.url).searchParams.get('return')
+      const params = new URL(req.url).searchParams
+      const raw = params.get('return')
       const path = raw ? sanitizeReturnPath(raw, host) : '/'
       if (path === null) {
         await audit({ event: 'login_started', result: 'failure', reason: 'invalid_return' })
@@ -292,7 +359,10 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const nonce = randomToken()
       const verifier = randomToken()
       const t = now()
-      const state = seal(secret, STATE_PURPOSE, { h: host, p: path, n: nonce, c: pkceChallenge(verifier), t } satisfies LoginState)
+      const state = seal(secret, STATE_PURPOSE, {
+        h: host, p: path, n: nonce, c: pkceChallenge(verifier), t,
+        g: parseLoginTrigger(params.get('trigger')), l: sanitizePageLabel(params.get('label')),
+      } satisfies LoginState)
       const txn = seal(secret, TXN_PURPOSE, { h: host, n: nonce, v: verifier, t } satisfies LoginTxn)
       await audit({ event: 'login_started', result: 'success' })
       return redirect(
@@ -368,6 +438,9 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         return fail('session_failed', { html: true, action: again, cookies: [clearTxn] })
       }
       await audit({ event: 'session_created', result: 'success', uid: c.uid, sessionRef: sessionRef(sessionId), sessionKind: 'app' })
+      await recordSignIn(c, {
+        host, path, pageLabel: sanitizePageLabel(state.l), trigger: parseLoginTrigger(state.g),
+      }, c.location ?? null)
       return redirect(returnUrl(host, path), [setCookie(COOKIE.session, token, policy.absoluteLifetimeMs), clearTxn])
     }
 
@@ -402,6 +475,8 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         host: state.h, challenge: state.c, nonce: state.n,
         centralRef: sessionRef(session.id),
         createdAt: t, expiresAt: t + policy.codeTtlMs, usedAt: null, sessionId: null,
+        // This request comes straight from the browser, so its geo headers are the visitor's.
+        location: locationFromHeaders(req.headers),
       })
       await audit({ event: 'authorization_code_issued', result: 'success', uid, host: state.h, sessionRef: sessionRef(session.id), sessionKind: 'central' })
       return redirect(`https://${state.h}/api/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateToken)}`)
@@ -435,6 +510,11 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       await store.putSession(id, sessionRecord('central', who, provider, host, null))
       await audit({ event: 'login_success', result: 'success', uid: who.uid })
       await audit({ event: 'session_created', result: 'success', uid: who.uid, sessionRef: sessionRef(id), sessionKind: 'central' })
+      // The dashboard's sign-in is an activation in its own right. The /sso page's is not:
+      // the application sign-in it is part of is recorded when its code is redeemed.
+      if (body?.purpose === 'workspace') {
+        await recordSignIn(who, { host, path: '/', pageLabel: WORKSPACE_LABEL, trigger: 'workspace_access' }, locationFromHeaders(req.headers))
+      }
       return json({ authenticated: true }, 200, [setCookie(COOKIE.central, token, policy.absoluteLifetimeMs)])
     }
 
@@ -454,7 +534,10 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const form = isFormPost(req)
       if (!sameOrigin(req, host)) return fail('forbidden_origin', { html: form })
       const { session } = await loadSession(req, kind, host)
-      if (session) await revoke(session, 'logout', 'logout')
+      if (session) {
+        await revoke(session, 'logout', 'logout')
+        await recordSignOut(session)
+      }
       const cookies = [clearCookie(kind === 'central' ? COOKIE.central : COOKIE.session)]
       if (form) {
         const raw = new URL(req.url).searchParams.get('return')

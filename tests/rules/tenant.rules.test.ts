@@ -6,7 +6,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { readFileSync } from 'node:fs'
-import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   initializeTestEnvironment, assertSucceeds, assertFails, type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing'
@@ -531,6 +531,69 @@ describe('Multi-domain sign-in collections (server only)', () => {
         await assertFails(updateDoc(doc(f, c, 'x'), { revokedAt: null }))
         await assertFails(deleteDoc(doc(f, c, 'x')))
       }
+    }
+  })
+})
+
+describe('User activations (Users view data)', () => {
+  // Activation records as /api/auth writes them: one per user per Partner.
+  const activation = (pid: string, who: Who) => ({
+    id: `${pid}_${USERS[who].uid}`, uid: USERS[who].uid, partnerId: pid, email: USERS[who].email, displayName: who,
+    firstSourceDomain: 'autonomous.ev.engineer', firstLoginTrigger: 'premium_route_required', country: 'India',
+  })
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const f = ctx.firestore() as unknown as Firestore
+      for (const [pid, who] of [['gamyaa', 'gDev'], ['gamyaa', 'stranger'], ['uflight', 'multi'], ['ev-engineer', 'evDev']] as Array<[string, Who]>) {
+        await setDoc(doc(f, 'userActivations', `${pid}_${USERS[who].uid}`), activation(pid, who))
+      }
+    })
+  })
+
+  const gamyaaList = (who: Who | null) => getDocs(query(collection(db(who), 'userActivations'), where('partnerId', '==', 'gamyaa')))
+
+  it("a Partner Admin reads their own Partner's users — members and signed-in non-members alike", async () => {
+    const snap = await assertSucceeds(gamyaaList('gAdmin'))
+    expect(snap.docs.map(d => d.id).sort()).toEqual([`gamyaa_${USERS.gDev.uid}`, `gamyaa_${USERS.stranger.uid}`].sort())
+    await assertSucceeds(getDoc(doc(db('gAdmin'), 'userActivations', `gamyaa_${USERS.stranger.uid}`)))
+    // A user with no record yet reads as not found, not as a permission error.
+    await assertSucceeds(getDoc(doc(db('gAdmin'), 'userActivations', 'gamyaa_nobody')))
+  })
+
+  it("a Partner Admin cannot see another Partner's users, by query or by id", async () => {
+    await assertFails(getDocs(query(collection(db('gAdmin'), 'userActivations'), where('partnerId', '==', 'uflight'))))
+    await assertFails(getDocs(collection(db('gAdmin'), 'userActivations')))
+    await assertFails(getDocs(query(collection(db('gAdmin'), 'userActivations'), where('uid', '==', USERS.multi.uid))))
+    await assertFails(getDoc(doc(db('gAdmin'), 'userActivations', `uflight_${USERS.multi.uid}`)))
+    await assertFails(getDoc(doc(db('uAdmin'), 'userActivations', `gamyaa_${USERS.gDev.uid}`)))
+  })
+
+  it('Platform Admin sees every Partner', async () => {
+    for (const who of ['pa', 'superAdmin'] as const) {
+      await assertSucceeds(getDocs(collection(db(who), 'userActivations')))
+      await assertSucceeds(getDocs(query(collection(db(who), 'userActivations'), where('uid', '==', USERS.multi.uid))))
+      await assertSucceeds(getDoc(doc(db(who), 'userActivations', `uflight_${USERS.multi.uid}`)))
+    }
+  })
+
+  it('Viewers, Developers, Managers, pending or blocked members and strangers get nothing — not even their own record', async () => {
+    for (const who of ['gDev', 'gMgr', 'gPending', 'gBlocked', 'stranger', 'evDev'] as const) {
+      await assertFails(gamyaaList(who))
+      await assertFails(getDoc(doc(db(who), 'userActivations', `gamyaa_${USERS.gDev.uid}`)))
+    }
+    await assertFails(getDoc(doc(db('evDev'), 'userActivations', `ev-engineer_${USERS.evDev.uid}`)))
+    await assertFails(getDocs(query(collection(db('multi'), 'userActivations'), where('partnerId', '==', 'ev-engineer'))))   // ev Viewer
+    await assertFails(gamyaaList(null))
+  })
+
+  it('no client writes them — not the user, not an Admin, not a Platform Admin', async () => {
+    for (const who of ['gDev', 'gAdmin', 'pa', 'superAdmin'] as const) {
+      const ref = doc(db(who), 'userActivations', `gamyaa_${USERS.gDev.uid}`)
+      await assertFails(setDoc(ref, activation('gamyaa', 'gDev')))
+      await assertFails(updateDoc(ref, { firstSourceDomain: 'evil.example' }))
+      await assertFails(deleteDoc(ref))
+      await assertFails(setDoc(doc(db(who), 'userActivations', `gamyaa_${USERS[who].uid}`), activation('gamyaa', who)))
     }
   })
 })

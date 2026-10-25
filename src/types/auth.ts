@@ -54,6 +54,11 @@ const _ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   'HR Manager':           ['people:write', 'people:read', 'people:recruitment', 'people:leave:approve', 'people:policies:write'],
 }
 
+/** The role's permission strings, for display ('*' = everything the role's scope allows). */
+export function permissionsFor(role: UserRole): readonly string[] {
+  return _ROLE_PERMISSIONS[role] ?? []
+}
+
 export function hasPermission(role: UserRole, action: string): boolean {
   const perms = _ROLE_PERMISSIONS[role] ?? []
   return perms.includes('*') || perms.includes(action) || perms.includes(action.split(':')[0] + ':*')
@@ -116,6 +121,8 @@ export interface UserProfile {
   semester: string
   graduationYear: string
   city: string
+  /** Optional: profiles created before it was asked for have none. */
+  stateOrRegion?: string
   country: string
   resumeDriveLink: string
   bio: string
@@ -154,7 +161,7 @@ export function buildEmptyProfile(uid: string, displayName: string, email: strin
     uid, displayName, email, photoURL,
     mobile: '', linkedin: '', github: '', portfolio: '',
     college: '', degree: '', specialization: '', semester: '',
-    graduationYear: '', city: '', country: '',
+    graduationYear: '', city: '', stateOrRegion: '', country: '',
     resumeDriveLink: '', bio: '', experience: '',
     createdAt: now, updatedAt: now, lastLogin: now,
     // No role/status/orgId: those are Partner-scoped and rules reject them here.
