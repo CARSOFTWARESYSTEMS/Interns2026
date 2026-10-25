@@ -509,3 +509,28 @@ describe('Removing members (User Management → Remove)', () => {
     await assertSucceeds(removal('pa', 'gamyaa_newbie', [TOKEN_ADMIN]))
   })
 })
+
+describe('Multi-domain sign-in collections (server only)', () => {
+  const COLLECTIONS = ['authSessions', 'authCodes', 'authEvents', 'authRateLimits']
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async ctx => {
+      const f = ctx.firestore() as unknown as Firestore
+      for (const c of COLLECTIONS) await setDoc(doc(f, c, 'x'), { uid: USERS.gDev.uid })
+    })
+  })
+
+  it('no client can read, list or write them — not the owner, not a Platform Admin', async () => {
+    for (const who of [null, 'gDev', 'pa', 'superAdmin'] as const) {
+      const f = db(who)
+      for (const c of COLLECTIONS) {
+        await assertFails(getDoc(doc(f, c, 'x')))
+        await assertFails(getDocs(collection(f, c)))
+        await assertFails(getDocs(query(collection(f, c), where('uid', '==', USERS.gDev.uid))))
+        await assertFails(setDoc(doc(f, c, 'y'), { uid: USERS.gDev.uid }))
+        await assertFails(updateDoc(doc(f, c, 'x'), { revokedAt: null }))
+        await assertFails(deleteDoc(doc(f, c, 'x')))
+      }
+    }
+  })
+})

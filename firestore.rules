@@ -758,5 +758,15 @@ service cloud.firestore {
       allow read:   if canManageLettersIn(rp());
       allow update, delete: if false;
     }
+
+    // ── Multi-domain sign-in (server only) ────────────────────────────────
+    // Sessions, one-time codes, the auth audit trail and rate-limit counters
+    // are read and written only by the /api/auth function (Admin SDK, which
+    // bypasses these rules). No client — signed in or not, Platform Admin
+    // included — may touch them.
+    match /authSessions/{id}   { allow read, write: if false; }
+    match /authCodes/{id}      { allow read, write: if false; }
+    match /authEvents/{id}     { allow read, write: if false; }
+    match /authRateLimits/{id} { allow read, write: if false; }
   }
 }

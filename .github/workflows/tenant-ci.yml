@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Unit tests (hostname, RBAC, tenant session, branding)
+      - name: Unit tests (hostname, RBAC, tenant session, branding, multi-domain sign-in)
         run: npm test
 
       - name: Static verification scripts

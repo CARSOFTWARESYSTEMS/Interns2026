@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import type { User } from 'firebase/auth'
 import { signInWithGoogle } from '../../firebase/auth'
 import { Loader2 } from 'lucide-react'
 
 interface GoogleLoginButtonProps {
-  onSuccess?: () => void
+  onSuccess?: (user: User) => void
   onError?: (err: Error) => void
   label?: string
 }
@@ -18,8 +19,7 @@ export default function GoogleLoginButton({
   async function handleClick() {
     setLoading(true)
     try {
-      await signInWithGoogle()
-      onSuccess?.()
+      onSuccess?.(await signInWithGoogle())
     } catch (err) {
       onError?.(err as Error)
     } finally {

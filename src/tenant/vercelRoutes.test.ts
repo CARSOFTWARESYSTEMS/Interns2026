@@ -15,20 +15,36 @@ const ASSETS = [
   '/assets/index-Ab12Cd34.js', '/assets/index-Ab12Cd34.css', '/og-image.png', '/fonts/Inter-Bold.ttf',
   ...partnerIds.flatMap(id => ['og-image.png', 'icon-96.png', 'apple-touch-icon.png'].map(f => `${partnerAssetDir(id)}/${f}`)),
 ]
-const FILES = new Set([...PAGES, ...ASSETS])
+const FUNCTIONS = new Set(['/api/auth'])
+const FILES = new Set([...PAGES, ...ASSETS, ...FUNCTIONS])
 
-/**
- * The file Vercel serves for a request: `routes` in order (they run before
- * the filesystem; `has` host must match exactly), then the filesystem, else 404.
- */
+/** The route Vercel applies to a request: `routes` in order (they run before the filesystem; `has` host must match exactly). */
+function matchRoute(host: string, path: string): { route: Route; match: RegExpExecArray } | null {
+  for (const route of routes) {
+    const match = new RegExp(route.src).exec(path)
+    if (match && (route.has ?? []).every(h => h.type === 'host' && h.value.eq === host)) return { route, match }
+  }
+  return null
+}
+
+/** The file or function Vercel serves for a request: the matching route's dest, then the filesystem, else 404. */
 function served(host: string, url: string): string | 404 {
   let path = new URL(url, 'https://example.test').pathname
-  const route = routes.find(r =>
-    new RegExp(r.src).test(path) && (r.has ?? []).every(h => h.type === 'host' && h.value.eq === host))
-  if (route) path = route.dest
+  const hit = matchRoute(host, path)
+  if (hit) path = new URL(hit.route.dest, 'https://example.test').pathname
   if (path.endsWith('/')) path += 'index.html'
   return FILES.has(path) ? path : 404
 }
+
+/** The query a route's dest adds, with $1… filled in from the match. */
+function routeQuery(host: string, url: string): URLSearchParams {
+  const hit = matchRoute(host, new URL(url, 'https://example.test').pathname)!
+  const dest = hit.route.dest.replace(/\$(\d)/g, (_, i: string) => hit.match[Number(i)] ?? '')
+  return new URL(dest, 'https://example.test').searchParams
+}
+
+const AUTH_ROUTE = routes[0]
+const PAGE_ROUTES = routes.slice(1)
 
 const DEEP_LINKS = ['/', '/index.html', '/offer', '/people/my-offer', '/admin/users', '/join?token=x', '/login', '/people/']
 const OTHER_HOSTS = ['ev2027.web.app', 'ev2027.firebaseapp.com', 'interns2026.vercel.app', 'unknown.example.com']
@@ -70,6 +86,29 @@ describe('vercel.json: files are served as they are', () => {
   })
 })
 
+describe('vercel.json: /api/auth reaches the auth function', () => {
+  const AUTH_PATHS: Array<[string, string]> = [
+    ['/api/auth/authorize?state=abc', 'authorize'],
+    ['/api/auth/session', 'session'],
+    ['/api/auth/logout', 'logout'],
+    ['/api/auth/app/aerospace.ev.engineer/callback?code=x&state=y', 'app/aerospace.ev.engineer/callback'],
+    ['/api/auth', ''],
+  ]
+
+  it.each([...seed.domains.map(d => d.hostname), ...OTHER_HOSTS])('%s', host => {
+    for (const [url, route] of AUTH_PATHS) {
+      expect(served(host, url), url).toBe('/api/auth')
+      expect(routeQuery(host, url).get('__route'), url).toBe(route)
+    }
+  })
+
+  it('comes before every page route, and leaves other /api paths alone', () => {
+    expect(AUTH_ROUTE).toEqual({ src: '^/api/auth(?:/(.*))?$', dest: '/api/auth?__route=$1' })
+    expect(served('login.gamyaa.in', '/api/authorize')).toBe('/index.gamyaa.html')
+    expect(served('login.gamyaa.in', '/api/other')).toBe('/index.gamyaa.html')
+  })
+})
+
 describe('vercel.json: route table', () => {
   it.each(seed.domains.map(d => [d.hostname, d.partnerId]))('%s has exactly one route, to index.%s.html', (host, partnerId) => {
     const matching = routes.filter(r => r.has?.some(h => h.type === 'host' && h.value.eq === host))
@@ -78,9 +117,9 @@ describe('vercel.json: route table', () => {
   })
 
   it('ends with the neutral fallback, after every host route', () => {
-    expect(routes).toHaveLength(seed.domains.length + 1)
-    expect(routes.at(-1)).toEqual({ src: routes[0].src, dest: '/index.html' })
-    for (const r of routes) expect(r.src).toBe(routes[0].src)
+    expect(PAGE_ROUTES).toHaveLength(seed.domains.length + 1)
+    expect(PAGE_ROUTES.at(-1)).toEqual({ src: PAGE_ROUTES[0].src, dest: '/index.html' })
+    for (const r of PAGE_ROUTES) expect(r.src).toBe(PAGE_ROUTES[0].src)
   })
 })
 

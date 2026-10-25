@@ -14,6 +14,7 @@ import type { Partner, PartnerMembership } from '../types/partner'
 import { accessStateFor, effectiveRole, type AccessState, type Principal } from '../tenant/authorize'
 import { usePartner } from './PartnerContext'
 import { setActivePartnerId } from '../tenant/session'
+import { endCentralSession, isLoginHost } from '../auth/centralSession'
 
 // Fields a user may never write on their own global profile (also enforced by rules).
 const PRIVILEGED_PROFILE_FIELDS = ['role', 'status', 'orgId', 'managerId', 'architectId', 'uid', 'email', 'createdAt'] as const
@@ -196,6 +197,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         host: window.location.hostname,
       }).catch(() => {})
     }
+    // End single sign-on for this login host's applications too (their own sessions stay).
+    if (isLoginHost()) await endCentralSession().catch(() => {})
     await fbSignOut()
     setUserProfile(null)
     setMembership(null)

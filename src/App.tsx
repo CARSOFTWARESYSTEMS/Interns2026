@@ -11,6 +11,7 @@ import Layout from './components/layout/Layout'
 
 // Auth pages (no layout)
 import Login from './pages/Login'
+import SsoLogin from './pages/SsoLogin'
 import CompleteProfile from './pages/CompleteProfile'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
@@ -109,6 +110,9 @@ export default function App() {
         <Routes>
           {/* ── Public routes ──────────────────────────────────────── */}
           <Route path="/login" element={<Login />} />
+
+          {/* ── Single sign-on for application hosts (state from /api/auth/authorize) ── */}
+          <Route path="/sso" element={<SsoLogin />} />
 
           {/* ── Invitation redemption: signed in, membership not yet required ── */}
           <Route
