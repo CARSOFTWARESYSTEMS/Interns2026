@@ -25,6 +25,11 @@ function mac(secret: string, purpose: string, body: string): string {
   return createHmac('sha256', secret).update(`${purpose}.${body}`).digest('base64url')
 }
 
+/** Keyed hash for comparing a value later without keeping it: not reversible without the secret. */
+export function keyedHash(secret: string, purpose: string, value: string, length = 16): string {
+  return mac(secret, purpose, value).slice(0, length)
+}
+
 /**
  * Integrity-protected (not encrypted) token: base64url(JSON) + "." + HMAC.
  * `purpose` is bound into the MAC so a token minted for one use (e.g. the

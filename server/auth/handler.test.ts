@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createAuthHandler, sessionStatus, STATE_PURPOSE, TXN_PURPOSE, type LoginState } from './handler.js'
 import { createMemoryAuthStore } from './memoryStore.js'
-import { DEFAULT_AUTH_POLICY, policyFromEnv } from './policy.js'
+import { DEFAULT_AUTH_POLICY, policyFromEnv, type AuthPolicy } from './policy.js'
 import { seal, unseal } from './crypto.js'
 import { COOKIE } from './cookies.js'
 import { providerForAppHost } from '../../src/auth/providers.js'
@@ -30,7 +30,7 @@ const BENGALURU = {
 
 interface TestUser { uid: string; email: string; emailVerified: boolean; name: string; enabled: boolean }
 
-function setup() {
+function setup(policy: AuthPolicy = DEFAULT_AUTH_POLICY) {
   let t = START
   const store = createMemoryAuthStore()
   const users = new Map<string, TestUser>([
@@ -62,7 +62,7 @@ function setup() {
     },
     profileLocation: vi.fn(async (uid: string) => profiles.get(uid) ?? null),
   }
-  const handler = createAuthHandler({ store, directory, secret: SECRET, policy: DEFAULT_AUTH_POLICY, now: () => t })
+  const handler = createAuthHandler({ store, directory, secret: SECRET, policy, now: () => t })
   return { store, users, memberships, profiles, directory, handler, now: () => t, advance: (ms: number) => { t += ms } }
 }
 
@@ -99,6 +99,8 @@ class Browser {
     private readonly routing: Routing = 'path',
     private readonly ip = '203.0.113.7',
     private readonly geo: Record<string, string> = {},
+    /** The address a site's rewrite presents for this browser (default: the browser's own). */
+    private readonly proxyIp: string = ip,
   ) {}
 
   jar(host: string): Map<string, string> {
@@ -120,7 +122,8 @@ class Browser {
       target = rewritten
     }
 
-    const headers = new Headers({ host: target.host, 'user-agent': 'vitest-browser', 'x-real-ip': this.ip })
+    const proxied = target.host !== visible.host
+    const headers = new Headers({ host: target.host, 'user-agent': 'vitest-browser', 'x-real-ip': proxied ? this.proxyIp : this.ip })
     if (target.host !== visible.host) headers.set('x-forwarded-host', visible.host)
     for (const [k, v] of Object.entries(target.host === visible.host ? this.geo : PROXY_GEO)) headers.set(k, v)
     const jar = this.jar(visible.hostname)
@@ -526,6 +529,65 @@ describe('activation records (userActivations)', () => {
     ]
     for (const secret of secrets) expect(stored).not.toContain(secret)
     expect(stored).not.toMatch(/token|cookie|session|nonce|challenge|"ip"|userAgent/i)
+  })
+})
+
+// ── Client addresses through a site's rewrite ──────────────────────────────
+
+describe('rate limits for sign-ins that arrive through a site rewrite', () => {
+  const PROXY = '76.76.21.9'   // the site's proxy, the same for every visitor
+  const visitor = (env: Env, ip: string) => new Browser(env, 'path', ip, {}, PROXY)
+  const start = (b: Browser, page = PAGE) => b.fetch(loginUrl(page))
+  const withLimits = (over: Partial<AuthPolicy>) => setup({ ...DEFAULT_AUTH_POLICY, ...over, rateLimits: { ...DEFAULT_AUTH_POLICY.rateLimits, ...over.rateLimits } })
+
+  it('never makes every visitor behind one proxy address share one visitor’s allowance', async () => {
+    const env = setup()
+    for (let i = 0; i < 40; i++) {
+      expect((await start(visitor(env, `198.51.100.${i}`))).status, `visitor ${i}`).toBe(302)
+    }
+  })
+
+  it('until the address is trusted, caps each site as a whole instead', async () => {
+    const env = withLimits({ rateLimits: { ...DEFAULT_AUTH_POLICY.rateLimits, siteLogin: { limit: 3, windowMs: MIN } } })
+    for (let i = 0; i < 3; i++) expect((await start(visitor(env, `198.51.100.${i}`))).status).toBe(302)
+    expect((await start(visitor(env, '198.51.100.9'))).status).toBe(429)
+    // Another site has its own cap.
+    expect((await start(visitor(env, '198.51.100.9'), 'https://www.ev.engineer/')).status).toBe(302)
+    env.advance(MIN)
+    expect((await start(visitor(env, '198.51.100.9'))).status).toBe(302)
+  })
+
+  it('once trusted (AUTH_TRUST_PROXIED_CLIENT_IP), limits each visitor address', async () => {
+    const env = withLimits({ trustProxiedClientIp: true, rateLimits: { ...DEFAULT_AUTH_POLICY.rateLimits, login: { limit: 2, windowMs: MIN } } })
+    // Here the rewrite carries each visitor's own address.
+    const a = new Browser(env, 'path', '198.51.100.1')
+    const b = new Browser(env, 'path', '198.51.100.2')
+    expect((await start(a)).status).toBe(302)
+    expect((await start(a)).status).toBe(302)
+    expect((await start(a)).status).toBe(429)
+    expect((await start(b)).status).toBe(302)
+  })
+
+  it('keeps per-address limits on the login host, where the browser connects directly', async () => {
+    const env = withLimits({ rateLimits: { ...DEFAULT_AUTH_POLICY.rateLimits, authorize: { limit: 1, windowMs: MIN } } })
+    const a = visitor(env, '198.51.100.1')
+    const b = visitor(env, '198.51.100.2')
+    const authorizeA = location(await start(a))
+    expect((await a.fetch(authorizeA)).status).toBe(302)
+    expect((await a.fetch(authorizeA)).status).toBe(429)
+    expect((await b.fetch(location(await start(b)))).status).toBe(302)
+  })
+
+  it('records whether the address that started a sign-in is the one finishing it — never the address itself', async () => {
+    const env = setup()
+    const direct = new Browser(env, 'path', '198.51.100.1')
+    const { authorize } = await login(env, direct)
+    expect(env.store.events.find(e => e.event === 'authorization_code_issued')).toMatchObject({ startIpMatched: true })
+    expect(Buffer.from(new URL(authorize).searchParams.get('state')!.split('.')[0], 'base64url').toString()).not.toContain('198.51.100.1')
+
+    const env2 = setup()
+    await login(env2, visitor(env2, '198.51.100.1'))
+    expect(env2.store.events.find(e => e.event === 'authorization_code_issued')).toMatchObject({ startIpMatched: false })
   })
 })
 
@@ -1000,6 +1062,12 @@ describe('routing and responses', () => {
 })
 
 describe('policyFromEnv', () => {
+  it('trusts a rewritten request’s address only when told to, exactly', () => {
+    expect(policyFromEnv({}).trustProxiedClientIp).toBe(false)
+    expect(policyFromEnv({ AUTH_TRUST_PROXIED_CLIENT_IP: 'true' }).trustProxiedClientIp).toBe(true)
+    for (const v of ['TRUE', '1', 'yes', ' true']) expect(policyFromEnv({ AUTH_TRUST_PROXIED_CLIENT_IP: v }).trustProxiedClientIp, v).toBe(false)
+  })
+
   it('defaults to 12 idle hours and 7 days absolute', () => {
     const p = policyFromEnv({})
     expect(p.idleTimeoutMs).toBe(12 * HOUR)

@@ -45,6 +45,11 @@ async function canOpen(allowedRoles) {
 }
 ```
 
+Application sites may also hide **premium pages** behind a sign-in (any
+signed-in visitor, `roles` not required — e.g. AutonomousEV's
+`src/config/premiumAuthRoutes.ts`). That is a login gate, not access control:
+those pages are public files, so put nothing confidential there.
+
 A check in the browser only decides what to show. Anything that returns
 protected data must make the same four checks on the server: a site's server
 calls `https://<login host>/api/auth/app/<site host>/session` with the visitor's
@@ -114,6 +119,7 @@ browser bundle.
 | `FIREBASE_SERVICE_ACCOUNT` | Service-account key for Firebase project `ev2027`: Firebase console → Project settings → Service accounts → *Generate new private key*. Paste the JSON as is (or `base64 -i key.json`), then delete the downloaded file. |
 | `AUTH_SESSION_IDLE_HOURS` | Optional. Default `12` (allowed 1–24). |
 | `AUTH_SESSION_MAX_HOURS` | Optional. Default `168` = 7 days (allowed 1–720). |
+| `AUTH_TRUST_PROXIED_CLIENT_IP` | Optional. Leave **unset** until [section 5](#5-client-addresses-through-site-rewrites-rate-limits) shows sites' rewrites carry the visitor's address; then `true`. |
 
 Environment variables apply to new deployments only: **redeploy production**
 after adding them. Until both required values are present, every `/api/auth`
@@ -323,6 +329,79 @@ Then, in the window from row 2 (still signed in):
 
 Only after these pass: add the sites' Login button and sign-in prompt.
 
+## 5. Client addresses through site rewrites (rate limits)
+
+Requests reach this function two ways:
+
+- **Straight from the browser** to a login host (`/api/auth/authorize`, the
+  dashboard's `POST /api/auth/session`, `/sso`). Vercel sets `x-real-ip` /
+  `x-forwarded-for` to the visitor's address and overwrites any value the
+  client sent, so these are trustworthy and every limit there is per address.
+- **Through an application site's rewrite** (`/api/auth/app/<site>/login`,
+  `…/callback`, `…/session`, `…/logout`). Vercel's documentation does not say
+  whether the destination then sees the visitor's address or the site
+  proxy's. If it is the proxy's, every visitor of a site shares one address.
+
+So, until verified, sign-in starts that arrive through a rewrite are limited
+**per site** (300 per minute) rather than per address: visitors can never
+collapse into one visitor's 30-per-minute allowance. The `ip` on
+`login_started` and callback audit events may likewise be the proxy's.
+
+**Verify on production**, after this release is live:
+
+1. *From real traffic (no test requests):* every `authorization_code_issued`
+   audit event carries `startIpMatched` — whether the address that started
+   the sign-in (through the rewrite; compared as a keyed hash, the address is
+   never stored in the state) is the one asking for the code (directly).
+   Firestore console → `authEvents` → filter `event == authorization_code_issued`.
+   Mostly `true` ⇒ rewrites carry the visitor's address. Mostly `false` ⇒
+   they carry the proxy's. (A few `false` are normal: phones change networks.)
+2. *Or with a probe:* send two tagged sign-in starts and compare the `ip` of
+   the two `login_started` events they create:
+   ```sh
+   UA="ip-probe-$(openssl rand -hex 6)"; echo "$UA"
+   curl -s -o /dev/null -A "$UA" 'https://autonomous.ev.engineer/api/auth/login?return=%2F'                        # through the rewrite
+   curl -s -o /dev/null -A "$UA" 'https://login.autonomous.ev.engineer/api/auth/app/autonomous.ev.engineer/login?return=%2F'   # direct
+   ```
+   Firestore console → `authEvents` → filter `userAgent == <UA>`. Same `ip`
+   on both ⇒ the rewrite carries the visitor's address.
+3. *Multiple real clients:* have two people on different networks start a
+   sign-in on the same site; with (1) or (2) confirm two different addresses.
+
+**Then decide:** if rewrites carry the visitor's address, set
+`AUTH_TRUST_PROXIED_CLIENT_IP=true` (Production) and redeploy — sign-in starts
+are then limited per visitor again. If not, leave it unset: the per-site cap
+stays, the per-address limits on the login host still stop a single client,
+and a per-IP rate-limit rule in the site project's Vercel Firewall (which
+sees the real address before the rewrite) is the way to add per-visitor
+limiting there.
+
+## 6. Release checklist — premium login and activation records
+
+In order; each step only after the one before it passes.
+
+1. [ ] **Firestore rules:** `firebase deploy --only firestore:rules --project ev2027`.
+2. [ ] **Intern2026:** merge and deploy to production.
+3. [ ] **Activation recording:** sign in on an application site, then open
+       `https://<login host>/admin/users` as Platform Admin: the account is
+       listed with first source domain, page, trigger and location; its detail
+       page shows the sign-in event. `authEvents` shows `user_activation`.
+4. [ ] **Client addresses:** section 5, and set or leave
+       `AUTH_TRUST_PROXIED_CLIENT_IP` accordingly.
+5. [ ] **Application sites:** deploy (AutonomousEV: see its `docs/premium-login.md`).
+6. [ ] **Real domains:** login gates and previews on required-login pages; the
+       five-minute prompt on ordinary pages; exact return URL including query
+       and `#hash` (section 4, stage 3 table).
+7. [ ] **Phones:** iOS Safari and Android Chrome — sign-in, exact return,
+       prompt as a bottom sheet.
+8. [ ] **Authenticated · No Membership:** a Google account with no membership
+       signs in; the site shows premium pages; `roles` is `[]`; the Users page
+       shows *Authenticated · No Membership*; nothing role-protected opens.
+9. [ ] **Admin scope:** a Partner Admin on their own login host sees only
+       that Partner's users; Platform Admin sees every ecosystem; a Viewer has
+       no Users page and the rules refuse the data.
+10. [ ] **Privacy notice** reviewed (above) before broad rollout.
+
 ## Security properties
 
 | | |
@@ -335,7 +414,7 @@ Only after these pass: add the sites' Login button and sign-in prompt.
 | CSRF | State-changing POSTs require the exact `Origin`; `SameSite=Lax`. |
 | Session lifetime | 12 h idle, 7 days absolute; a new id on every sign-in (rotation); revoked on logout, rotation, code replay, disabled account. |
 | Central sign-in | Verifies the Firebase ID token server-side (signature, revocation, disabled account) and requires a sign-in within the last 5 minutes. |
-| Rate limits | Per IP per minute: 30 sign-in starts, 30 authorizations, 10 token sign-ins. |
+| Rate limits | Per minute: 10 token sign-ins and 30 authorizations per client address (requests straight to the login host). Sign-in starts arriving through a site's rewrite: 300 per site until `AUTH_TRUST_PROXIED_CLIENT_IP=true`, then 30 per client address ([section 5](#5-client-addresses-through-site-rewrites-rate-limits)). |
 | Audit | `authEvents`: `login_started`, `login_success`, `login_failed`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created`, `session_refreshed`, `logout`, `session_revoked`, `user_activation` — user, Partner, host, time, result, reason, IP, user agent. No tokens, codes or cookie values. Server-only: no Admin view reads them. |
 | Activation records | `userActivations/{partnerId}_{uid}`: first and latest sign-in, coarse location, last 15 sign-in/sign-out events. No tokens, codes, session ids, cookies, nonces, IP addresses, user agents or coordinates (tested in `handler.test.ts`). |
 | Errors | Fixed friendly pages per case (`expired_login`, `invalid_return`, `invalid_state`, `expired_code`, `code_used`, `session_failed`, `unauthorized_domain`, …); no internal detail. |
@@ -384,7 +463,9 @@ membership, activation and access, location and recent events per Partner;
 `/admin/users` before.
 
 **Privacy notice:** `/privacy` on every login host, linked from `/login` and
-`/sso`. Keep it in step with this section.
+`/sso`. Keep it in step with this section. **Needs legal/privacy review
+before broad production rollout** — it was written from the implementation,
+not by counsel.
 
 ## Decisions for this release
 

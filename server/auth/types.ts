@@ -90,6 +90,13 @@ export interface AuthEvent {
   at: number
   ip: string | null
   userAgent: string | null
+  /**
+   * authorization_code_issued only: whether the address that started the
+   * sign-in (seen through the site's rewrite) is the one asking for the code
+   * (seen directly). Mostly true ⇒ rewrites carry the visitor's address;
+   * mostly false ⇒ they carry the site proxy's. Null when unknown.
+   */
+  startIpMatched?: boolean | null
 }
 
 // ── Ports ──────────────────────────────────────────────────────────────────

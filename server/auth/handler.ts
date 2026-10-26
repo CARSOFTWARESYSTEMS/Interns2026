@@ -36,7 +36,7 @@ import type { CoarseLocation } from '../../src/types/activation.js'
 import { normalizeHostname } from '../../src/tenant/hostname.js'
 import { activationId, applySignIn, applySignOut } from './activation.js'
 import { COOKIE, clearCookie, readCookie, setCookie } from './cookies.js'
-import { pkceChallenge, randomToken, safeEqual, seal, sha256, unseal } from './crypto.js'
+import { keyedHash, pkceChallenge, randomToken, safeEqual, seal, sha256, unseal } from './crypto.js'
 import { errorInfo, renderErrorPage, type AuthErrorCode, type ErrorAction } from './errors.js'
 import { locationFromHeaders, resolveLocation } from './location.js'
 import type { AuthPolicy } from './policy.js'
@@ -66,6 +66,8 @@ export interface LoginState {
   t: number
   g?: string
   l?: string
+  /** Keyed hash of the address that started the sign-in (never the address itself). */
+  i?: string
 }
 
 /** The application host's own record of a sign-in in progress (HttpOnly cookie). */
@@ -78,6 +80,7 @@ interface LoginTxn {
 
 export const STATE_PURPOSE = 'i26.state'
 export const TXN_PURPOSE = 'i26.txn'
+const IP_PURPOSE = 'i26.ip'
 
 export type SessionStatus = 'active' | 'revoked' | 'expired' | 'idle'
 
@@ -95,8 +98,9 @@ export function sessionRef(id: string): string {
 
 // ── Requests and responses ─────────────────────────────────────────────────
 
+/** `proxied`: an app request in the `app/<host>/<action>` form a site's rewrite sends, whose client address may be the site proxy's. */
 type Context =
-  | { ok: true; side: 'login' | 'app'; provider: AuthProvider; host: string; action: string }
+  | { ok: true; side: 'login' | 'app'; provider: AuthProvider; host: string; action: string; proxied: boolean }
   | { ok: false; error: AuthErrorCode }
 
 function resolveContext(req: Request): Context {
@@ -108,16 +112,16 @@ function resolveContext(req: Request): Context {
     const host = normalizeHostname(parts[1])
     const provider = providerForAppHost(host)
     return host && provider
-      ? { ok: true, side: 'app', provider, host, action: parts[2] }
+      ? { ok: true, side: 'app', provider, host, action: parts[2], proxied: true }
       : { ok: false, error: 'unauthorized_domain' }
   }
   if (parts.length !== 1) return { ok: false, error: 'not_found' }
 
   const host = normalizeHostname(req.headers.get('host'))
   const login = providerForLoginHost(host)
-  if (host && login) return { ok: true, side: 'login', provider: login, host, action: parts[0] }
+  if (host && login) return { ok: true, side: 'login', provider: login, host, action: parts[0], proxied: false }
   const app = providerForAppHost(host)
-  if (host && app) return { ok: true, side: 'app', provider: app, host, action: parts[0] }
+  if (host && app) return { ok: true, side: 'app', provider: app, host, action: parts[0], proxied: false }
   return { ok: false, error: 'not_found' }
 }
 
@@ -189,6 +193,12 @@ async function readJson(req: Request, maxBytes: number): Promise<Record<string, 
   }
 }
 
+/**
+ * The client address as Vercel's edge reports it for this deployment
+ * (x-real-ip; Vercel overwrites x-forwarded-for and does not forward external
+ * addresses, so neither can be set by the client). On a request proxied
+ * through a site's rewrite it may be the site proxy's — see `proxied`.
+ */
 function clientMeta(req: Request): { ip: string | null; userAgent: string | null } {
   const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
   return { ip: ip || null, userAgent: req.headers.get('user-agent')?.slice(0, 256) ?? null }
@@ -225,6 +235,11 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
   if (typeof secret !== 'string' || secret.length < 32) throw new Error('Auth secret must be at least 32 characters')
 
   interface Loaded { id: string; rec: SessionRecord }
+
+  /** A client address as a keyed hash: comparable, not reversible without the secret. */
+  function ipTag(ip: string | null): string | undefined {
+    return ip ? keyedHash(secret, IP_PURPOSE, ip) : undefined
+  }
 
   function readState(token: string | null): LoginState | null {
     const s = unseal<LoginState>(secret, STATE_PURPOSE, token)
@@ -280,7 +295,13 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       return { uid: s.rec.uid, host: s.rec.host, sessionRef: sessionRef(s.id), sessionKind: s.rec.kind }
     }
 
-    async function limited(bucket: keyof AuthPolicy['rateLimits']): Promise<boolean> {
+    async function limited(bucket: 'login' | 'authorize' | 'signIn'): Promise<boolean> {
+      // A proxied request's address may be the site proxy's, shared by every visitor: until it is
+      // known to be the visitor's, cap the site as a whole rather than one "visitor".
+      if (bucket === 'login' && ctx.ok && ctx.proxied && !policy.trustProxiedClientIp) {
+        const { limit, windowMs } = policy.rateLimits.siteLogin
+        return (await store.hit(`siteLogin:${host}`, windowMs, now())) > limit
+      }
       const { limit, windowMs } = policy.rateLimits[bucket]
       return (await store.hit(`${bucket}:${meta.ip ?? 'unknown'}`, windowMs, now())) > limit
     }
@@ -361,7 +382,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const t = now()
       const state = seal(secret, STATE_PURPOSE, {
         h: host, p: path, n: nonce, c: pkceChallenge(verifier), t,
-        g: parseLoginTrigger(params.get('trigger')), l: sanitizePageLabel(params.get('label')),
+        g: parseLoginTrigger(params.get('trigger')), l: sanitizePageLabel(params.get('label')), i: ipTag(meta.ip),
       } satisfies LoginState)
       const txn = seal(secret, TXN_PURPOSE, { h: host, n: nonce, v: verifier, t } satisfies LoginTxn)
       await audit({ event: 'login_started', result: 'success' })
@@ -478,7 +499,9 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         // This request comes straight from the browser, so its geo headers are the visitor's.
         location: locationFromHeaders(req.headers),
       })
-      await audit({ event: 'authorization_code_issued', result: 'success', uid, host: state.h, sessionRef: sessionRef(session.id), sessionKind: 'central' })
+      // This request comes straight from the browser, so its address is the visitor's.
+      const startIpMatched = state.i && meta.ip ? safeEqual(state.i, ipTag(meta.ip)!) : null
+      await audit({ event: 'authorization_code_issued', result: 'success', uid, host: state.h, sessionRef: sessionRef(session.id), sessionKind: 'central', startIpMatched })
       return redirect(`https://${state.h}/api/auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(stateToken)}`)
     }
 
