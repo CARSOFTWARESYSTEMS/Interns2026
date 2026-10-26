@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createAuthHandler, sessionStatus, STATE_PURPOSE, TXN_PURPOSE, type LoginState } from './handler.js'
+import { createAuthHandler, sessionStatus, LOGOUT_PURPOSE, STATE_PURPOSE, TXN_PURPOSE, type LoginState } from './handler.js'
 import { createMemoryAuthStore } from './memoryStore.js'
 import { DEFAULT_AUTH_POLICY, policyFromEnv, type AuthPolicy } from './policy.js'
-import { seal, unseal } from './crypto.js'
+import { seal, sha256, unseal } from './crypto.js'
 import { COOKIE } from './cookies.js'
 import { providerForAppHost } from '../../src/auth/providers.js'
 import type { Directory, SessionRecord } from './types.js'
@@ -201,6 +201,36 @@ async function errorOf(res: Response): Promise<string> {
 
 function forgeState(env: Env, s: Partial<LoginState> = {}): string {
   return seal(SECRET, STATE_PURPOSE, { h: 'aerospace.ev.engineer', p: '/', n: 'nonce', c: 'x'.repeat(43), t: env.now(), ...s })
+}
+
+/** The stored record behind this browser's session cookie on `host` (central on a login host). */
+function storedSession(env: Env, browser: Browser, host: string): SessionRecord | undefined {
+  const token = browser.jar(host).get(host.startsWith('login.') ? COOKIE.central : COOKIE.session)
+  return token ? env.store.sessions.get(sha256(token)) : undefined
+}
+
+function centralId(browser: Browser, loginHost = EV_LOGIN): string {
+  return sha256(browser.jar(loginHost).get(COOKIE.central)!)
+}
+
+/** What the login host's /signout page sends: the ticket from a logout's signOutUrl, to end-session. */
+function endSession(browser: Browser, loginHost: string, ticket: string, init: Partial<FetchInit> = {}): Promise<Response> {
+  return browser.fetch(`https://${loginHost}/api/auth/end-session`, {
+    method: 'POST', contentType: 'application/json', body: JSON.stringify({ ticket }), ...init,
+  })
+}
+
+function finishOnLoginHost(browser: Browser, signOutUrl: string, init: Partial<FetchInit> = {}): Promise<Response> {
+  const url = new URL(signOutUrl)
+  expect(url.pathname).toBe('/signout')
+  return endSession(browser, url.host, url.searchParams.get('ticket')!, init)
+}
+
+/** A site's Logout button calling fetch('/api/auth/logout', { method: 'POST' }). */
+async function logoutApp(browser: Browser, host: string): Promise<{ authenticated: boolean; signOutUrl?: string }> {
+  const res = await browser.fetch(`https://${host}/api/auth/logout`, { method: 'POST' })
+  expect(res.status).toBe(200)
+  return res.json()
 }
 
 // ── Flow ───────────────────────────────────────────────────────────────────
@@ -825,7 +855,7 @@ describe('sessions', () => {
 
     const res = await browser.fetch('https://aerospace.ev.engineer/api/auth/logout', { method: 'POST' })
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ authenticated: false })
+    expect(await res.json()).toMatchObject({ authenticated: false })
     expect(browser.jar('aerospace.ev.engineer').has(COOKIE.session)).toBe(false)
 
     browser.jar('aerospace.ev.engineer').set(COOKIE.session, stolen)
@@ -842,26 +872,6 @@ describe('sessions', () => {
       expect(res.status, String(origin)).toBe(403)
     }
     expect((await session(browser, 'aerospace.ev.engineer')).authenticated).toBe(true)
-  })
-
-  it('form logout returns to a page on the same site', async () => {
-    const env = setup()
-    const browser = new Browser(env)
-    await login(env, browser)
-    const form = { method: 'POST', contentType: 'application/x-www-form-urlencoded', body: '' }
-    const back = await browser.fetch('https://aerospace.ev.engineer/api/auth/logout?return=%2Faerospace%3Fbye%3D1', form)
-    expect(back.status).toBe(303)
-    expect(back.headers.get('location')).toBe('https://aerospace.ev.engineer/aerospace?bye=1')
-    const evil = await browser.fetch('https://aerospace.ev.engineer/api/auth/logout?return=https%3A%2F%2Fevil.example', form)
-    expect(evil.headers.get('location')).toBe('https://aerospace.ev.engineer/')
-  })
-
-  it('logging out of an app keeps the central session (no global logout)', async () => {
-    const env = setup()
-    const browser = new Browser(env)
-    await login(env, browser)
-    await browser.fetch('https://aerospace.ev.engineer/api/auth/logout', { method: 'POST' })
-    expect((await login(env, browser)).askedToSignIn).toBe(false)
   })
 
   it('logging out of the login host ends single sign-on', async () => {
@@ -918,6 +928,254 @@ describe('sessions', () => {
     expect(sessionStatus({ ...base, revokedAt: START }, START + 1, p)).toBe('revoked')
     expect(sessionStatus(base, START + 10 * HOUR, p)).toBe('expired')
     expect(sessionStatus({ ...base, expiresAt: START + 100 * HOUR }, START + 12 * HOUR, p)).toBe('idle')
+  })
+})
+
+// ── Explicit logout ends single sign-on ────────────────────────────────────
+
+describe('explicit logout ends single sign-on', () => {
+  const AERO = 'aerospace.ev.engineer'
+  const form = { method: 'POST', contentType: 'application/x-www-form-urlencoded', body: '' }
+
+  it('keeps reusing the central session between sites without asking Google, through ordinary session checks', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    expect((await login(env, browser, 'https://www.ev.engineer/ev-engineer')).askedToSignIn).toBe(true)
+    const central = centralId(browser)
+    await session(browser, 'www.ev.engineer')
+    await session(browser, EV_LOGIN)
+
+    const second = await login(env, browser, PAGE)
+    expect(second.askedToSignIn).toBe(false)
+    expect(env.directory.verifyIdToken).toHaveBeenCalledTimes(1)
+    expect(storedSession(env, browser, AERO)).toMatchObject({ uid: 'u1', centralId: central })
+    expect(env.store.sessions.get(central)).toMatchObject({ revokedAt: null })
+  })
+
+  it.each<Routing>(['path', 'vercel-route'])('ends the site session and the central session (%s routing)', async routing => {
+    const env = setup()
+    const browser = new Browser(env, routing)
+    await login(env, browser)
+    const central = centralId(browser)
+    const stolen = browser.jar(AERO).get(COOKIE.session)!
+
+    const body = await logoutApp(browser, AERO)
+    expect(body).toEqual({
+      authenticated: false,
+      signOutUrl: expect.stringMatching(/^https:\/\/login\.autonomous\.ev\.engineer\/signout\?ticket=[\w.%-]+$/),
+    })
+
+    // Local session: cookie cleared, and dead server-side even if the cookie comes back.
+    expect(browser.jar(AERO).has(COOKIE.session)).toBe(false)
+    browser.jar(AERO).set(COOKIE.session, stolen)
+    expect(await session(browser, AERO)).toEqual({ authenticated: false })
+
+    // Central session: revoked by the site's logout itself, before the browser reaches the login host.
+    expect(env.store.sessions.get(central)).toMatchObject({ kind: 'central', revokedAt: env.now(), revokeReason: 'logout' })
+    expect(env.store.events.filter(e => e.event === 'logout').map(e => [e.sessionKind, e.host, e.uid])).toEqual([
+      ['app', AERO, 'u1'], ['central', EV_LOGIN, 'u1'],
+    ])
+    expect(await session(browser, EV_LOGIN)).toEqual({ authenticated: false })
+  })
+
+  it('finishes on the login host — clears its cookie, then returns to the public page', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+
+    const res = await browser.fetch(`https://${AERO}/api/auth/logout?return=%2Faerospace%3Fbye%3D1`, form)
+    expect(res.status).toBe(303)
+    const signOutUrl = location(res)
+    expect(signOutUrl).toMatch(/^https:\/\/login\.autonomous\.ev\.engineer\/signout\?ticket=/)
+    expect(browser.jar(EV_LOGIN).has(COOKIE.central)).toBe(true) // only the login host can clear its cookie
+
+    const done = await finishOnLoginHost(browser, signOutUrl)
+    expect(done.status).toBe(200)
+    expect(done.headers.get('cache-control')).toBe('no-store')
+    // uid: whose Firebase sign-in the /signout page then ends on the login host.
+    expect(await done.json()).toEqual({ uid: 'u1', returnTo: 'https://aerospace.ev.engineer/aerospace?bye=1' })
+    expect(done.headers.getSetCookie()).toEqual([expect.stringMatching(/^__Host-i26_central=; Max-Age=0; Path=\/; HttpOnly; Secure; SameSite=Lax$/)])
+    expect(browser.jar(EV_LOGIN).size).toBe(0)
+    expect(browser.jar(AERO).size).toBe(0)
+  })
+
+  it.each(['https://evil.example/', '//evil.example/', '/\\evil.example', 'javascript:alert(1)'])(
+    'returns only to the site that logged out, never to %j', async ret => {
+      const env = setup()
+      const browser = new Browser(env)
+      await login(env, browser)
+      const res = await browser.fetch(`https://${AERO}/api/auth/logout?return=${encodeURIComponent(ret)}`, form)
+      expect(((await (await finishOnLoginHost(browser, location(res))).json()) as { returnTo: string }).returnTo).toBe('https://aerospace.ev.engineer/')
+    },
+  )
+
+  it('sends the next Login to a fresh Google sign-in — even when the site never sent the browser to the login host', async () => {
+    const env = setup()
+    const finished = new Browser(env)
+    await login(env, finished)
+    await finishOnLoginHost(finished, (await logoutApp(finished, AERO)).signOutUrl!)
+    const fetchOnly = new Browser(env, 'path', '198.51.100.4')
+    await login(env, fetchOnly)
+    await logoutApp(fetchOnly, AERO)
+
+    for (const browser of [finished, fetchOnly]) {
+      const authorize = location(await browser.fetch(loginUrl(PAGE)))
+      const next = new URL(location(await browser.fetch(authorize)))
+      expect(next.origin + next.pathname).toBe(`https://${EV_LOGIN}/sso`) // → Google, with prompt=select_account
+    }
+  })
+
+  it('switches to another Google account with nothing of the first one carried over', async () => {
+    const env = setup()
+    env.memberships.set('ev-engineer_u2', { role: 'Developer', status: 'Active' })
+    const browser = new Browser(env)
+    await login(env, browser, PAGE, 'u1')
+    expect(await session(browser, AERO)).toMatchObject({ user: { id: 'u1' }, roles: ['Viewer'] })
+    const centralA = centralId(browser)
+    const sessionA = browser.jar(AERO).get(COOKIE.session)!
+    await finishOnLoginHost(browser, (await logoutApp(browser, AERO)).signOutUrl!)
+
+    // Account B chosen in Google's account chooser.
+    const again = await login(env, browser, PAGE, 'u2')
+    expect(again.askedToSignIn).toBe(true)
+    expect(location(again.res)).toBe(PAGE)
+    expect(await session(browser, AERO)).toEqual({
+      authenticated: true, user: { id: 'u2', name: 'Ravi K', email: 'ravi@example.com' }, roles: ['Developer'], domain: AERO,
+    })
+
+    // B's central and site sessions carry only B.
+    const centralB = centralId(browser)
+    expect(centralB).not.toBe(centralA)
+    expect(env.store.sessions.get(centralB)).toMatchObject({ uid: 'u2', email: 'ravi@example.com', name: 'Ravi K', revokedAt: null })
+    expect(storedSession(env, browser, AERO)).toMatchObject({ uid: 'u2', email: 'ravi@example.com', name: 'Ravi K', centralId: centralB })
+    expect([...env.store.codes.values()].map(c => c.uid)).toEqual(['u1', 'u2'])
+
+    // A's sessions stay dead.
+    expect(env.store.sessions.get(centralA)?.revokedAt).not.toBeNull()
+    const replay = new Browser(env, 'path', '198.51.100.9')
+    replay.jar(AERO).set(COOKIE.session, sessionA)
+    expect(await session(replay, AERO)).toEqual({ authenticated: false })
+
+    // Single sign-on to the next site now carries B, with B's roles.
+    expect((await login(env, browser, 'https://www.ev.engineer/')).askedToSignIn).toBe(false)
+    expect(await session(browser, 'www.ev.engineer')).toMatchObject({ user: { id: 'u2' }, roles: ['Developer'] })
+
+    // Activation records: B's sign-in is B's; A's keeps A's.
+    expect(env.store.activations.get('ev-engineer_u2')).toMatchObject({ uid: 'u2', email: 'ravi@example.com', lastAccess: 'granted' })
+    expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({ uid: 'u1', email: 'asha@example.com', loginCount: 1 })
+  })
+
+  it('also ends a central session started again since the site signed in', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+    await signIn(browser, env) // e.g. the dashboard's sign-in on the login host: a new central session
+    const rotated = centralId(browser)
+
+    const { signOutUrl } = await logoutApp(browser, AERO)
+    expect(env.store.sessions.get(rotated)?.revokedAt).toBeNull() // the site only knows the one that signed it in
+    await finishOnLoginHost(browser, signOutUrl!)
+    expect(env.store.sessions.get(rotated)).toMatchObject({ revokeReason: 'logout' })
+    expect((await startLogin(env, browser, 'https://ev.engineer/')).askedToSignIn).toBe(true)
+  })
+
+  it('ends single sign-on for site sessions created before centralId was recorded', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+    delete storedSession(env, browser, AERO)!.centralId
+
+    const { signOutUrl } = await logoutApp(browser, AERO)
+    expect(storedSession(env, browser, EV_LOGIN)?.revokedAt).toBeNull()
+    await finishOnLoginHost(browser, signOutUrl!)
+    expect((await startLogin(env, browser, 'https://ev.engineer/')).askedToSignIn).toBe(true)
+  })
+
+  it("can't sign anyone else out: a ticket ends only its own user's central session", async () => {
+    const env = setup()
+    const victim = new Browser(env)
+    await login(env, victim)
+    const attacker = new Browser(env, 'path', '198.51.100.9')
+    await login(env, attacker, PAGE, 'u2')
+    const { signOutUrl } = await logoutApp(attacker, AERO)
+
+    // The attacker gets the victim's browser to open their /signout link.
+    const res = await finishOnLoginHost(victim, signOutUrl!)
+    expect(await res.json()).toEqual({ uid: 'u2', returnTo: 'https://aerospace.ev.engineer/' }) // the page ends u2's Firebase sign-in only
+    expect(res.headers.getSetCookie()).toEqual([])
+    expect(storedSession(env, victim, EV_LOGIN)).toMatchObject({ uid: 'u1', revokedAt: null })
+    expect((await startLogin(env, victim, 'https://ev.engineer/')).askedToSignIn).toBe(false)
+  })
+
+  it("leaves other providers' sign-ins and other sites' own sessions alone", async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+    await login(env, browser, 'https://www.ev.engineer/')
+    await login(env, browser, 'https://www.gamyaa.in/')
+    await finishOnLoginHost(browser, (await logoutApp(browser, AERO)).signOutUrl!)
+
+    expect(storedSession(env, browser, 'login.gamyaa.in')).toMatchObject({ revokedAt: null })
+    expect((await startLogin(env, browser, 'https://aerospace.gamyaa.in/')).askedToSignIn).toBe(false)
+    // Per-site sessions are unchanged: another EV.ENGINEER site keeps its own until it logs out or expires.
+    expect((await session(browser, 'www.ev.engineer')).authenticated).toBe(true)
+    expect((await startLogin(env, browser, PAGE)).askedToSignIn).toBe(true)
+  })
+
+  it('has nothing to end when the site has no session', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await signIn(browser, env)
+    expect(await logoutApp(browser, AERO)).toEqual({ authenticated: false })
+    expect(location(await browser.fetch(`https://${AERO}/api/auth/logout?return=%2Fx`, form))).toBe('https://aerospace.ev.engineer/x')
+    expect(storedSession(env, browser, EV_LOGIN)).toMatchObject({ revokedAt: null })
+  })
+
+  it('end-session needs a same-origin JSON request with a genuine ticket', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+    await signIn(browser, env) // a live central session for the refused requests to leave alone
+    const { signOutUrl } = await logoutApp(browser, AERO)
+    const ticket = new URL(signOutUrl!).searchParams.get('ticket')!
+
+    for (const origin of ['https://evil.example', 'https://aerospace.ev.engineer', `http://${EV_LOGIN}`, null]) {
+      expect((await endSession(browser, EV_LOGIN, ticket, { origin })).status, String(origin)).toBe(403)
+    }
+    expect((await endSession(browser, EV_LOGIN, ticket, { contentType: 'text/plain' })).status).toBe(400)
+    expect((await browser.fetch(`https://${EV_LOGIN}/api/auth/end-session?ticket=${encodeURIComponent(ticket)}`)).status).toBe(405)
+
+    const [body, sig] = ticket.split('.')
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as Record<string, unknown>
+    const forged = [
+      `${Buffer.from(JSON.stringify({ ...payload, u: 'u2' })).toString('base64url')}.${sig}`,
+      seal('another-secret-that-is-long-enough-000000', LOGOUT_PURPOSE, payload),
+      seal(SECRET, STATE_PURPOSE, payload),
+      seal(SECRET, LOGOUT_PURPOSE, { ...payload, h: 'www.gamyaa.in' }), // another provider's site
+      seal(SECRET, LOGOUT_PURPOSE, { ...payload, h: 'evil.example' }),
+      seal(SECRET, LOGOUT_PURPOSE, { ...payload, u: '' }),
+      'garbage', '',
+    ]
+    for (const t of forged) {
+      const res = await endSession(browser, EV_LOGIN, t)
+      expect(res.status).toBe(400)
+      expect(await errorOf(res)).toBe('invalid_logout')
+    }
+    expect(storedSession(env, browser, EV_LOGIN)).toMatchObject({ revokedAt: null })
+    expect((await browser.fetch(`https://${AERO}/api/auth/end-session`, { method: 'POST' })).status).toBe(404)
+  })
+
+  it('acts on a ticket for 5 minutes; after that it only points back to the site', async () => {
+    const env = setup()
+    const browser = new Browser(env)
+    await login(env, browser)
+    const { signOutUrl } = await logoutApp(browser, AERO)
+    await signIn(browser, env)
+    env.advance(5 * MIN + 1)
+    const late = await finishOnLoginHost(browser, signOutUrl!)
+    expect(await late.json()).toEqual({ uid: null, returnTo: 'https://aerospace.ev.engineer/' })
+    expect(late.headers.getSetCookie()).toEqual([])
+    expect(storedSession(env, browser, EV_LOGIN)).toMatchObject({ revokedAt: null })
   })
 })
 

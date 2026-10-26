@@ -30,6 +30,12 @@ export interface SessionRecord {
   revokeReason: string | null
   /** App sessions: the central session that authorised the code (storage id prefix). */
   centralRef: string | null
+  /**
+   * App sessions: that central session's full storage id (itself a hash, not
+   * the cookie), so an explicit logout here can end it. Absent on sessions
+   * created before logout ended single sign-on.
+   */
+  centralId?: string | null
 }
 
 export interface CodeRecord {
@@ -46,6 +52,8 @@ export interface CodeRecord {
   /** Nonce of the state this code was issued for. */
   nonce: string
   centralRef: string
+  /** Full storage id of that central session, carried to the app session it creates. */
+  centralId?: string
   createdAt: number
   expiresAt: number
   usedAt: number | null

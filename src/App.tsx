@@ -12,6 +12,7 @@ import Layout from './components/layout/Layout'
 // Auth pages (no layout)
 import Login from './pages/Login'
 import SsoLogin from './pages/SsoLogin'
+import SignOut from './pages/SignOut'
 import Privacy from './pages/Privacy'
 import CompleteProfile from './pages/CompleteProfile'
 import Unauthorized from './pages/Unauthorized'
@@ -103,6 +104,10 @@ function MyDashboardRedirect() {
 }
 
 export default function App() {
+  // An application's logout finishing on its login host: before every provider,
+  // so the signed-in user's profile is not loaded (nor a sign-in recorded) on the way out.
+  if (window.location.pathname === '/signout') return <SignOut />
+
   return (
     <BrowserRouter>
       {/* Hostname → Partner resolves first; unknown/inactive hosts never reach auth or data. */}

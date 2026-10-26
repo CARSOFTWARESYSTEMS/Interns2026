@@ -91,6 +91,47 @@ All of this runs in one Vercel Function, [`api/auth.ts`](../../api/auth.ts) →
 project to the login hosts. Application sites reach it through a rewrite, so
 their cookies stay on their own host and their sessions stay server-side.
 
+## How a logout works
+
+An explicit Logout ends single sign-on, so the next Login goes to Google and
+shows the **account chooser** (the user can pick the same account or another).
+
+```text
+aerospace.ev.engineer                login.autonomous.ev.engineer
+─────────────────────                ────────────────────────────
+1 POST /api/auth/logout?return=/aerospace   (same-origin only)
+  • revoke this site's session, clear its cookie
+  • revoke the central session that signed this site in
+    (server-side: done even if the browser never reaches step 2)
+  • signed logout ticket {host, path, user, time}
+  ─────────── 303 ───────────────▶ 2 /signout?ticket=…  (page)
+                                     • POST /api/auth/end-session {ticket}
+                                       – end this browser's central session
+                                         if it is the same user's; clear cookie
+                                     • Firebase signOut() for that user here
+  ◀──────────── back to the page ───── (only after both finish)
+3 https://aerospace.ev.engineer/aerospace — signed out
+```
+
+Next Login: `/api/auth/authorize` finds no central session → `/sso` → Google
+with `prompt=select_account`. Only this fresh sign-in reaches Google; while a
+central session is valid, `/authorize` issues the code without it, so moving
+between sites never shows the chooser.
+
+What a site's Logout button does — either:
+
+- **Form post** (preferred): `<form method="post" action="/api/auth/logout?return=/">`. The browser follows steps 1–3 by itself.
+- **fetch:** `const r = await (await fetch('/api/auth/logout', { method: 'POST' })).json()`, then `location.assign(r.signOutUrl ?? '/')`. Without that navigation the central session is still revoked (step 1), but the login host's cookie and Firebase sign-in are only cleared at its next use.
+
+Other sites' own sessions are untouched (per-site sessions): signing out of
+`aerospace.ev.engineer` leaves `www.ev.engineer` signed in until it logs out or
+expires. Other providers' login hosts are untouched too.
+
+The `/signout` page renders before the dashboard's Partner, profile and data
+providers, so signing out never loads the user's profile or records a sign-in.
+A ticket is valid for 5 minutes and only ends a central session belonging to
+the user who logged out: a ticket from someone else's logout signs no one out.
+
 ## Endpoints
 
 On an application host (after its rewrite is deployed):
@@ -100,11 +141,13 @@ On an application host (after its rewrite is deployed):
 | `GET /api/auth/login?return=<path>[&trigger=<trigger>&label=<page>]` | Start sign-in. `return` is a path on the same host (path, query, hash); anything else is refused. `trigger` and `label` say why and where the sign-in started (see [Activation records](#activation-records-and-the-users-view)); both are optional. |
 | `GET /api/auth/callback` | Used by the flow only. |
 | `GET /api/auth/session` | `{ "authenticated": false }` or `{ "authenticated": true, "user": { "id", "name", "email" }, "roles": [...], "domain": "<host>" }` |
-| `POST /api/auth/logout` | Ends this site's session only. JSON for `fetch`; a form post is redirected to `?return=<path>` (or `/`). |
+| `POST /api/auth/logout[?return=<path>]` | Ends this site's session **and single sign-on** ([How a logout works](#how-a-logout-works)). `fetch`: `{ "authenticated": false, "signOutUrl": "https://<login host>/signout?ticket=…" }` — open `signOutUrl` to finish. Form post: redirected there, then back to `return` (or `/`). With no session at the site: `{ "authenticated": false }` / straight back. |
 
 On a login host: `GET /api/auth/authorize`, `POST /api/auth/session` (Firebase ID
 token → central session; same-origin only), `GET /api/auth/session` (central
-session status), `POST /api/auth/logout` (ends that login host's central session).
+session status), `POST /api/auth/logout` (ends that login host's central session),
+`POST /api/auth/end-session` (`{ ticket }` → `{ uid, returnTo }`; same-origin
+only, used by the `/signout` page).
 
 ## 1. Vercel environment variables (this project, `interns2026`)
 
@@ -322,10 +365,10 @@ Then, in the window from row 2 (still signed in):
 
 - **Single sign-on:** do row 4 in the same window. Expect no Google prompt and the same exact return.
 - **Provider isolation:** do row 5 in the same window. Expect the GAMYAA sign-in page (a different provider never reuses EV.ENGINEER's session).
-- **Local logout:** on `aerospace.ev.engineer`, run `await (await fetch('/api/auth/logout', { method: 'POST' })).json()`. Expect `{authenticated:false}`, the cookie gone, `/api/auth/session` false, and `www.ev.engineer` still signed in. Signing in again on `aerospace.ev.engineer` needs no Google prompt.
+- **Explicit logout:** on `aerospace.ev.engineer`, run `const r = await (await fetch('/api/auth/logout', { method: 'POST' })).json(); r` → `{authenticated:false, signOutUrl:'https://login.autonomous.ev.engineer/signout?ticket=…'}`, then `location.assign(r.signOutUrl)`. Expect a brief "Signing you out…" on the login host and a return to `https://aerospace.ev.engineer/`; the site cookie gone; `/api/auth/session` false there and on `https://login.autonomous.ev.engineer/api/auth/session`; `www.ev.engineer` still signed in (its own session). Signing in again on `aerospace.ev.engineer` goes to Google with the **account chooser**.
 - **Open redirect refused:** open `https://aerospace.ev.engineer/api/auth/login?return=https%3A%2F%2Fevil.example`. Expect "We can't send you there".
 - **No membership, no access:** sign in with a Google account that has no membership in that Partner. Expect `authenticated: true, roles: []`, and the site must deny every protected route.
-- **Audit:** `authEvents` shows `login_started`, `login_success`, `session_created`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created` and `logout` for these runs.
+- **Audit:** `authEvents` shows `login_started`, `login_success`, `session_created`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created` and `logout` (one for the site session, one with `sessionKind: central` for the login host) for these runs.
 
 Only after these pass: add the sites' Login button and sign-in prompt.
 
@@ -402,6 +445,90 @@ In order; each step only after the one before it passes.
        no Users page and the rules refuse the data.
 10. [ ] **Privacy notice** reviewed (above) before broad rollout.
 
+## 7. Logout and account switching — real browsers
+
+After the release with explicit logout is in production. Use two Google
+accounts, **A** (with a membership in the Partner) and **B** (another role, or none).
+
+| Check | Steps | Expect |
+|---|---|---|
+| Account switch | Sign in on `https://www.ev.engineer/` with A → Logout → Login | Google's **account chooser**. Choose B: the site's `/api/auth/session` shows B and B's roles only; `/admin/users` on the login host lists B's sign-in. |
+| Same account again | Logout → Login → choose A | Chooser shown; A signed in as before. |
+| SSO kept | Sign in on `www.ev.engineer` → open `https://aerospace.ev.engineer/` → Login | No Google page, no chooser; same user. |
+| SSO ended | After a Logout on one site, Login on another site of the same provider | Chooser shown (central session gone). |
+| Dashboard | After a site Logout, open `https://login.autonomous.ev.engineer/` | Dashboard sign-in page, not the old account (Firebase sign-in ended by `/signout`). |
+
+Run the table on each browser, each in three setups:
+
+| Browser | One Google account signed in | Several Google accounts | Private / Incognito window |
+|---|---|---|---|
+| Chrome desktop | [ ] | [ ] | [ ] |
+| Safari macOS | [ ] | [ ] | [ ] |
+| Safari iOS | [ ] | [ ] | [ ] |
+| Chrome Android | [ ] | [ ] | [ ] |
+
+With one account in the browser, Google still shows the chooser (that account
+plus "Use another account"). In a private window Google asks for the account
+from scratch, which is expected.
+
+## 8. Firebase auth domain — `auth.ev.engineer`
+
+The auth domain is where Firebase runs Google sign-in (`/__/auth/handler`, in
+the popup) and the domain Google shows the user. It is **only** Firebase
+infrastructure: the branded login hosts (`login.itelematics.com`,
+`login.autonomous.ev.engineer`, `login.gamyaa.in`, `login.uflight.in`) stay the
+product-facing sign-in addresses.
+
+```text
+application site → login.<brand> (Intern2026) → Google via auth.ev.engineer → login.<brand> → application page
+```
+
+| | |
+|---|---|
+| Before | `ev2027.firebaseapp.com` (production, checked 2026-10-26) |
+| After | `auth.ev.engineer` |
+| Where | `VITE_FIREBASE_AUTH_DOMAIN`, read by [`src/firebase/webConfig.ts`](../../src/firebase/webConfig.ts) — the only Firebase web config in this repo. No other Firebase value changes. |
+
+On 2026-10-26 `auth.ev.engineer` had **no DNS record** (the `ev.engineer` zone
+is at GoDaddy, `domaincontrol.com`). **Do not switch production until every
+step below passes.** The code needs no further change: the switch is the
+environment value. A value that is not a bare hostname (e.g. a pasted
+`https://…/`) falls back to `ev2027.firebaseapp.com` with a console warning.
+
+1. [ ] **Firebase Hosting** (project `ev2027`, default site): Hosting → Add custom domain → `auth.ev.engineer`. Add the records the console shows at GoDaddy (DNS for `ev.engineer`; the apex and other subdomains stay on Vercel). Wait for **Connected** and an issued certificate — this can take hours.
+2. [ ] **Handler check** — both `200`, and `curl` must not need `-k`:
+   ```sh
+   curl -s -o /dev/null -w '%{http_code}\n' https://auth.ev.engineer/__/auth/handler
+   curl -s https://auth.ev.engineer/__/firebase/init.json   # "projectId": "ev2027"
+   ```
+   (`https://auth.ev.engineer/` itself shows the dashboard's "address isn't configured" screen; that is harmless.)
+3. [ ] **Firebase Authentication** → Settings → Authorized domains → add `auth.ev.engineer`.
+4. [ ] **Google OAuth client** — Google Cloud console (`ev2027`) → APIs & Services → Credentials → *Web client (auto created by Google Service)* → Authorized redirect URIs → add `https://auth.ev.engineer/__/auth/handler`. Keep `https://ev2027.firebaseapp.com/__/auth/handler` (rollback).
+5. [ ] **Test before production:** `VITE_FIREBASE_AUTH_DOMAIN=auth.ev.engineer npm run dev`, open `http://localhost:5173/login?partnerHost=login.autonomous.ev.engineer`, sign in: the Google window's address is `auth.ev.engineer` and sign-in completes (`localhost` is authorized by default).
+6. [ ] **Production:** Vercel → `interns2026` → Settings → Environment Variables → Production → `VITE_FIREBASE_AUTH_DOMAIN` = `auth.ev.engineer` → **redeploy** (VITE_ values are compiled in at build time). Check what is live:
+   ```sh
+   JS=$(curl -s https://login.autonomous.ev.engineer/login | grep -oE '/assets/index[^"]+\.js' | head -1)
+   curl -s "https://login.autonomous.ev.engineer$JS" | grep -oE 'VITE_FIREBASE_AUTH_DOMAIN:"[^"]*"'
+   ```
+7. [ ] **Every login host:** sign in on all four; the Google window shows `auth.ev.engineer`, not `ev2027.firebaseapp.com`. Then section 7.
+
+**Rollback:** set `VITE_FIREBASE_AUTH_DOMAIN` back to `ev2027.firebaseapp.com` and redeploy.
+
+**Authorized domains — keep the list minimal.** Only pages that run the
+Firebase Auth SDK need to be listed: the four login hosts, `auth.ev.engineer`,
+and Firebase's defaults (`localhost`, `ev2027.firebaseapp.com`,
+`ev2027.web.app`). The application sites (`ev.engineer`, `www.gamyaa.in`, …)
+never run Firebase sign-in — they use the code flow above — so they don't
+belong on it unless a site starts calling Firebase Auth in the browser.
+
+**Branding is not code.** What Google shows as the app's name and logo comes
+from Google Cloud console → Google Auth Platform → **Branding** (app name,
+user support email, logo, app home page and privacy policy links, authorized
+domains — `ev.engineer`, `itelematics.com`, `gamyaa.in`, `uflight.in` —
+and developer contact). One OAuth client serves all four brands, so pick a
+name that fits all of them. A logo may require Google's brand verification.
+If, after step 7, Google still shows the wrong name or logo, fix it there.
+
 ## Security properties
 
 | | |
@@ -413,6 +540,8 @@ In order; each step only after the one before it passes.
 | Return URLs | Built from a configured host + a same-host path; full URLs, `//`, `\`, control characters, `javascript:`/`data:` are refused. |
 | CSRF | State-changing POSTs require the exact `Origin`; `SameSite=Lax`. |
 | Session lifetime | 12 h idle, 7 days absolute; a new id on every sign-in (rotation); revoked on logout, rotation, code replay, disabled account. |
+| Logout | A site's logout (same-origin POST) revokes its session and the central session that signed it in. The login host finishes with an HMAC-signed ticket `{host, path, user, time}` (5 min, bound to the provider's sites) that ends only that user's central session, behind a same-origin POST from `/signout`. The return page is rebuilt from the ticket and re-checked in the browser against the provider's sites. Replaying a ticket at most signs the same user out again. |
+| Fresh Google sign-in | `prompt=select_account` on every Google sign-in (no `login_hint`). Reached only when no valid central session exists. |
 | Central sign-in | Verifies the Firebase ID token server-side (signature, revocation, disabled account) and requires a sign-in within the last 5 minutes. |
 | Rate limits | Per minute: 10 token sign-ins and 30 authorizations per client address (requests straight to the login host). Sign-in starts arriving through a site's rewrite: 300 per site until `AUTH_TRUST_PROXIED_CLIENT_IP=true`, then 30 per client address ([section 5](#5-client-addresses-through-site-rewrites-rate-limits)). |
 | Audit | `authEvents`: `login_started`, `login_success`, `login_failed`, `authorization_code_issued`, `authorization_code_exchanged`, `session_created`, `session_refreshed`, `logout`, `session_revoked`, `user_activation` — user, Partner, host, time, result, reason, IP, user agent. No tokens, codes or cookie values. Server-only: no Admin view reads them. |
@@ -421,7 +550,10 @@ In order; each step only after the one before it passes.
 
 Tests: [`server/auth/handler.test.ts`](../../server/auth/handler.test.ts) runs the
 whole flow through a simulated browser with one cookie jar per host;
-[`src/auth/*.test.ts`](../../src/auth) cover the host table and return paths;
+[`src/auth/*.test.ts`](../../src/auth) cover the host table, return paths and
+the `/signout` sequence; [`src/firebase/auth.test.ts`](../../src/firebase/auth.test.ts)
+the account chooser (`prompt=select_account`) and Firebase sign-out;
+[`src/firebase/webConfig.test.ts`](../../src/firebase/webConfig.test.ts) the auth domain;
 `tests/rules/tenant.rules.test.ts` and `tests/rules/authStore.test.ts` cover the
 Firestore rules and the Firestore store in the emulator.
 
@@ -472,11 +604,12 @@ not by counsel.
 - **Authentication ≠ authorization.** Any Google account may authenticate; protected access needs all four checks above.
 - **Sessions:** 12 hours idle, 7 days absolute, configurable with `AUTH_SESSION_IDLE_HOURS` and `AUTH_SESSION_MAX_HOURS`.
 - **Roles:** the platform's existing role names. No SSO-specific roles.
-- **Logout is local.** A site's logout ends only that site's session. Signing out of the dashboard on a login host ends that login host's central session (no more automatic sign-in there), not the sites' sessions. There is no global logout.
+- **Explicit logout ends single sign-on** (changed 2026-10-26; it used to be local only). A site's logout ends that site's session, the login host's central session and its Firebase sign-in, so the next Login shows Google's account chooser. Other sites' own sessions remain until they log out or expire. Signing out of the dashboard on a login host ends its central session, as before. There is no global logout across sites.
 - **Site endpoints:** served by this project through each site's rewrite. Revisit only if production testing shows a problem.
 
 ## Future security work (not part of this release)
 
 - **Dashboard browser token.** The dashboard on the login hosts still uses the Firebase Auth SDK's default persistence, which keeps its refresh token in IndexedDB. This release does not change that. The SSO cookies, codes and sessions never touch browser storage. A later change could sign the dashboard in from the HttpOnly central session (short-lived Firebase custom tokens, in-memory persistence).
-- **Global logout / revoke all sessions** for a user (the store already supports `revokeUserSessions`).
+- **Global logout / revoke all sessions** for a user (the store already supports `revokeUserSessions`), e.g. so a logout also ends the other sites' sessions that the same central session signed in (each app session records its `centralId`).
+- **Transition:** site sessions created before explicit logout shipped don't record `centralId`. For them the central session ends at the login host's `/signout` step, so a site that logs out with `fetch` and never opens `signOutUrl` leaves it alive until it expires (12 h idle). Gone once those sessions expire (7 days at most).
 - Two sign-ins started at once in two tabs of the same site: the later one wins; the earlier shows "couldn't be verified" and the user signs in again.

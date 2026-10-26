@@ -14,6 +14,8 @@ export interface AuthPolicy {
   codeTtlMs: number
   /** How long a login may take from the app's Login click to the callback. */
   stateTtlMs: number
+  /** How long the login host acts on an application's logout ticket (the /signout page follows at once). */
+  logoutTtlMs: number
   /** A session not used for this long expires. */
   idleTimeoutMs: number
   /** A session expires this long after sign-in, however active. */
@@ -49,6 +51,7 @@ const HOUR = 60 * MINUTE
 export const DEFAULT_AUTH_POLICY: AuthPolicy = {
   codeTtlMs: 60_000,
   stateTtlMs: 10 * MINUTE,
+  logoutTtlMs: 5 * MINUTE,
   idleTimeoutMs: 12 * HOUR,
   absoluteLifetimeMs: 7 * 24 * HOUR,
   touchIntervalMs: 15 * MINUTE,

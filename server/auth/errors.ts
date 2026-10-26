@@ -11,6 +11,7 @@ export type AuthErrorCode =
   | 'expired_code'
   | 'code_used'
   | 'session_failed'
+  | 'invalid_logout'
   | 'unauthorized_domain'
   | 'invalid_credentials'
   | 'stale_sign_in'
@@ -35,6 +36,7 @@ const ERRORS: Record<AuthErrorCode, ErrorInfo> = {
   expired_code:        { status: 400, title: 'Your sign-in expired', message: 'The sign-in link expired before it was used. Please sign in again.' },
   code_used:           { status: 400, title: 'This sign-in link was already used', message: 'For your security each sign-in link works once. Please sign in again.' },
   session_failed:      { status: 503, title: "We couldn't sign you in", message: 'Your sign-in was accepted but the session could not be started. Please try again in a moment.' },
+  invalid_logout:      { status: 400, title: "This sign-out link isn't valid", message: 'It was incomplete or altered. Sign out again from the site you were using.' },
   unauthorized_domain: { status: 403, title: "This site can't use this sign-in", message: 'This site is not registered with this sign-in service. Please sign in from the site itself.' },
   invalid_credentials: { status: 401, title: "We couldn't verify your sign-in", message: 'Please sign in again.' },
   stale_sign_in:       { status: 401, title: 'Please sign in again', message: 'For your security, confirm your account to continue.' },

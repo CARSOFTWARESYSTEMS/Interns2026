@@ -12,12 +12,23 @@
 //     POST session     — Firebase ID token → central session (HttpOnly cookie)
 //     GET  session     — central session status
 //     POST logout      — end the central session
+//     POST end-session — the /signout page finishing an app's logout (ticket)
 //   Application host: `app/<host>/<action>` (rewrite from the app's project), or
 //   `<action>` with the app host in the Host header (handler mounted natively)
 //     GET  login       — start sign-in; ?return=<same-host path>[&trigger=…&label=…]
 //     GET  callback    — redeem the code, create this host's session, return
 //     GET  session     — { authenticated, user, roles, domain }
-//     POST logout      — end this host's session
+//     POST logout      — end this host's session AND single sign-on
+//
+// Explicit logout ends single sign-on, so the next Login asks Google again:
+//
+//   app host                       login host
+//   POST /api/auth/logout          /signout?ticket=… (page)
+//   • revoke this host's session   POST /api/auth/end-session {ticket}
+//   • revoke the central session     • end this browser's central session if it
+//     that signed it in                is the same user's; clear its cookie
+//   • signed logout ticket ───────▶ • Firebase signOut on the login host
+//                                   → back to the app's public page
 //
 // The browser never sees a token it could reuse elsewhere: the code is
 // single-use, expires in seconds, is bound to one host, to the state nonce
@@ -78,8 +89,23 @@ interface LoginTxn {
   t: number
 }
 
+/**
+ * An application's explicit logout, carried to its login host so the login
+ * host can finish it (signed; see endSession). `h` and `p` have the login
+ * state's shape, so peekLoginState can read them for the /signout page.
+ */
+export interface LogoutTicket {
+  /** Application host and same-host path to return to. */
+  h: string
+  p: string
+  /** The user who logged out: only their central session ends. */
+  u: string
+  t: number
+}
+
 export const STATE_PURPOSE = 'i26.state'
 export const TXN_PURPOSE = 'i26.txn'
+export const LOGOUT_PURPOSE = 'i26.logout'
 const IP_PURPOSE = 'i26.ip'
 
 export type SessionStatus = 'active' | 'revoked' | 'expired' | 'idle'
@@ -248,6 +274,13 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
     return h && h === s.h ? s : null
   }
 
+  function readLogoutTicket(token: unknown): LogoutTicket | null {
+    const s = typeof token === 'string' ? unseal<LogoutTicket>(secret, LOGOUT_PURPOSE, token) : null
+    if (!s || typeof s.p !== 'string' || typeof s.u !== 'string' || !s.u || typeof s.t !== 'number') return null
+    const h = normalizeHostname(s.h)
+    return h && h === s.h ? s : null
+  }
+
   async function loadSession(req: Request, kind: SessionKind, host: string): Promise<{ present: boolean; session: Loaded | null }> {
     const token = readCookie(req, kind === 'central' ? COOKIE.central : COOKIE.session)
     if (!token) return { present: false, session: null }
@@ -265,14 +298,17 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
     return { token, id: sha256(token) }
   }
 
-  function sessionRecord(kind: SessionKind, who: Omit<VerifiedSignIn, 'authTime'>, provider: AuthProvider, host: string, centralRef: string | null): SessionRecord {
+  function sessionRecord(
+    kind: SessionKind, who: Omit<VerifiedSignIn, 'authTime'>, provider: AuthProvider, host: string,
+    centralRef: string | null, centralId: string | null,
+  ): SessionRecord {
     const t = now()
     return {
       kind,
       uid: who.uid, email: who.email, emailVerified: who.emailVerified, name: who.name,
       providerId: provider.id, partnerId: provider.partnerId, host,
       createdAt: t, lastSeenAt: t, expiresAt: t + policy.absoluteLifetimeMs,
-      revokedAt: null, revokeReason: null, centralRef,
+      revokedAt: null, revokeReason: null, centralRef, centralId,
     }
   }
 
@@ -450,7 +486,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const previous = await loadSession(req, 'app', host)
       if (previous.session) await revoke(previous.session, 'rotated', 'session_revoked')
 
-      const rec = sessionRecord('app', c, provider, host, c.centralRef)
+      const rec = sessionRecord('app', c, provider, host, c.centralRef, c.centralId ?? null)
       try {
         await store.putSession(sessionId, rec)
       } catch (err) {
@@ -494,7 +530,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         providerId: provider.id, partnerId: provider.partnerId,
         uid, email, emailVerified, name,
         host: state.h, challenge: state.c, nonce: state.n,
-        centralRef: sessionRef(session.id),
+        centralRef: sessionRef(session.id), centralId: session.id,
         createdAt: t, expiresAt: t + policy.codeTtlMs, usedAt: null, sessionId: null,
         // This request comes straight from the browser, so its geo headers are the visitor's.
         location: locationFromHeaders(req.headers),
@@ -530,7 +566,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       if (previous.session) await revoke(previous.session, 'rotated', 'session_revoked')
 
       const { token, id } = newSession()
-      await store.putSession(id, sessionRecord('central', who, provider, host, null))
+      await store.putSession(id, sessionRecord('central', who, provider, host, null, null))
       await audit({ event: 'login_success', result: 'success', uid: who.uid })
       await audit({ event: 'session_created', result: 'success', uid: who.uid, sessionRef: sessionRef(id), sessionKind: 'central' })
       // The dashboard's sign-in is an activation in its own right. The /sso page's is not:
@@ -562,12 +598,58 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         await recordSignOut(session)
       }
       const cookies = [clearCookie(kind === 'central' ? COOKIE.central : COOKIE.session)]
-      if (form) {
-        const raw = new URL(req.url).searchParams.get('return')
-        const path = (raw && sanitizeReturnPath(raw, host)) || '/'
-        return redirect(returnUrl(host, path), cookies, 303)
+      const raw = new URL(req.url).searchParams.get('return')
+      const path = (raw && sanitizeReturnPath(raw, host)) || '/'
+      const signOutUrl = kind === 'app' && session ? await endSingleSignOn(session, path) : null
+      if (form) return redirect(signOutUrl ?? returnUrl(host, path), cookies, 303)
+      return json(signOutUrl ? { authenticated: false, signOutUrl } : { authenticated: false }, 200, cookies)
+    }
+
+    /**
+     * An application's explicit logout ends single sign-on too, so the next
+     * Login asks Google again instead of reusing this identity. The central
+     * session that signed this app in is revoked here, server-side, however
+     * the site called logout. What only the login host can clear — its
+     * cookie, and its page's Firebase sign-in — is finished by its /signout
+     * page, which a form logout is sent to and a fetch logout gets as
+     * `signOutUrl`.
+     */
+    async function endSingleSignOn(app: Loaded, path: string): Promise<string> {
+      const centralId = app.rec.centralId
+      const central = centralId ? await store.getSession(centralId) : null
+      if (centralId && central?.kind === 'central' && central.uid === app.rec.uid && central.revokedAt === null) {
+        await revoke({ id: centralId, rec: central }, 'logout', 'logout')
       }
-      return json({ authenticated: false }, 200, cookies)
+      const ticket = seal(secret, LOGOUT_PURPOSE, { h: host, p: path, u: app.rec.uid, t: now() } satisfies LogoutTicket)
+      return `https://${provider.loginHost}/signout?ticket=${encodeURIComponent(ticket)}`
+    }
+
+    /**
+     * POST end-session {ticket} — the /signout page finishing an application's
+     * logout. Ends this browser's central session only if it is the logged-out
+     * user's (normally the app's logout already revoked it; this also catches a
+     * session rotated since, or one from before centralId was recorded), so a
+     * ticket from someone else's logout can't sign this browser out. Answers
+     * the page to return to and whose Firebase sign-in the page should end.
+     */
+    async function endSession(): Promise<Response> {
+      if (!sameOrigin(req, host)) return fail('forbidden_origin', { html: false })
+      if (!(req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')) return fail('bad_request', { html: false })
+      const ticket = readLogoutTicket((await readJson(req, 8192))?.ticket)
+      if (!ticket || !isAllowedAppHost(provider, ticket.h)) return fail('invalid_logout', { html: false })
+      const returnTo = returnUrl(ticket.h, sanitizeReturnPath(ticket.p, ticket.h) ?? '/')
+      // Too old to act on: just send the visitor back.
+      if (now() - ticket.t > policy.logoutTtlMs) return json({ uid: null, returnTo })
+
+      const { present, session } = await loadSession(req, 'central', host)
+      const cookies: string[] = []
+      if (session && session.rec.uid === ticket.u) {
+        await revoke(session, 'logout', 'logout')
+        cookies.push(clearCookie(COOKIE.central))
+      } else if (present && !session) {
+        cookies.push(clearCookie(COOKIE.central))  // already revoked, expired or unknown
+      }
+      return json({ uid: ticket.u, returnTo }, 200, cookies)
     }
 
     // ── Routing ─────────────────────────────────────────────────────────
@@ -582,6 +664,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
             if (req.method === 'POST') return await signIn()
             return only('GET') ?? await sessionInfo('central')
           case 'logout': return only('POST') ?? await logout('central')
+          case 'end-session': return only('POST') ?? await endSession()
         }
       } else {
         switch (action) {
