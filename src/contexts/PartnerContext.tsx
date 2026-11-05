@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Partner } from '../types/partner'
 import { resolveLookupHost, isLocalDevHost, normalizeHostname } from '../tenant/hostname'
 import { getPartnerDomain, getPartner } from '../firebase/partners'
+import { providerForLoginHost } from '../auth/providers'
 import { isFirebaseConfigured } from '../firebase/config'
 import seed from '../tenant/partners.seed.json'
 import { applyPartnerTheme } from '../tenant/theme'
@@ -81,11 +82,18 @@ async function resolvePartner(): Promise<Omit<PartnerContextValue, 'partnerId'>>
   }
 
   try {
-    const domain = await getPartnerDomain(res.hostname)
+    // A login host's Partner is fixed in the provider table, so its record is read
+    // alongside the domain's instead of after it. The domain record still decides:
+    // the early read is used only when the domain points at that same Partner.
+    const expectedId = providerForLoginHost(res.hostname)?.partnerId ?? null
+    const [domain, early] = await Promise.all([
+      getPartnerDomain(res.hostname),
+      expectedId ? getPartner(expectedId).catch(() => null) : null,
+    ])
     if (!domain) return { status: 'unknown-domain', partner: null, lookupHost: res.hostname, isDevOverride }
     if (domain.status !== 'Active') return { status: 'inactive', partner: null, lookupHost: res.hostname, isDevOverride }
 
-    const partner = await getPartner(domain.partnerId)
+    const partner = early && domain.partnerId === expectedId ? early : await getPartner(domain.partnerId)
     if (!partner) return { status: 'unknown-domain', partner: null, lookupHost: res.hostname, isDevOverride }
     if (partner.status !== 'Active') return { status: 'inactive', partner: null, lookupHost: res.hostname, isDevOverride }
 

@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions'
 import { applicationDefault, cert, getApps, initializeApp, type Credential } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
@@ -41,6 +42,8 @@ function build(): (req: Request) => Promise<Response> {
     directory: createFirebaseDirectory(getAuth(app), db),
     secret,
     policy: policyFromEnv(process.env),
+    // Audit events and activation records finish after the redirect is sent.
+    defer: work => { waitUntil(work) },
   })
 }
 

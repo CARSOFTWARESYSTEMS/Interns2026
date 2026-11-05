@@ -62,6 +62,12 @@ export interface AuthDeps {
   secret: string
   policy: AuthPolicy
   now?: () => number
+  /**
+   * Keeps bookkeeping — audit events, activation records, session refreshes —
+   * running after the response is sent (Vercel's waitUntil), so a redirect
+   * never waits for it. Without it, bookkeeping finishes before the response.
+   */
+  defer?: (work: Promise<unknown>) => void
 }
 
 /**
@@ -255,7 +261,7 @@ const WORKSPACE_LABEL = 'Engineering Command Center'
 // ── Handler ────────────────────────────────────────────────────────────────
 
 export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Response> {
-  const { store, directory, secret, policy } = deps
+  const { store, directory, secret, policy, defer } = deps
   const now = deps.now ?? Date.now
 
   if (typeof secret !== 'string' || secret.length < 32) throw new Error('Auth secret must be at least 32 characters')
@@ -318,13 +324,20 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
     const { provider, host, action } = ctx
     const meta = clientMeta(req)
 
+    /** Bookkeeping that never fails and need not hold up the response (see AuthDeps.defer). */
+    function later(work: Promise<void>): Promise<void> {
+      if (!defer) return work
+      defer(work)
+      return Promise.resolve()
+    }
+
     function audit(e: Partial<AuthEvent> & Pick<AuthEvent, 'event' | 'result'>): Promise<void> {
       const event: AuthEvent = {
         reason: null, uid: null, sessionRef: null, sessionKind: null,
         providerId: provider.id, partnerId: provider.partnerId, host,
         ...e, at: now(), ip: meta.ip, userAgent: meta.userAgent,
       }
-      return store.recordEvent(event).catch(err => logError('audit write failed', err))
+      return later(store.recordEvent(event).catch(err => logError('audit write failed', err)))
     }
 
     function aboutSession(s: Loaded): Partial<AuthEvent> {
@@ -356,6 +369,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       where: { host: string; path: string; pageLabel: string; trigger: LoginTrigger },
       approximate: CoarseLocation | null,
     ): Promise<void> {
+      const at = now()
       try {
         const [access, profile] = await Promise.all([
           directory.accessFor(who, provider.partnerId),
@@ -367,7 +381,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         // Named fields only: `who` may be a code record, whose nonce and challenge stay out of it.
         const facts = {
           uid: who.uid, email: who.email, emailVerified: who.emailVerified, name: who.name,
-          ...where, access, at: now(),
+          ...where, access, at,
           providerId: provider.id, partnerId: provider.partnerId, loginProvider: provider.loginHost,
         }
         const location = resolveLocation(profile, approximate)
@@ -382,9 +396,10 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
     }
 
     async function recordSignOut(s: Loaded): Promise<void> {
+      const at = now()
       try {
         await store.updateActivation(activationId(s.rec.partnerId, s.rec.uid), prev => ({
-          next: applySignOut(prev, s.rec.host, now()),
+          next: applySignOut(prev, s.rec.host, at),
           result: undefined,
         }))
       } catch (err) {
@@ -495,9 +510,9 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         return fail('session_failed', { html: true, action: again, cookies: [clearTxn] })
       }
       await audit({ event: 'session_created', result: 'success', uid: c.uid, sessionRef: sessionRef(sessionId), sessionKind: 'app' })
-      await recordSignIn(c, {
+      await later(recordSignIn(c, {
         host, path, pageLabel: sanitizePageLabel(state.l), trigger: parseLoginTrigger(state.g),
-      }, c.location ?? null)
+      }, c.location ?? null))
       return redirect(returnUrl(host, path), [setCookie(COOKIE.session, token, policy.absoluteLifetimeMs), clearTxn])
     }
 
@@ -521,7 +536,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
         await revoke(session, 'account_disabled', 'session_revoked')
         return toSignIn([clearCookie(COOKIE.central)])
       }
-      await touch(session)
+      await later(touch(session))
 
       const code = randomToken()
       const t = now()
@@ -572,7 +587,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       // The dashboard's sign-in is an activation in its own right. The /sso page's is not:
       // the application sign-in it is part of is recorded when its code is redeemed.
       if (body?.purpose === 'workspace') {
-        await recordSignIn(who, { host, path: '/', pageLabel: WORKSPACE_LABEL, trigger: 'workspace_access' }, locationFromHeaders(req.headers))
+        await later(recordSignIn(who, { host, path: '/', pageLabel: WORKSPACE_LABEL, trigger: 'workspace_access' }, locationFromHeaders(req.headers)))
       }
       return json({ authenticated: true }, 200, [setCookie(COOKIE.central, token, policy.absoluteLifetimeMs)])
     }
@@ -583,7 +598,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const cookie = kind === 'central' ? COOKIE.central : COOKIE.session
       const { present, session } = await loadSession(req, kind, host)
       if (!session) return json({ authenticated: false }, 200, present ? [clearCookie(cookie)] : [])
-      await touch(session)
+      await later(touch(session))
       const { uid, name, email } = session.rec
       const roles = await directory.rolesFor(session.rec, session.rec.partnerId)
       return json({ authenticated: true, user: { id: uid, name, email }, roles, domain: host })
@@ -595,7 +610,7 @@ export function createAuthHandler(deps: AuthDeps): (req: Request) => Promise<Res
       const { session } = await loadSession(req, kind, host)
       if (session) {
         await revoke(session, 'logout', 'logout')
-        await recordSignOut(session)
+        await later(recordSignOut(session))
       }
       const cookies = [clearCookie(kind === 'central' ? COOKIE.central : COOKIE.session)]
       const raw = new URL(req.url).searchParams.get('return')
