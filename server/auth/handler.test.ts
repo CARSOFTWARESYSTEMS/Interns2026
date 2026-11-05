@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createAuthHandler, sessionStatus, LOGOUT_PURPOSE, STATE_PURPOSE, TXN_PURPOSE, type LoginState } from './handler.js'
+import { createAuthHandler, sessionStatus, LOGOUT_PURPOSE, STATE_PURPOSE, TXN_PURPOSE, type AuthDeps, type LoginState } from './handler.js'
 import { createMemoryAuthStore } from './memoryStore.js'
 import { DEFAULT_AUTH_POLICY, policyFromEnv, type AuthPolicy } from './policy.js'
 import { seal, sha256, unseal } from './crypto.js'
@@ -30,7 +30,7 @@ const BENGALURU = {
 
 interface TestUser { uid: string; email: string; emailVerified: boolean; name: string; enabled: boolean }
 
-function setup(policy: AuthPolicy = DEFAULT_AUTH_POLICY) {
+function setup(policy: AuthPolicy = DEFAULT_AUTH_POLICY, defer?: AuthDeps['defer']) {
   let t = START
   const store = createMemoryAuthStore()
   const users = new Map<string, TestUser>([
@@ -62,7 +62,7 @@ function setup(policy: AuthPolicy = DEFAULT_AUTH_POLICY) {
     },
     profileLocation: vi.fn(async (uid: string) => profiles.get(uid) ?? null),
   }
-  const handler = createAuthHandler({ store, directory, secret: SECRET, policy, now: () => t })
+  const handler = createAuthHandler({ store, directory, secret: SECRET, policy, now: () => t, defer })
   return { store, users, memberships, profiles, directory, handler, now: () => t, advance: (ms: number) => { t += ms } }
 }
 
@@ -366,6 +366,53 @@ describe('sign-in flow', () => {
     ]
     const stored = JSON.stringify([...env.store.sessions, ...env.store.codes, env.store.events])
     for (const s of secrets) expect(stored).not.toContain(s)
+  })
+})
+
+// ── Bookkeeping after the response ─────────────────────────────────────────
+
+describe('bookkeeping after the response (defer)', () => {
+  const EVENTS = [
+    'login_started', 'login_success', 'session_created', 'authorization_code_issued',
+    'authorization_code_exchanged', 'session_created', 'user_activation',
+  ]
+
+  it('redirects without waiting for audit and activation writes, then finishes them', async () => {
+    const pending: Promise<unknown>[] = []
+    const env = setup(DEFAULT_AUTH_POLICY, work => { pending.push(work) })
+    // Hold every audit and activation write until released.
+    let release!: () => void
+    const held = new Promise<void>(r => { release = r })
+    const { recordEvent, updateActivation } = env.store
+    env.store.recordEvent = async e => { await held; return recordEvent(e) }
+    env.store.updateActivation = async (id, fn) => { await held; return updateActivation(id, fn) }
+
+    const browser = new Browser(env)
+    const { res } = await login(env, browser)
+    expect(location(res)).toBe(PAGE)
+    expect(await session(browser, 'aerospace.ev.engineer')).toMatchObject({ authenticated: true, roles: ['Viewer'] })
+    expect(env.store.events).toEqual([])
+    expect(env.store.activations.size).toBe(0)
+
+    release()
+    await Promise.all(pending)
+    expect(env.store.events.map(e => e.event)).toEqual(EVENTS)
+    expect(env.store.activations.get('ev-engineer_u1')).toMatchObject({ firstActivatedAt: START, lastLoginAt: START, loginCount: 1 })
+  })
+
+  it('hands over only work that cannot fail, even when every write fails', async () => {
+    const pending: Promise<unknown>[] = []
+    const env = setup(DEFAULT_AUTH_POLICY, work => { pending.push(work) })
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    env.store.recordEvent = async () => { throw new Error('audit down') }
+    env.store.updateActivation = async () => { throw new Error('activations down') }
+
+    const browser = new Browser(env)
+    const { res } = await login(env, browser)
+    expect(location(res)).toBe(PAGE)
+    expect(pending.length).toBeGreaterThan(0)
+    expect((await Promise.allSettled(pending)).every(r => r.status === 'fulfilled')).toBe(true)
+    errors.mockRestore()
   })
 })
 
