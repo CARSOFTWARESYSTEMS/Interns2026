@@ -9,7 +9,7 @@ a central session that lets a second site sign in without asking again.
 |---|---|---|
 | `login.itelematics.com` | `itelematics.com`, `www.itelematics.com` | `itelematics` |
 | `login.autonomous.ev.engineer` | `ev.engineer`, `www.ev.engineer`, `autonomous.ev.engineer`, `aerospace.ev.engineer`, `aerospace.ishavasyam.org` | `ev-engineer` |
-| `login.gamyaa.in` | `gamyaa.in`, `www.gamyaa.in`, `aerospace.gamyaa.in`, `aerosystems.gamyaa.in` | `gamyaa` |
+| `login.gamyaa.in` | `gamyaa.in`, `www.gamyaa.in`, `aerospace.gamyaa.in`, `aerosystems.gamyaa.in`, `aerospace.stellrspace.com` | `gamyaa` |
 | `login.uflight.in` | `uflight.in`, `www.uflight.in`, `cybersecurity.uflight.in` | `uflight` |
 
 The table lives in one place: [`src/auth/providers.ts`](../../src/auth/providers.ts).
@@ -202,12 +202,14 @@ Domains before testing it.)
 ```
 
 **autonomous / aerospace project** (`autonomous.ev.engineer`,
-`aerospace.ev.engineer`, `aerospace.ishavasyam.org`, `aerospace.gamyaa.in` and
-`cybersecurity.uflight.in` share one deployment; Next.js, repo `CARSOFTWARESYSTEMS/AutonomousEV`). Its
+`aerospace.ev.engineer`, `aerospace.ishavasyam.org`, `aerospace.gamyaa.in`,
+`aerospace.stellrspace.com` and `cybersecurity.uflight.in` share one
+deployment; Next.js, repo `CARSOFTWARESYSTEMS/AutonomousEV`). Its
 `next.config.ts` generates these rules from the site's own host table
 (`src/lib/auth/sites.ts`), so nothing needs copying by hand. Note
-`aerospace.gamyaa.in` and `cybersecurity.uflight.in` go to **different** login
-hosts. The equivalent `vercel.json` form:
+`aerospace.gamyaa.in` and `aerospace.stellrspace.com` (both `login.gamyaa.in`)
+and `cybersecurity.uflight.in` go to **different** login hosts from the rest.
+The equivalent `vercel.json` form:
 
 ```json
 {
@@ -216,6 +218,7 @@ hosts. The equivalent `vercel.json` form:
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ev.engineer/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ishavasyam.org" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ishavasyam.org/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.gamyaa.in" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.stellrspace.com" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.stellrspace.com/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "cybersecurity.uflight.in" } }], "destination": "https://login.uflight.in/api/auth/app/cybersecurity.uflight.in/:action" }
   ]
 }
@@ -358,8 +361,9 @@ site's Login button will do.
 | 7 | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` |
 | 8 | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` | `login.uflight.in` (not EV.ENGINEER) | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` |
 | 9 | `https://aerospace.ishavasyam.org/space?smoke=isha#research` | `login.autonomous.ev.engineer` | `https://aerospace.ishavasyam.org/space?smoke=isha#research` |
+| 10 | `https://aerospace.stellrspace.com/space?smoke=stellr#research` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.stellrspace.com/space?smoke=stellr#research` |
 
-Rows 7 and 8 check the one deployment that serves three providers.
+Rows 7, 8 and 10 check the one deployment that serves three providers.
 
 Then, in the window from row 2 (still signed in):
 

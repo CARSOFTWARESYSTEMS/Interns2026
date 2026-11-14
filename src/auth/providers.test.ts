@@ -7,7 +7,7 @@ import seed from '../tenant/partners.seed.json'
 const SPEC: Record<string, string[]> = {
   'login.itelematics.com': ['itelematics.com', 'www.itelematics.com'],
   'login.autonomous.ev.engineer': ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer', 'aerospace.ishavasyam.org'],
-  'login.gamyaa.in': ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in'],
+  'login.gamyaa.in': ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in', 'aerospace.stellrspace.com'],
   'login.uflight.in': ['uflight.in', 'www.uflight.in', 'cybersecurity.uflight.in'],
 }
 

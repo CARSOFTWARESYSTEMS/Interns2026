@@ -44,7 +44,8 @@ export const AUTH_PROVIDERS: Readonly<Record<AuthProviderId, AuthProvider>> = {
     id: 'gamyaa',
     partnerId: 'gamyaa',
     loginHost: 'login.gamyaa.in',
-    allowedHosts: ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in'],
+    // aerospace.stellrspace.com (STELLR SPACE) signs in here, like aerospace.gamyaa.in.
+    allowedHosts: ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in', 'aerospace.stellrspace.com'],
   },
   uflight: {
     id: 'uflight',
