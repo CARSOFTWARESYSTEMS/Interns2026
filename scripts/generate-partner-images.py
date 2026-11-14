@@ -6,10 +6,14 @@ Writes, from src/tenant/partners.seed.json and the bundled Inter fonts:
   public/partners/<id>/og-image.png            Partner 1200x630 preview (og:image / twitter:image)
   public/partners/<id>/icon-96.png             favicon
   public/partners/<id>/apple-touch-icon.png    180x180 home-screen icon
+  public/partners/<id>/logo.png                256x256 rounded tile, only with icon.png (below)
 
-Optional source art in scripts/partner-art/<id>/ (transparent PNGs):
-  logo.png   full logo, shown on a white card in the preview
-  mark.png   square brand mark, used for the icons instead of the monogram
+Optional source art in scripts/partner-art/<id>/:
+  logo.png   full logo (transparent), shown on a white card in the preview
+  mark.png   square brand mark (transparent), used for the icons instead of the monogram
+  icon.png   finished square tile, full bleed: used as-is for the icons, and
+             written rounded to public/partners/<id>/logo.png for a Partner
+             whose branding.logoUrl points there (STELLR SPACE)
 
 The outputs are committed; re-run after changing a Partner's name, subtitle,
 domain, colours or art:  python3 scripts/generate-partner-images.py   (needs Pillow)
@@ -31,7 +35,7 @@ SS = 2  # supersample, then downscale for smooth text and lines
 MARGIN = 88
 
 # Letters on the icon tile; anything not listed uses the first letter of shortName.
-MONOGRAMS = {"itelematics": "iT", "gamyaa": "G", "uflight": "U", "ev-engineer": "EV"}
+MONOGRAMS = {"itelematics": "iT", "gamyaa": "G", "uflight": "U", "ev-engineer": "EV", "stellr-space": "S"}
 
 NEUTRAL = {
     "label": "",
@@ -130,25 +134,39 @@ def og_image(spec):
     return img.convert("RGB").resize((W, H), Image.LANCZOS)
 
 
-def icon(spec, size, rounded):
-    """Brand mark on white when the Partner has one, else the monogram on its colours."""
+def rounded(img, radius):
+    mask = Image.new("L", img.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.width - 1, img.height - 1], radius=radius, fill=255)
+    img.putalpha(mask)
+    return img
+
+
+def icon(spec, size, rounded_corners):
+    """The Partner's finished tile, else its brand mark on white, else the monogram on its colours."""
     primary, secondary = hex_rgb(spec["primary"]), hex_rgb(spec["secondary"])
     s = size * 4
     mark = spec.get("mark")
-    tile = Image.new("RGBA", (s, s), "white") if mark else gradient(s, s, primary, secondary).convert("RGBA")
-    if mark:
+    if spec.get("icon"):
+        tile = fit(spec["icon"], s)
+    elif mark:
+        tile = Image.new("RGBA", (s, s), "white")
         art = fit(mark, int(s * 0.84))
         tile.alpha_composite(art, ((s - art.width) // 2, (s - art.height) // 2))
     else:
+        tile = gradient(s, s, primary, secondary).convert("RGBA")
         d = ImageDraw.Draw(tile)
         text = spec["monogram"]
         fnt = ImageFont.truetype(str(FONTS / "Inter-Bold.ttf"), int(s * (0.56 if len(text) == 1 else 0.44)))
         d.text((s / 2, s / 2), text, font=fnt, fill="white", anchor="mm")
-    if rounded:
-        mask = Image.new("L", (s, s), 0)
-        ImageDraw.Draw(mask).rounded_rectangle([0, 0, s - 1, s - 1], radius=s // 5, fill=255)
-        tile.putalpha(mask)
+    if rounded_corners:
+        tile = rounded(tile, s // 5)
     return tile.resize((size, size), Image.LANCZOS)
+
+
+def logo_tile(art_img, size=256):
+    """The finished tile as a sign-in logo, rounded like the site's 34px badge (10px corners)."""
+    s = size * 4
+    return rounded(fit(art_img, s), round(s * 10 / 34)).resize((size, size), Image.LANCZOS)
 
 
 def art(partner_id, name):
@@ -178,11 +196,14 @@ def main():
             "monogram": MONOGRAMS.get(p["id"], (p.get("shortName") or p["displayName"])[:1].upper()),
             "logo": art(p["id"], "logo.png"),
             "mark": art(p["id"], "mark.png"),
+            "icon": art(p["id"], "icon.png"),
         }
         out = PUBLIC / "partners" / p["id"]
         save_png(og_image(spec), out / "og-image.png")
-        save_png(icon(spec, 96, rounded=True), out / "icon-96.png")
-        save_png(icon(spec, 180, rounded=False), out / "apple-touch-icon.png")
+        save_png(icon(spec, 96, rounded_corners=True), out / "icon-96.png")
+        save_png(icon(spec, 180, rounded_corners=False), out / "apple-touch-icon.png")
+        if spec["icon"]:
+            save_png(logo_tile(spec["icon"]), out / "logo.png")
 
 
 if __name__ == "__main__":

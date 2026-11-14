@@ -15,7 +15,7 @@
 
 import { normalizeHostname } from '../tenant/hostname.js'
 
-export type AuthProviderId = 'itelematics' | 'ev_engineer' | 'gamyaa' | 'uflight'
+export type AuthProviderId = 'itelematics' | 'ev_engineer' | 'gamyaa' | 'uflight' | 'stellr_space'
 
 export interface AuthProvider {
   id: AuthProviderId
@@ -44,14 +44,20 @@ export const AUTH_PROVIDERS: Readonly<Record<AuthProviderId, AuthProvider>> = {
     id: 'gamyaa',
     partnerId: 'gamyaa',
     loginHost: 'login.gamyaa.in',
-    // aerospace.stellrspace.com (STELLR SPACE) signs in here, like aerospace.gamyaa.in.
-    allowedHosts: ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in', 'aerospace.stellrspace.com'],
+    allowedHosts: ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in'],
   },
   uflight: {
     id: 'uflight',
     partnerId: 'uflight',
     loginHost: 'login.uflight.in',
     allowedHosts: ['uflight.in', 'www.uflight.in', 'cybersecurity.uflight.in'],
+  },
+  stellr_space: {
+    id: 'stellr_space',
+    partnerId: 'stellr-space',
+    loginHost: 'login.stellrspace.com',
+    // STELLR SPACE serves Space (built on EV.ENGINEER, deployed with AutonomousEV) under its own name and sign-in.
+    allowedHosts: ['aerospace.stellrspace.com'],
   },
 }
 

@@ -12,6 +12,7 @@ describe('Partner branding (spec §30 UI)', () => {
     ['uflight', 'UFlight™', 'Aerospace Intelligence & Cybersecurity Platform', 'UFLIGHT-INT'],
     ['itelematics', 'iTelematics®', 'Engineering Intelligence Platform', 'ITEL-INT'],
     ['ev-engineer', 'EV.ENGINEER™', 'Aerospace Intelligence & Cybersecurity Platform', 'ITEL-EV-INT'],
+    ['stellr-space', 'STELLR SPACE', 'Space Research & Engineering Platform', 'STELLR-INT'],
   ])('%s → its own name, login copy and document prefix', (id, name, subtitle, prefix) => {
     const b = brandingFor(partner(id))
     expect(b.name).toBe(name)

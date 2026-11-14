@@ -47,6 +47,7 @@ describe('domain resolution (spec §30)', () => {
   it('uflight domain → UFlight', () => expect(partnerFor('login.uflight.in')).toBe('uflight'))
   it('itelematics domain → iTelematics', () => expect(partnerFor('login.itelematics.com')).toBe('itelematics'))
   it('EV.ENGINEER domain → EV.ENGINEER', () => expect(partnerFor('login.autonomous.ev.engineer')).toBe('ev-engineer'))
+  it('STELLR SPACE domain → STELLR SPACE', () => expect(partnerFor('login.stellrspace.com')).toBe('stellr-space'))
 
   it('is case- and port-insensitive', () => {
     expect(partnerFor('LOGIN.GAMYAA.IN:443')).toBe('gamyaa')

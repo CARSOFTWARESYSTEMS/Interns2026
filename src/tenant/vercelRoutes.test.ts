@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { partnerAssetDir, partnerHtmlFile } from './socialMeta'
 import seed from './partners.seed.json'
 import vercel from '../../vercel.json'
@@ -76,6 +76,16 @@ describe('vercel.json: files are served as they are', () => {
   it.each([...seed.domains.map(d => d.hostname), ...OTHER_HOSTS])('%s', host => {
     for (const file of ASSETS) expect(served(host, file), file).toBe(file)
     for (const page of PAGES.filter(p => p !== '/index.html')) expect(served(host, page), page).toBe(page)
+  })
+
+  it("serves a Partner logo kept in public/ (STELLR SPACE) as a file on that Partner's login host", () => {
+    const own = seed.partners.filter(p => p.branding.logoUrl.startsWith(`https://${p.defaultDomain}/`))
+    expect(own.map(p => p.id)).toContain('stellr-space')
+    for (const p of own) {
+      const path = new URL(p.branding.logoUrl).pathname
+      expect(matchRoute(p.defaultDomain, path), path).toBeNull()
+      expect(existsSync(new URL(`../../public${path}`, import.meta.url)), path).toBe(true)
+    }
   })
 
   it('answers a missing file with 404, not the app page', () => {

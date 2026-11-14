@@ -28,6 +28,11 @@
     },
     {
       "src": "^/(?:index\\.html|(?:[^/]+/)*[^/.]*)$",
+      "has": [{ "type": "host", "value": { "eq": "login.stellrspace.com" } }],
+      "dest": "/index.stellr-space.html"
+    },
+    {
+      "src": "^/(?:index\\.html|(?:[^/]+/)*[^/.]*)$",
       "dest": "/index.html"
     }
   ]

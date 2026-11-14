@@ -28,6 +28,7 @@ describe('link-preview metadata per login domain', () => {
     ['gamyaa', 'login.gamyaa.in', 'GAMYAA™ AeroSystems · Engineering Command Center', 'Aerospace Engineering Intelligence Platform'],
     ['uflight', 'login.uflight.in', 'UFlight™ · Engineering Command Center', 'Aerospace Intelligence & Cybersecurity Platform'],
     ['ev-engineer', 'login.autonomous.ev.engineer', 'EV.ENGINEER™ · Engineering Command Center', 'Aerospace Intelligence & Cybersecurity Platform'],
+    ['stellr-space', 'login.stellrspace.com', 'STELLR SPACE · Engineering Command Center', 'Space Research & Engineering Platform'],
   ])('%s → its own title, description, image and canonical URL on %s', (id, host, title, subtitle) => {
     const html = htmlFor(partner(id))
     expect(html).toContain(`<title>${title.replace('&', '&amp;')}</title>`)
