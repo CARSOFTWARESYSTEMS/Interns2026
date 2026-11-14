@@ -160,6 +160,46 @@
       "city": "Bangalore",
       "country": "India",
       "documentPrefix": "ITEL-EV-INT"
+    },
+    {
+      "id": "stellr-space",
+      "slug": "stellr-space",
+      "status": "Active",
+      "displayName": "STELLR SPACE",
+      "shortName": "STELLR SPACE",
+      "legalName": "STELLR SPACE",
+      "description": "Space research, engineering and education",
+      "defaultDomain": "login.stellrspace.com",
+      "branding": {
+        "logoUrl": "https://login.stellrspace.com/partners/stellr-space/logo.png",
+        "logoDarkUrl": "",
+        "faviconUrl": "",
+        "primaryColor": "#7c3aed",
+        "secondaryColor": "#090b1d",
+        "accentColor": "#06b6d4"
+      },
+      "login": {
+        "title": "STELLR SPACE",
+        "subtitle": "Space Research & Engineering Platform",
+        "restrictedNotice": "Access is restricted to authorized STELLR SPACE team members."
+      },
+      "platform": {
+        "title": "STELLR SPACE",
+        "subtitle": "Space Research & Engineering",
+        "tagline": "Engineering Command Center",
+        "footer": "iTelematics Software Private Limited",
+        "versionLabel": "v1.0 · Engineering Command Center"
+      },
+      "contact": {
+        "supportEmail": "info@iTelematics.com",
+        "supportPhone": "+91 91082 06147",
+        "whatsappUrl": "https://wa.me/919108206147",
+        "websiteUrl": "",
+        "supportUrl": ""
+      },
+      "city": "Bangalore",
+      "country": "India",
+      "documentPrefix": "STELLR-INT"
     }
   ],
   "domains": [
@@ -184,6 +224,12 @@
     {
       "hostname": "login.autonomous.ev.engineer",
       "partnerId": "ev-engineer",
+      "isPrimary": true,
+      "status": "Active"
+    },
+    {
+      "hostname": "login.stellrspace.com",
+      "partnerId": "stellr-space",
       "isPrimary": true,
       "status": "Active"
     }

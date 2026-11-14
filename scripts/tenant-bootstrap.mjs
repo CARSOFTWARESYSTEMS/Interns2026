@@ -19,9 +19,16 @@
 //    node scripts/tenant-bootstrap.mjs --project <firebase-project-id> --apply    # write
 //    node scripts/tenant-bootstrap.mjs --project <id> --rollback migration-reports/<file>.json
 //
+//  Adding one Partner later (e.g. stellr-space):
+//    node scripts/tenant-bootstrap.mjs --project <id> --partner stellr-space            # dry run
+//    node scripts/tenant-bootstrap.mjs --project <id> --partner stellr-space --apply    # write
+//  creates only that Partner, its settings and its seeded domains; users are
+//  not migrated and nothing else is read or written.
+//
 //  Options:
 //    --config <path>   default scripts/tenant-migration.config.json
 //    --seed <path>     default src/tenant/partners.seed.json
+//    --partner <id>    only this seeded Partner (see above)
 //    --domain <host>=<partnerId>   extra hostname to map (repeatable), e.g. your
 //                                  current hosting address:
 //                                  --domain my-project.web.app=ev-engineer
@@ -44,6 +51,7 @@ const opt = (name, def) => {
 const PROJECT  = opt('--project', process.env.GCLOUD_PROJECT)
 const APPLY    = flag('--apply')
 const ROLLBACK = opt('--rollback', null)
+const ONLY_PARTNER = opt('--partner', null)
 const CONFIG   = JSON.parse(readFileSync(resolve(opt('--config', 'scripts/tenant-migration.config.json')), 'utf8'))
 const SEED     = JSON.parse(readFileSync(resolve(opt('--seed', 'src/tenant/partners.seed.json')), 'utf8'))
 
@@ -57,6 +65,11 @@ for (let i = 0; i < args.length; i++) {
     process.exit(1)
   }
   SEED.domains.push({ hostname: h, partnerId: pid, isPrimary: false, status: 'Active' })
+}
+
+if (ONLY_PARTNER && !SEED.partners.some(p => p.id === ONLY_PARTNER)) {
+  console.error(`Unknown --partner "${ONLY_PARTNER}". Seeded Partners: ${SEED.partners.map(p => p.id).join(', ')}`)
+  process.exit(1)
 }
 
 // Mirrors SUPER_ADMIN_EMAILS in src/types/auth.ts and isSuperAdminEmail() in firestore.rules.
@@ -120,6 +133,7 @@ async function rollback(manifestPath) {
 async function buildPlan() {
   // 1. Partners, settings, domains
   for (const p of SEED.partners) {
+    if (ONLY_PARTNER && p.id !== ONLY_PARTNER) continue
     await planCreate(`partners/${p.id}`, {
       ...p, createdAt: now, updatedAt: now, createdBy: ACTOR, updatedBy: ACTOR,
     }, 'seed Partner')
@@ -129,6 +143,7 @@ async function buildPlan() {
   }
 
   for (const d of SEED.domains) {
+    if (ONLY_PARTNER && d.partnerId !== ONLY_PARTNER) continue
     const host = lower(d.hostname)
     const existing = await db.doc(`partnerDomains/${host}`).get()
     if (existing.exists && existing.data().partnerId !== d.partnerId) {
@@ -139,6 +154,9 @@ async function buildPlan() {
       ...d, hostname: host, createdAt: now, updatedAt: now,
     }, 'seed domain')
   }
+
+  // One Partner only: no user migration, no inventory.
+  if (ONLY_PARTNER) return { usersScanned: 0, inventory: {} }
 
   // 2. Users → memberships in the legacy Partner
   const legacyPid = CONFIG.legacyUserPartnerId
@@ -227,7 +245,7 @@ async function buildPlan() {
 async function main() {
   if (ROLLBACK) return rollback(ROLLBACK)
 
-  console.log(`Project: ${PROJECT}   Mode: ${APPLY ? 'APPLY' : 'DRY RUN'}\n`)
+  console.log(`Project: ${PROJECT}   Mode: ${APPLY ? 'APPLY' : 'DRY RUN'}${ONLY_PARTNER ? `   Partner: ${ONLY_PARTNER} only` : ''}\n`)
   const { usersScanned, inventory } = await buildPlan()
 
   console.log(`Planned creates: ${plan.length}`)
@@ -240,7 +258,7 @@ async function main() {
   for (const [col, v] of Object.entries(inventory)) console.log(`  ${col}: ${JSON.stringify(v)}`)
 
   mkdirSync('migration-reports', { recursive: true })
-  const report = `migration-reports/tenant-bootstrap-${PROJECT}-${stamp}${APPLY ? '' : '-dryrun'}.json`
+  const report = `migration-reports/tenant-bootstrap-${PROJECT}${ONLY_PARTNER ? `-${ONLY_PARTNER}` : ''}-${stamp}${APPLY ? '' : '-dryrun'}.json`
 
   if (APPLY) {
     for (let i = 0; i < plan.length; i += 400) {

@@ -1,6 +1,6 @@
 # Multi-domain sign-in
 
-One Intern2026 identity, signed in through four branded login hosts, used by
+One Intern2026 identity, signed in through five branded login hosts, used by
 the application sites each login host serves. No cookie is shared between
 sites: every application host holds its own session, and the login host holds
 a central session that lets a second site sign in without asking again.
@@ -9,11 +9,37 @@ a central session that lets a second site sign in without asking again.
 |---|---|---|
 | `login.itelematics.com` | `itelematics.com`, `www.itelematics.com` | `itelematics` |
 | `login.autonomous.ev.engineer` | `ev.engineer`, `www.ev.engineer`, `autonomous.ev.engineer`, `aerospace.ev.engineer`, `aerospace.ishavasyam.org` | `ev-engineer` |
-| `login.gamyaa.in` | `gamyaa.in`, `www.gamyaa.in`, `aerospace.gamyaa.in`, `aerosystems.gamyaa.in`, `aerospace.stellrspace.com` | `gamyaa` |
+| `login.gamyaa.in` | `gamyaa.in`, `www.gamyaa.in`, `aerospace.gamyaa.in`, `aerosystems.gamyaa.in` | `gamyaa` |
 | `login.uflight.in` | `uflight.in`, `www.uflight.in`, `cybersecurity.uflight.in` | `uflight` |
+| `login.stellrspace.com` | `aerospace.stellrspace.com` | `stellr-space` |
 
 The table lives in one place: [`src/auth/providers.ts`](../../src/auth/providers.ts).
 Add or remove a host there and nowhere else.
+
+### Adding a login host (done for `login.stellrspace.com`, 14 Nov 2026)
+
+A new login host is a new Partner as well as a new provider. In order:
+
+1. **Code (this repo):** the provider in `src/auth/providers.ts`, the Partner and
+   its domain in `src/tenant/partners.seed.json`, a page route in `vercel.json`,
+   the origin in `storage.cors.json`, then `python3 scripts/generate-partner-images.py`
+   (optional art in `scripts/partner-art/<id>/`).
+2. **Vercel:** `interns2026` → Settings → Domains → add the host; add the CNAME
+   Vercel shows at the domain's DNS provider. Wait for the certificate.
+3. **Firebase Authentication** → Settings → Authorized domains → add the host
+   (the dashboard on the login host runs the Firebase Auth SDK).
+4. **Firestore:** `node scripts/tenant-bootstrap.mjs --project ev2027 --partner <id>`
+   (dry run), then with `--apply`. It creates only that Partner, its settings and
+   its domain; the report in `migration-reports/` is the rollback manifest.
+5. **Storage CORS:** `gcloud storage buckets update gs://ev2027.firebasestorage.app --cors-file=storage.cors.json` (Offer PDFs and uploaded logos are fetched from the login hosts).
+6. **Google Auth Platform → Branding:** add the apex domain to Authorized domains.
+7. **Deploy** this repo, then the application site's rewrite (section 2), then
+   the smoke tests (section 4).
+
+Moving an application host from one provider to another (as
+`aerospace.stellrspace.com` moved from `login.gamyaa.in`) signs out its
+visitors once, and its Login stays hidden from this repo's deploy until the
+site's rewrite points at the new login host.
 
 ## Protecting routes — required on every site
 
@@ -207,9 +233,10 @@ Domains before testing it.)
 deployment; Next.js, repo `CARSOFTWARESYSTEMS/AutonomousEV`). Its
 `next.config.ts` generates these rules from the site's own host table
 (`src/lib/auth/sites.ts`), so nothing needs copying by hand. Note
-`aerospace.gamyaa.in` and `aerospace.stellrspace.com` (both `login.gamyaa.in`)
-and `cybersecurity.uflight.in` go to **different** login hosts from the rest.
-The equivalent `vercel.json` form:
+`aerospace.gamyaa.in`, `aerospace.stellrspace.com` and
+`cybersecurity.uflight.in` each go to their **own** login host
+(`login.gamyaa.in`, `login.stellrspace.com`, `login.uflight.in`), not
+EV.ENGINEER's. The equivalent `vercel.json` form:
 
 ```json
 {
@@ -218,7 +245,7 @@ The equivalent `vercel.json` form:
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ev.engineer" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ev.engineer/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.ishavasyam.org" } }], "destination": "https://login.autonomous.ev.engineer/api/auth/app/aerospace.ishavasyam.org/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.gamyaa.in" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.gamyaa.in/:action" },
-    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.stellrspace.com" } }], "destination": "https://login.gamyaa.in/api/auth/app/aerospace.stellrspace.com/:action" },
+    { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "aerospace.stellrspace.com" } }], "destination": "https://login.stellrspace.com/api/auth/app/aerospace.stellrspace.com/:action" },
     { "source": "/api/auth/:action(login|callback|session|logout)", "has": [{ "type": "host", "value": { "eq": "cybersecurity.uflight.in" } }], "destination": "https://login.uflight.in/api/auth/app/cybersecurity.uflight.in/:action" }
   ]
 }
@@ -361,9 +388,9 @@ site's Login button will do.
 | 7 | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.gamyaa.in/aerospace?smoke=aero-g#top` |
 | 8 | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` | `login.uflight.in` (not EV.ENGINEER) | `https://cybersecurity.uflight.in/aerospace?smoke=cyber#top` |
 | 9 | `https://aerospace.ishavasyam.org/space?smoke=isha#research` | `login.autonomous.ev.engineer` | `https://aerospace.ishavasyam.org/space?smoke=isha#research` |
-| 10 | `https://aerospace.stellrspace.com/space?smoke=stellr#research` | `login.gamyaa.in` (not EV.ENGINEER) | `https://aerospace.stellrspace.com/space?smoke=stellr#research` |
+| 10 | `https://aerospace.stellrspace.com/space?smoke=stellr#research` | `login.stellrspace.com` (not GAMYAA or EV.ENGINEER) | `https://aerospace.stellrspace.com/space?smoke=stellr#research` |
 
-Rows 7, 8 and 10 check the one deployment that serves three providers.
+Rows 7, 8 and 10 check the one deployment that serves four providers.
 
 Then, in the window from row 2 (still signed in):
 
@@ -480,7 +507,8 @@ from scratch, which is expected.
 The auth domain is where Firebase runs Google sign-in (`/__/auth/handler`, in
 the popup) and the domain Google shows the user. It is **only** Firebase
 infrastructure: the branded login hosts (`login.itelematics.com`,
-`login.autonomous.ev.engineer`, `login.gamyaa.in`, `login.uflight.in`) stay the
+`login.autonomous.ev.engineer`, `login.gamyaa.in`, `login.uflight.in`,
+`login.stellrspace.com`) stay the
 product-facing sign-in addresses.
 
 ```text
@@ -514,12 +542,12 @@ environment value. A value that is not a bare hostname (e.g. a pasted
    JS=$(curl -s https://login.autonomous.ev.engineer/login | grep -oE '/assets/index[^"]+\.js' | head -1)
    curl -s "https://login.autonomous.ev.engineer$JS" | grep -oE 'VITE_FIREBASE_AUTH_DOMAIN:"[^"]*"'
    ```
-7. [ ] **Every login host:** sign in on all four; the Google window shows `auth.ev.engineer`, not `ev2027.firebaseapp.com`. Then section 7.
+7. [ ] **Every login host:** sign in on all five; the Google window shows `auth.ev.engineer`, not `ev2027.firebaseapp.com`. Then section 7.
 
 **Rollback:** set `VITE_FIREBASE_AUTH_DOMAIN` back to `ev2027.firebaseapp.com` and redeploy.
 
 **Authorized domains — keep the list minimal.** Only pages that run the
-Firebase Auth SDK need to be listed: the four login hosts, `auth.ev.engineer`,
+Firebase Auth SDK need to be listed: the five login hosts, `auth.ev.engineer`,
 and Firebase's defaults (`localhost`, `ev2027.firebaseapp.com`,
 `ev2027.web.app`). The application sites (`ev.engineer`, `www.gamyaa.in`, …)
 never run Firebase sign-in — they use the code flow above — so they don't
@@ -528,8 +556,9 @@ belong on it unless a site starts calling Firebase Auth in the browser.
 **Branding is not code.** What Google shows as the app's name and logo comes
 from Google Cloud console → Google Auth Platform → **Branding** (app name,
 user support email, logo, app home page and privacy policy links, authorized
-domains — `ev.engineer`, `itelematics.com`, `gamyaa.in`, `uflight.in` —
-and developer contact). One OAuth client serves all four brands, so pick a
+domains — `ev.engineer`, `itelematics.com`, `gamyaa.in`, `uflight.in`,
+`stellrspace.com` — and developer contact). One OAuth client serves all five
+brands, so pick a
 name that fits all of them. A logo may require Google's brand verification.
 If, after step 7, Google still shows the wrong name or logo, fix it there.
 

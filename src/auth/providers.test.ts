@@ -7,8 +7,9 @@ import seed from '../tenant/partners.seed.json'
 const SPEC: Record<string, string[]> = {
   'login.itelematics.com': ['itelematics.com', 'www.itelematics.com'],
   'login.autonomous.ev.engineer': ['ev.engineer', 'www.ev.engineer', 'autonomous.ev.engineer', 'aerospace.ev.engineer', 'aerospace.ishavasyam.org'],
-  'login.gamyaa.in': ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in', 'aerospace.stellrspace.com'],
+  'login.gamyaa.in': ['gamyaa.in', 'www.gamyaa.in', 'aerospace.gamyaa.in', 'aerosystems.gamyaa.in'],
   'login.uflight.in': ['uflight.in', 'www.uflight.in', 'cybersecurity.uflight.in'],
+  'login.stellrspace.com': ['aerospace.stellrspace.com'],
 }
 
 const allowed = AUTH_PROVIDER_LIST.flatMap(p => p.allowedHosts.map(h => [p.loginHost, h] as const))
@@ -48,6 +49,12 @@ describe('AUTH_PROVIDERS', () => {
       const domain = seed.domains.find(d => d.hostname === p.loginHost)
       expect(domain?.partnerId, p.loginHost).toBe(p.partnerId)
     }
+  })
+
+  it('signs aerospace.stellrspace.com in at login.stellrspace.com (STELLR SPACE), not GAMYAA', () => {
+    expect(providerForAppHost('aerospace.stellrspace.com')?.loginHost).toBe('login.stellrspace.com')
+    expect(providerForAppHost('aerospace.stellrspace.com')?.partnerId).toBe('stellr-space')
+    expect(isAllowedAppHost(AUTH_PROVIDERS.gamyaa, 'aerospace.stellrspace.com')).toBe(false)
   })
 
   it('ids match their keys', () => {
